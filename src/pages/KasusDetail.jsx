@@ -1,0 +1,102 @@
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { jsPDF } from "jspdf";
+
+export default function KasusDetail({ data }) {
+  const { id } = useParams(); // ambil id dari URL
+  const navigate = useNavigate();
+  const [kasus, setKasus] = useState(null);
+
+  useEffect(() => {
+    // ✅ sementara pakai dummy data
+    const dummy = {
+      id,
+      nomor: `REG-${2025000 + parseInt(id)}`,
+      pengadu: `Pengadu ${id}`,
+      pelakuUsaha: `PT Usaha ${id}`,
+      tanggal: "2025-09-21",
+      status: "Pending",
+      deskripsi: "Pengaduan mengenai sengketa pembelian barang elektronik.",
+      dokumen: [
+        { id: 1, nama: "Surat Pengaduan.pdf", url: "#" },
+        { id: 2, nama: "Bukti Transaksi.jpg", url: "#" },
+      ],
+    };
+
+    setKasus(dummy);
+  }, [id]);
+
+  if (!kasus) {
+    return <p className="p-4">Memuat data...</p>;
+  }
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text("Laporan Pengaduan Sengketa Konsumen", 10, 20);
+
+    doc.setFontSize(12);
+    doc.text(`Nomor Pendaftaran: ${kasus.nomor}`, 10, 40);
+    doc.text(`Pengadu: ${kasus.pengadu}`, 10, 50);
+    doc.text(`Pelaku Usaha: ${kasus.pelakuUsaha}`, 10, 60);
+    doc.text(
+        `Tanggal Pengaduan: ${new Date(kasus.tanggal).toLocaleDateString("id-ID")}`,
+        10,
+        70
+      );
+    doc.text(`Status: ${kasus.status}`, 10, 80);
+
+    doc.text("Deskripsi:", 10, 100);
+    doc.text(kasus.deskripsi || "-", 10, 110, { maxWidth: 180 });
+
+    doc.save(`Surat_Pengaduan_${kasus.nomor}.pdf`);
+  };
+
+  return (
+    <div className="p-6 bg-white shadow-md rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Detail Kasus</h2>
+
+      <div className="space-y-2 mb-4">
+        <p><strong>Nomor Pendaftaran:</strong> {kasus.nomor}</p>
+        <p><strong>Pengadu:</strong> {kasus.pengadu}</p>
+        <p><strong>Pelaku Usaha:</strong> {kasus.pelakuUsaha}</p>
+        <p>
+          <strong>Tanggal Pengaduan:</strong>{" "}
+          {new Date(kasus.tanggal).toLocaleDateString("id-ID")}
+        </p>
+        <p><strong>Status:</strong> {kasus.status}</p>
+        <p><strong>Deskripsi:</strong> {kasus.deskripsi}</p>
+      </div>
+
+      <h3 className="font-semibold mb-2">Dokumen Terlampir</h3>
+      <ul className="list-disc pl-5 space-y-1">
+        {kasus.dokumen.map((doc) => (
+          <li key={doc.id}>
+            <a
+              href={doc.url}
+              className="text-blue-600 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {doc.nama}
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-6 flex gap-2">
+        <button
+          onClick={() => navigate(-1)}
+          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded"
+        >
+          Kembali
+        </button>
+              <button onClick={handleDownloadPDF}
+                  className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded">
+                Download Semua
+              </button>
+      </div>
+    </div>
+  );
+}
