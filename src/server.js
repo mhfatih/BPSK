@@ -1,20 +1,15 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 3000;
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser());
 
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const formRoutes = require('./routes/formRoutes');
-app.use('/auth', authRoutes);
-app.use('/form', formRoutes);
-
-// Route sederhana
-app.get('/', (req, res) => {
-  res.send('Server Connected');
-});
+// Import main routes
+const routes = require('./routes/routes');
+app.use('/api', routes);
 
 // Jalankan server
 app.listen(PORT, () => {

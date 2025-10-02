@@ -1,9 +1,10 @@
-// Simulasi database sementara
-let users = [];
+const jwt = require('jsonwebtoken');
+const { users } = require('../db');
+const { v4: uuidv4 } = require('uuid');
 
-// =========================
+const SECRET_KEY = 'secret123';
+
 // REGISTER
-// =========================
 const register = (req, res) => {
   const { email, namaLengkap, password, confirmPassword } = req.body;
 
@@ -20,27 +21,27 @@ const register = (req, res) => {
     return res.status(400).json({ message: 'Email sudah terdaftar' });
   }
 
-  // Data user awal
   users.push({
+    id: uuidv4(),
     email,
-    namaLengkap,
     password,
+    role: 'user', // default role
     profile: {
+      namaLengkap,
       tanggalLahir: null,
       jenisKelamin: null,
       alamat: null,
+      kota: null,
       kodePos: null,
       noHp: null,
-      identitas: null, // KTP/SIM
+      identitas: null,
     },
   });
 
   res.status(201).json({ message: 'Registrasi berhasil' });
 };
 
-// =========================
-// LOGIN (email saja)
-// =========================
+// LOGIN
 const login = (req, res) => {
   const { email, password } = req.body;
 
@@ -49,54 +50,33 @@ const login = (req, res) => {
   }
 
   const user = users.find(u => u.email === email && u.password === password);
-
   if (!user) {
     return res.status(401).json({ message: 'Email atau password salah' });
   }
 
-  res.json({ message: `Login berhasil, selamat datang ${user.namaLengkap}` });
-};
+  // Buat token JWT dengan role & id user (supaya bisa dipakai untuk getProfile/updateProfile)
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    SECRET_KEY,
+    { expiresIn: '1h' }
+  );
 
-// =========================
-// GET PROFILE
-// =========================
-const getProfile = (req, res) => {
-  const { email } = req.params;
-
-  const user = users.find(u => u.email === email);
-  if (!user) {
-    return res.status(404).json({ message: 'User tidak ditemukan' });
-  }
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: false,
+    maxAge: 3600000
+  });
 
   res.json({
-    email: user.email,
-    namaLengkap: user.namaLengkap,
-    profile: user.profile,
+    message: `Login berhasil, selamat datang ${user.profile.namaLengkap}`,
+    role: user.role
   });
 };
 
-// =========================
-// UPDATE PROFILE
-// =========================
-const updateProfile = (req, res) => {
-  const { email } = req.params;
-  const { tanggalLahir, jenisKelamin, alamat, kodePos, noHp, identitas } = req.body;
-
-  const user = users.find(u => u.email === email);
-  if (!user) {
-    return res.status(404).json({ message: 'User tidak ditemukan' });
-  }
-
-  user.profile = {
-    tanggalLahir: tanggalLahir || user.profile.tanggalLahir,
-    jenisKelamin: jenisKelamin || user.profile.jenisKelamin,
-    alamat: alamat || user.profile.alamat,
-    kodePos: kodePos || user.profile.kodePos,
-    noHp: noHp || user.profile.noHp,
-    identitas: identitas || user.profile.identitas,
-  };
-
-  res.json({ message: 'Profile berhasil diperbarui', profile: user.profile });
+// LOGOUT
+const logout = (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logout berhasil' });
 };
 
-module.exports = { register, login, getProfile, updateProfile };
+module.exports = { register, login, logout };
