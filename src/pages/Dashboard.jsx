@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
+
 // import logo from '../logo.png';
 
 
@@ -13,6 +14,8 @@ import { IoLogoBuffer } from "react-icons/io";
 import { CiSettings } from "react-icons/ci";
 import { MdOutlineDashboard } from "react-icons/md";
 import { GoLaw } from "react-icons/go";
+import { RiAdminLine } from "react-icons/ri";
+import { CgProfile } from "react-icons/cg";
 
 
 const menuItems = [
@@ -32,21 +35,21 @@ const menuItems = [
     path: '/dashboard/pengaduan'
   },
   {
-    icons: <CiSettings size={30} />,
-    label: 'Setting',
-    path: '/dashboard/settings'
+    icons: <RiAdminLine size={30} />,
+    label: 'Manajemen',
+    path: '/dashboard/manajemen'
     
   },
   {
-    icons: <IoLogoBuffer size={30} />,
-    label: 'Log',
-    path: '/dashboard/log'
+    icons: <CgProfile size={30} />,
+    label: 'Profile',
+    path: '/dashboard/profile'
   },
-  {
-    icons: <TbReportSearch size={30} />,
-    label: 'Laporan Saya',
-    path: '/dashboard/laporan'
-  }
+  // {
+  //   icons: <TbReportSearch size={30} />,
+  //   label: 'Laporan Saya',
+  //   path: '/dashboard/laporan'
+  // }
 ]
 
 export default function Dashboard() {

@@ -6,6 +6,8 @@ import DashboardPage from "./pages/DashboardPage";
 import KasusPage from "./pages/KasusPage";
 import KasusDetail from "./pages/KasusDetail";
 import PengaduanPage from "./pages/PengaduanPage";
+import ManajemenPage from "./pages/ManajemenPage";
+import ProfilePage from "./pages/ProfilePage";
 
 function App() {
   return (
@@ -19,9 +21,9 @@ function App() {
         <Route path="kasus" element={<KasusPage />} />
         <Route path="kasus/:id" element={<KasusDetail />} />
         <Route path="pengaduan" element={<PengaduanPage />} />
-        {/* <Route path="settings" element={<SettingsPage />} />
-        <Route path="log" element={<LogPage />} />
-        <Route path="laporan" element={<LaporanPage />} />  */}
+        <Route path="manajemen" element={<ManajemenPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        {/* <Route path="laporan" element={<LaporanPage />} />  */}
       </Route>
       
     </Routes>
