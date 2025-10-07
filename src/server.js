@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 3000;
@@ -10,6 +11,7 @@ app.use(cookieParser());
 // Import main routes
 const routes = require('./routes/routes');
 app.use('/api', routes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Jalankan server
 app.listen(PORT, () => {

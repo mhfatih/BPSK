@@ -7,18 +7,19 @@ const userController = require('../controllers/userController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleCheck = require('../middlewares/roleMiddleware');
+const { uploadProfile, uploadKasusDataDiri } = require('../middlewares/upload');
 
 // ==================== AUTH ====================
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
 router.get('/profile', authMiddleware, userController.getProfile);
-router.put('/profile', authMiddleware, userController.updateProfile);
+router.put('/profile', authMiddleware, uploadProfile.single('foto_identitas'), userController.updateProfile);
 router.put('/change-password', authMiddleware, userController.changePassword);
 
 // ==================== KASUS ====================
 router.post('/kasus/kasus-add', authMiddleware, kasusController.createKasus);
-router.post('/kasus/:id/data-diri-update', authMiddleware, kasusController.updateDataDiri);
+router.post('/kasus/:id/data-diri-update', authMiddleware, uploadKasusDataDiri.single('foto_identitas'), kasusController.updateDataDiri);
 router.post('/kasus/:id/pelaku-usaha-update', authMiddleware, kasusController.updatePelakuUsaha);
 router.post('/kasus/:id/tentang-pengaduan-update', authMiddleware, kasusController.updateTentangPengaduan);
 router.post('/kasus/:id/kronologis-update', authMiddleware, kasusController.updateKronologis);
