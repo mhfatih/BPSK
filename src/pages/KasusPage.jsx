@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import StatusBadge from "../assets/StatusBadge";
 
 const statusOptions = ["Pending", "Ditolak", "Diterima", "Selesai"]; // hanya untuk data
 const statuses = ["Semua", ...statusOptions]; // untuk filter dropdown
+
+
 
 export default function KasusPage() {
     const [kasus, setKasus] = useState([]);
@@ -113,18 +116,25 @@ export default function KasusPage() {
                     {new Date(item.tanggal).toLocaleDateString("id-ID")}
                   </td>
                   <td className="px-4 py-2 border">
-                  <select
-                      value={item.status}
-                      onChange={(e) =>
-                        handleStatusChange(item.id, e.target.value)
-                      }
-                      className="border px-2 py-1 rounded text-sm focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Diterima">Diterima</option>
-                      <option value="Ditolak">Ditolak</option>
-                      <option value="Selesai">Selesai</option>
-                    </select>
+                  
+                  <StatusBadge status={item.status} />
+                    
+                    {/* <div
+                    className={`inline-block px-3 py-1 text-sm font-medium rounded-full 
+                      ${
+                        item.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : item.status === "Diterima"
+                          ? "bg-green-100 text-green-800"
+                          : item.status === "Ditolak"
+                          ? "bg-red-100 text-red-800"
+                          : item.status === "Selesai"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                  >
+                    {item.status}
+                  </div> */}
                   </td>
                   <td className="px-4 py-2 border text-center space-x-2">
                   <Link

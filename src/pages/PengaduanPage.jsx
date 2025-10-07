@@ -5,6 +5,8 @@ import FloatingInput from "../assets/FloatingInput";
 
 export default function PengaduanPage() {
   const [step, setStep] = useState(1);
+  const [useProfile, setUseProfile] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     tanggal: new Date().toISOString().split("T")[0],
     nomorRegistrasi: `REG-${Date.now()}`,
@@ -28,31 +30,13 @@ export default function PengaduanPage() {
     kotaUsaha: "",
     teleponUsaha:"",
     
+    lampiran: [null], // minimal satu input file
     kronologis: "",
     berkas: null,
     persetujuan: false,
   });
     
-    // Kalau pilih pakai profil → auto isi data
-//   useEffect(() => {
-//     if (useProfile && user) {
-//       setFormData((prev) => ({
-//         ...prev,
-//         nama: user.nama || "",
-//         tanggalLahir: user.tanggalLahir || "",
-//         umur: user.tanggalLahir
-//           ? new Date().getFullYear() -
-//             new Date(user.tanggalLahir).getFullYear()
-//           : "",
-//         gender: user.gender || "",
-//         alamat: user.alamat || "",
-//         kota: user.kota || "",
-//         telepon: user.telepon || "",
-//         email: user.email || "",
-//         fotoIdentitas: user.fotoIdentitas || null,
-//       }));
-//     }
-//   }, [useProfile, user]);
+    
 
   const steps = [
     { id: 1, label: "Pendaftaran", icon: Calendar },
@@ -62,6 +46,62 @@ export default function PengaduanPage() {
     { id: 5, label: "Kronologis", icon: FileText },
     { id: 6, label: "Konfirmasi", icon: CheckCircle },
   ];
+
+  const handleToggleProfile = async () => {
+    const newState = !useProfile;
+    setUseProfile(newState);
+  
+    if (newState) {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/profile"); // Ganti sesuai endpoint API kamu
+        const data = await res.json();
+  
+        setFormData({
+          ...formData,
+          nama: data.nama || "",
+          tanggalLahir: data.tanggalLahir || "",
+          gender: data.gender || "",
+          alamat: data.alamat || "",
+          kodepos: data.kodepos || "",
+          kota: data.kota || "",
+          telepon: data.telepon || "",
+          email: data.email || "",
+          nik: data.nik || "",
+        });
+      } catch (error) {
+        console.error("Gagal mengambil data profil:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+    // Handle tambah lampiran baru
+  const handleAddFile = () => {
+    setFormData((prev) => ({
+      ...prev,
+      lampiran: [...prev.lampiran, null],
+    }));
+  };
+
+  // Handle hapus lampiran tertentu
+  const handleRemoveFile = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      lampiran: prev.lampiran.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Handle perubahan file
+  const handleFileChange = (e, index) => {
+    const file = e.target.files[0];
+    setFormData((prev) => {
+      const updated = [...prev.lampiran];
+      updated[index] = file;
+      return { ...prev, lampiran: updated };
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value, type, files, checked } = e.target;
@@ -157,24 +197,32 @@ export default function PengaduanPage() {
           <div className="space-y-3">
             <h2 className="text-lg font-semibold mb-4">Data Pengadu</h2>
             {/* 🔥 Pilihan pakai profil atau manual */}
-          <div className="flex gap-4 mb-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                // checked={useProfile}
-                // onChange={() => setUseProfile(true)}
-              />
-              Gunakan Profil Saya
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                // checked={!useProfile}
-                // onChange={() => setUseProfile(false)}
-              />
-              Isi Manual
-            </label>
-          </div>
+          
+            {/* 🌙 Toggle Ambil dari Profil */}
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-600">
+                {useProfile
+                  ? loading
+                    ? "Mengambil data profil..."
+                    : "Menggunakan data dari profil."
+                  : "Isi data secara manual."}
+              </p>
+
+              {/* Toggle Switch (Animated) */}
+              <div
+                onClick={handleToggleProfile}
+                className={`relative w-14 h-7 flex items-center cursor-pointer transition-all duration-300 ${
+                  useProfile ? "bg-blue-600" : "bg-gray-300"
+                } rounded-full shadow-inner`}
+              >
+                <div
+                  className={`absolute left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
+                    useProfile ? "translate-x-7" : "translate-x-0"
+                  }`}
+                />
+              </div>
+            </div>
+            
             <div className="relative">
             
             <FloatingInput
@@ -182,6 +230,7 @@ export default function PengaduanPage() {
                 name="nama"
                 value={formData.nama}
                 onChange={handleChange}
+                disabled={useProfile && !loading}
             />
             <div className="flex items-center pt-3 pb-3 gap-5">
               <input
@@ -190,7 +239,7 @@ export default function PengaduanPage() {
                 className="border p-2 rounded"
                 value={formData.tanggalLahir}
                 onChange={handleTanggalLahir}
-                // disabled={useProfile} // kalau pakai profil → tidak bisa edit
+                disabled={useProfile && !loading} //kalau pakai profil → tidak bisa edit
               />
               <span>Umur: {formData.umur || "-"} tahun</span>
             </div>
@@ -202,7 +251,7 @@ export default function PengaduanPage() {
                   value="Laki-laki"
                   checked={formData.gender === "Laki-laki"}
                   onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                
+                  disabled={useProfile && !loading}               
                 /> Laki-laki
               </label>
               <label>
@@ -212,7 +261,7 @@ export default function PengaduanPage() {
                   value="Perempuan"
                   checked={formData.gender === "Perempuan"}
                   onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                
+                  disabled={useProfile && !loading}               
                 /> Perempuan
               </label>
             </div>
@@ -222,7 +271,7 @@ export default function PengaduanPage() {
                 name="alamat"
                 value={formData.alamat}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
+                disabled={useProfile && !loading}                  
             />
             </div>                  
 
@@ -232,7 +281,7 @@ export default function PengaduanPage() {
                 name="kodepos"
                 value={formData.kodepos}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
+                disabled={useProfile && !loading}                 
             />
             </div>                 
             <div className="flex items-center pt-2 pb-2 gap-5">
@@ -241,7 +290,7 @@ export default function PengaduanPage() {
               className="w-full border p-2 rounded"
               value={formData.kota}
               onChange={handleChange}
-            //   disabled={useProfile} // kalau pakai profil → tidak bisa edit            
+              disabled={useProfile && !loading}         
             >
               <option value="">Pilih Kota/Kabupaten</option>
               <option>Bandung</option>
@@ -258,7 +307,7 @@ export default function PengaduanPage() {
                 type="tel"                  
                 value={formData.telepon}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
+                disabled={useProfile && !loading}                   
             />
             </div>  
 
@@ -269,7 +318,7 @@ export default function PengaduanPage() {
                 type="email"                  
                 value={formData.email}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
+                disabled={useProfile && !loading}                  
             />
             </div>                
             
@@ -280,7 +329,7 @@ export default function PengaduanPage() {
                 type="text"                  
                 value={formData.nik}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
+                disabled={useProfile && !loading}                  
             />
             </div>  
             
@@ -290,7 +339,7 @@ export default function PengaduanPage() {
               className="w-full border p-2 rounded"
               accept="image/*,"
               onChange={handleChange}
-            //   disabled={useProfile} // kalau pakai profil → tidak bisa edit            
+              disabled={useProfile && !loading}            
             />
 
             {formData.fotoIdentitas && (
@@ -448,11 +497,12 @@ export default function PengaduanPage() {
 
                 {/* Checkbox Material */}
                 <div className="grid grid-cols-12 gap-2 mb-2 items-center">
-                  <div className="col-span-2 flex items-center gap-2">
+                  <div className="col-span-2 flex items-center gap-2 py-3">
                     <input
                       type="checkbox"
                       id="material"
                       name="kerugianMaterial"
+                      className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
                       checked={formData.kerugianMaterial}
                       onChange={handleChange}
                     />
@@ -474,11 +524,12 @@ export default function PengaduanPage() {
 
               {/* Checkbox Fisik */}
               <div className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-2 flex items-center gap-2">
+                <div className="col-span-2 flex items-center gap-2 py-3">
                   <input
                     type="checkbox"
                     id="fisik"
                     name="kerugianFisik"
+                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
                     checked={formData.kerugianFisik}
                     onChange={handleChange}
                   />
@@ -500,7 +551,61 @@ export default function PengaduanPage() {
 
             </div>
 
-            <input
+            {/* Lampiran Bukti */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Lampiran Bukti (Gambar atau PDF)
+              </label>
+
+              {formData.lampiran.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 mb-2 border p-2 rounded bg-gray-50"
+                >
+                  <input
+                  type="text"
+                  name="labelLampiran"
+                  placeholder="Bukti-Bukti"
+                  className="border p-2 rounded"
+                  value={formData.tempatKejadian}
+                  onChange={handleChange}
+                />
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => handleFileChange(e, index)}
+                    className="flex-1 text-sm"
+                  />
+                  {file && (
+                  <span className="text-xs text-gray-600 truncate w-32">
+                    {file.name}
+                  </span>
+                  )}
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                
+              ))}
+
+              
+              <button
+                type="button"
+                onClick={handleAddFile}
+                className="mt-2 flex items-center gap-2 px-3 py-2 border border-blue-500 text-blue-600 rounded hover:bg-blue-50 transition"
+              >
+                ➕ Tambah Lampiran
+              </button>
+              
+            </div>
+
+            {/* <input
               type="file"
               name="berkas"
               onChange={handleChange}
@@ -508,7 +613,7 @@ export default function PengaduanPage() {
             />
             {formData.berkas && (
               <p className="text-sm text-gray-600">File dipilih: {formData.berkas.name}</p>
-            )}
+            )} */}
           </div>
         )}
               
@@ -525,44 +630,200 @@ export default function PengaduanPage() {
               rows="4"
               required
             />
-            <input
-              type="file"
-              name="berkas"
-              onChange={handleChange}
-              className="border px-3 py-2 rounded w-full"
-            />
-            {formData.berkas && (
-              <p className="text-sm text-gray-600">File dipilih: {formData.berkas.name}</p>
-            )}
+            <div className="flex-col  pb-1 gap-5">
+            <label className="text-sm text-gray-600 mb-1">Jenis Tuntutan Ganti Rugi Yang Diinginkan</label>
+
+                <div className="col-span-2 flex items-center gap-2 py-3">
+                  <input
+                    type="checkbox"
+                    id="barang"
+                    name="gantiBarang"
+                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
+                    checked={formData.gantiBarang}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="barang" className="text-sm">
+                    Penggantian barang/jasa yang sejenis atau setara lainnya
+                  </label>
+                </div>
+                <div className="col-span-2 flex items-center gap-2 py-3">
+                  <input
+                    type="checkbox"
+                    id="uang"
+                    name="gantiUang"
+                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
+                    checked={formData.gantiUang}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="uang" className="text-sm">
+                   Pengembalian uang, atau
+                  </label>
+                </div>
+                <div className="col-span-2 flex items-center gap-2 py-3">
+                  <input
+                    type="checkbox"
+                    id="rawat"
+                    name="gantiRawat"
+                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
+                    checked={formData.gantiRawat}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="rawat" className="text-sm">
+                   Perawatan kesehatan dan/atau
+                  </label>
+                </div>
+                <div className="col-span-2 flex items-center gap-2 py-3">
+                  <input
+                    type="checkbox"
+                    id="santunan"
+                    name="gantiSantunan"
+                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
+                    checked={formData.gantiSantunan}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="santunan" className="text-sm">
+                    Pemberian santunan
+                  </label>
+                </div>
+                <div className="col-span-2 flex items-center gap-2 py-3">
+                  <input
+                    type="checkbox"
+                    id="teguran"
+                    name="gantiTeguran"
+                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
+                    checked={formData.gantiTeguran}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="teguran" className="text-sm">
+                    Teguran kepada pelaku usaha
+                  </label>
+                </div>
+                {/* Checkbox Moril */}
+                <div className="grid grid-cols-12 gap-2 py-3 items-center">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="moril"
+                      name="gantiMoril"
+                      className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
+                      checked={formData.gantiMoril}
+                      onChange={handleChange}
+                    />
+                    <label htmlFor="moril" className="text-sm">
+                      Moril
+                    </label>
+                  </div>
+                  {formData.gantiMoril && (
+                    <input
+                      type="text"
+                      name="deskripsiMoril"
+                      className="col-span-10 border p-2 rounded"
+                      placeholder=" "
+                      value={formData.deskripsiMoril}
+                      onChange={handleChange}
+                    />
+                  )}
+                </div>
+                {/* Checkbox Lain-lain */}
+                <div className="grid grid-cols-12 gap-2 py-3 items-center">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="lainLain"
+                      name="gantiLain"
+                      className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
+                      checked={formData.gantiLain}
+                      onChange={handleChange}
+                    />
+                    <label htmlFor="lain" className="text-sm flex items-center">
+                      Lain-lain
+                    </label>
+                  </div>
+                  {formData.gantiLain && (
+                    <input
+                      type="text"
+                      name="deskripsiLain"
+                      className="col-span-10 border p-2 rounded"
+                      placeholder=" "
+                      value={formData.deskripsiLain}
+                      onChange={handleChange}
+                    />
+                  )}
+                </div>
+
+            
+            </div> 
           </div>
         )}
 
-        {/* Step 6 */}
+        
+        {/* Step 6 - Konfirmasi Data */}
         {step === 6 && (
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg mb-2">Konfirmasi Data</h3>
-            <p><strong>No Registrasi:</strong> {formData.nomorRegistrasi}</p>
-            <p><strong>Nama:</strong> {formData.nama}</p>
-            <p><strong>Email:</strong> {formData.email}</p>
-            <p><strong>Pelaku Usaha:</strong> {formData.pelakuUsaha}</p>
-            <p><strong>Alamat Usaha:</strong> {formData.alamatUsaha}</p>
-            <p><strong>Kronologis:</strong> {formData.kronologis}</p>
-            <p><strong>Berkas:</strong> {formData.berkas ? formData.berkas.name : "Tidak ada"}</p>
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold border-b pb-2 text-gray-800">
+              Konfirmasi Data
+            </h3>
 
-            <div className="flex items-center gap-2 mt-4">
-              <input
-                type="checkbox"
-                name="persetujuan"
-                checked={formData.persetujuan}
-                onChange={handleChange}
-                required
-              />
-              <label className="text-sm text-gray-700">
-                Saya menyatakan data yang saya isi adalah benar.
+            {/* Data Ringkasan */}
+            <div className="bg-gray-50 border rounded-xl p-5 shadow-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <div>
+                  <dt className="font-medium text-gray-600">No Registrasi</dt>
+                  <dd className="text-gray-800">{formData.nomorRegistrasi || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Nama</dt>
+                  <dd className="text-gray-800">{formData.nama || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Email</dt>
+                  <dd className="text-gray-800">{formData.email || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Pelaku Usaha</dt>
+                  <dd className="text-gray-800">{formData.pelakuUsaha || "-"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-gray-600">Alamat Usaha</dt>
+                  <dd className="text-gray-800">{formData.alamatUsaha || "-"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-gray-600">Kronologis</dt>
+                  <dd className="text-gray-800 whitespace-pre-line">
+                    {formData.kronologis || "-"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Berkas</dt>
+                  <dd className="text-gray-800">
+                    {formData.berkas ? formData.berkas.name : "Tidak ada"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* Persetujuan */}
+            <div className="flex items-center gap-3 mt-6 bg-blue-50 border border-blue-200 p-4 rounded-lg">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="persetujuan"
+                  checked={formData.persetujuan}
+                  onChange={handleChange}
+                  className="sr-only peer"
+                  required
+                />
+                <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-blue-600 transition-all duration-300"></div>
+                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 peer-checked:translate-x-5"></div>
               </label>
+
+              <span className="text-sm text-gray-700">
+                Demikian formulir ini saya isi dengan benar dan jujur serta dapat dipertanggungjawabkan sesuai dengan peraturan perundang-undangan yang berlaku.
+              </span>
             </div>
           </div>
         )}
+
 
         {/* Navigation */}
         <div className="flex justify-between mt-6">
