@@ -28,10 +28,7 @@ function createUploader(getUploadPath, getFilename) {
   return multer({ storage });
 }
 
-/**
- * Contoh preset siap pakai
- */
-const uploadProfile = createUploader(
+const Profile = createUploader(
   (req) => {
     const userId = req.user?.id || 'unknown_user';
     return path.join(__dirname, '..', 'uploads', userId, 'profile');
@@ -39,7 +36,7 @@ const uploadProfile = createUploader(
   (req, file) => 'identitas' + path.extname(file.originalname)
 );
 
-const uploadKasusDataDiri = createUploader(
+const KasusDataDiri = createUploader(
   (req) => {
     const userId = req.user?.id || 'unknown_user';
     const kasusId = req.params.id;
@@ -48,8 +45,35 @@ const uploadKasusDataDiri = createUploader(
   (req, file) => 'identitas' + path.extname(file.originalname)
 );
 
+const KasusBukti = createUploader(
+  (req) => {
+    const userId = req.user?.id || 'unknown_user';
+    const kasusId = req.params.id;
+    return path.join(__dirname, '..', 'uploads', userId, 'kasus', kasusId);
+  },
+  (req, file) => {
+    // Tentukan prefix nama file berdasarkan fieldname
+    let prefix = 'bukti';
+    if (file.fieldname === 'foto_bukti_pembelian') prefix = 'bukti_pembelian';
+    else if (file.fieldname === 'foto_barang_bukti') prefix = 'barang_bukti';
+
+    // Hitung urutan file di setiap field
+    if (!req._fileCount) req._fileCount = {};
+    req._fileCount[file.fieldname] = (req._fileCount[file.fieldname] || 0) + 1;
+
+    const nomor = req._fileCount[file.fieldname]; // urutan ke-1, ke-2, dst
+
+    // 🔥 Tambahkan timestamp biar unik
+    const timestamp = Date.now();
+
+    // nama akhir → bukti_pembelian_1_1696860987780.jpg
+    return `${prefix}_${nomor}_${timestamp}${path.extname(file.originalname)}`;
+  }
+);
+
 module.exports = {
   createUploader,
-  uploadProfile,
-  uploadKasusDataDiri
+  Profile,
+  KasusDataDiri,
+  KasusBukti
 };

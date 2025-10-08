@@ -1,10 +1,12 @@
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
 // Middleware
+app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 

@@ -7,21 +7,21 @@ const userController = require('../controllers/userController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleCheck = require('../middlewares/roleMiddleware');
-const { uploadProfile, uploadKasusDataDiri } = require('../middlewares/upload');
+const upload = require('../middlewares/upload');
 
 // ==================== AUTH ====================
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
 router.get('/profile', authMiddleware, userController.getProfile);
-router.put('/profile', authMiddleware, uploadProfile.single('foto_identitas'), userController.updateProfile);
+router.put('/profile', authMiddleware, upload.Profile.single('foto_identitas'), userController.updateProfile);
 router.put('/change-password', authMiddleware, userController.changePassword);
 
 // ==================== KASUS ====================
 router.post('/kasus/kasus-add', authMiddleware, kasusController.createKasus);
-router.post('/kasus/:id/data-diri-update', authMiddleware, uploadKasusDataDiri.single('foto_identitas'), kasusController.updateDataDiri);
+router.post('/kasus/:id/data-diri-update', authMiddleware, upload.KasusDataDiri.single('foto_identitas'), kasusController.updateDataDiri);
 router.post('/kasus/:id/pelaku-usaha-update', authMiddleware, kasusController.updatePelakuUsaha);
-router.post('/kasus/:id/tentang-pengaduan-update', authMiddleware, kasusController.updateTentangPengaduan);
+router.post('/kasus/:id/tentang-pengaduan-update', authMiddleware, upload.KasusBukti.fields([{ name: 'foto_bukti_pembelian', maxCount: 10 },{ name: 'foto_barang_bukti', maxCount: 10 },]), kasusController.updateTentangPengaduan);
 router.post('/kasus/:id/kronologis-update', authMiddleware, kasusController.updateKronologis);
 router.post('/kasus/:id/submit-kasus', authMiddleware, kasusController.submitKasus);
 router.post('/kasus/:id/verify-kasus', authMiddleware, kasusController.verifyKasus);

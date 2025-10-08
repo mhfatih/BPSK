@@ -207,51 +207,261 @@ const updatePelakuUsaha = async (req, res) => {
 };
 
 /**
- * Update tentang pengaduan
+ * Update tentang pengaduan + bukti
  */
 const updateTentangPengaduan = async (req, res) => {
   const { id } = req.params;
-  const { jenis_pengaduan, tanggal_kejadian, waktu_kejadian, lokasi, kerugian, bukti_pembelian, bukti_saksi, barang_bukti } = req.body;
+  const {
+    jenis_pengaduan,
+    tanggal_kejadian,
+    waktu_kejadian,
+    lokasi_kejadian,
+    kerugian_material,
+    keterangan_material,
+    kerugian_fisik,
+    keterangan_fisik,
+    // Bukti Pembelian
+    jenis_bukti_pembelian,
+    // Barang Bukti
+    status_barang_bukti,
+    keterangan_barang_bukti,
+    // Bukti Saksi
+    status_saksi,
+    hubungan_dengan_saksi,
+  } = req.body;
 
   try {
-    // cek kasus
+    // 🔍 Cek apakah kasus ada
     const [rows_kasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
-    if (rows_kasus.length === 0) {
+    if (rows_kasus.length === 0)
       return res.status(404).json({ message: 'Kasus tidak ditemukan' });
-    }
 
     const kasus_data = rows_kasus[0];
-    if (kasus_data.created_by !== req.user.id) {
+    if (kasus_data.created_by !== req.user.id)
       return res.status(403).json({ message: 'Tidak boleh mengedit kasus orang lain' });
-    }
 
-    // validasi
-    if (!jenis_pengaduan || !tanggal_kejadian || !waktu_kejadian || !lokasi || !kerugian || !bukti_pembelian || !bukti_saksi || !barang_bukti) {
-      return res.status(400).json({ message: 'Semua field pengaduan wajib diisi' });
-    }
+    // ✅ Validasi pengaduan utama
+    if (!jenis_pengaduan || !tanggal_kejadian || !waktu_kejadian || !lokasi_kejadian)
+      return res.status(400).json({ message: 'Field wajib tidak lengkap' });
 
-    const data = {
+    // 💡 Konversi boolean dari string
+    const material = kerugian_material === 'true' || kerugian_material === true;
+    const fisik = kerugian_fisik === 'true' || kerugian_fisik === true;
+
+    const pengaduanData = {
       jenis_pengaduan,
       tanggal_kejadian,
       waktu_kejadian,
-      lokasi,
-      kerugian,
-      bukti_pembelian,
-      bukti_saksi,
-      barang_bukti
+      lokasi_kejadian,
+      kerugian_material: material,
+      keterangan_material: material ? keterangan_material || null : null,
+      kerugian_fisik: fisik,
+      keterangan_fisik: fisik ? keterangan_fisik || null : null,
     };
 
-    // cek sudah ada / belum
+    // 💾 Update / Insert kasus_pengaduan
     const [existing] = await db.query('SELECT * FROM kasus_pengaduan WHERE kasus_id = ?', [id]);
-    if (existing.length > 0) {
-      await db.query('UPDATE kasus_pengaduan SET ? WHERE kasus_id = ?', [data, id]);
+    if (existing.length > 0)
+      await db.query('UPDATE kasus_pengaduan SET ? WHERE kasus_id = ?', [pengaduanData, id]);
+    else
+      await db.query('INSERT INTO kasus_pengaduan SET ?, kasus_id = ?', [pengaduanData, id]);
+
+    // 🧾 Minimal bukti pembelian & barang bukti wajib diisi
+    if (!jenis_bukti_pembelian || !status_barang_bukti)
+      return res.status(400).json({ message: 'Bukti pembelian dan barang bukti wajib diisi' });
+
+    // 💾 Simpan / Update Bukti Pembelian
+    const [existingPembelian] = await db.query(
+      'SELECT id FROM kasus_bukti_pembelian WHERE kasus_id = ?',
+      [id]
+    );
+
+    let pembelian_id;
+    if (existingPembelian.length > 0) {
+      pembelian_id = existingPembelian[0].id;
+      await db.query(
+        'UPDATE kasus_bukti_pembelian SET jenis_bukti = ? WHERE kasus_id = ?',
+        [jenis_bukti_pembelian, id]
+      );
     } else {
-      await db.query('INSERT INTO kasus_pengaduan SET ?, kasus_id = ?', [data, id]);
+      pembelian_id = uuidv4();
+      await db.query(
+        'INSERT INTO kasus_bukti_pembelian (id, kasus_id, jenis_bukti) VALUES (?, ?, ?)',
+        [pembelian_id, id, jenis_bukti_pembelian]
+      );
     }
 
-    res.json({ message: 'Data pengaduan berhasil disimpan', kasus_id: id });
+    // 💾 Simpan / Update Barang Bukti
+    const [existingBarang] = await db.query(
+      'SELECT id FROM kasus_barang_bukti WHERE kasus_id = ?',
+      [id]
+    );
+
+    let barang_id;
+    if (existingBarang.length > 0) {
+      barang_id = existingBarang[0].id;
+      await db.query(
+        'UPDATE kasus_barang_bukti SET status = ?, keterangan = ? WHERE kasus_id = ?',
+        [status_barang_bukti, keterangan_barang_bukti || null, id]
+      );
+    } else {
+      barang_id = uuidv4();
+      await db.query(
+        'INSERT INTO kasus_barang_bukti (id, kasus_id, status, keterangan) VALUES (?, ?, ?, ?)',
+        [barang_id, id, status_barang_bukti, keterangan_barang_bukti || null]
+      );
+    }
+
+    // 💾 Simpan / Update Bukti Saksi (opsional)
+    let saksi_id = null;
+    if (status_saksi) {
+      const [existingSaksi] = await db.query(
+        'SELECT id FROM kasus_bukti_saksi WHERE kasus_id = ?',
+        [id]
+      );
+
+      if (existingSaksi.length > 0) {
+        saksi_id = existingSaksi[0].id;
+        await db.query(
+          'UPDATE kasus_bukti_saksi SET status = ?, hubungan_dengan_saksi = ? WHERE kasus_id = ?',
+          [status_saksi, status_saksi === 'ada' ? hubungan_dengan_saksi || null : null, id]
+        );
+      } else {
+        saksi_id = uuidv4();
+        await db.query(
+          'INSERT INTO kasus_bukti_saksi (id, kasus_id, status, hubungan_dengan_saksi) VALUES (?, ?, ?, ?)',
+          [saksi_id, id, status_saksi, status_saksi === 'ada' ? hubungan_dengan_saksi || null : null]
+        );
+      }
+    }
+
+    // 📸 Simpan / Update foto bukti
+    if (req.files) {
+      const allFiles = [];
+
+      // Bukti Pembelian
+      if (req.files.foto_bukti_pembelian) {
+        req.files.foto_bukti_pembelian.forEach((file, index) => {
+          allFiles.push({
+            bukti_id: pembelian_id,
+            jenis_bukti: 'bukti pembelian',
+            nomor_bukti: index + 1, // mulai dari 1
+            path: file.path.replace(/\\/g, '/').replace(/^.*uploads/, '/uploads'),
+          });
+        });
+      }
+
+      // Barang Bukti
+      if (req.files.foto_barang_bukti) {
+        req.files.foto_barang_bukti.forEach((file, index) => {
+          allFiles.push({
+            bukti_id: barang_id,
+            jenis_bukti: 'barang bukti',
+            nomor_bukti: index + 1, // mulai dari 1
+            path: file.path.replace(/\\/g, '/').replace(/^.*uploads/, '/uploads'),
+          });
+        });
+      }
+
+      // 🧩 Simpan atau update ke DB
+      for (const f of allFiles) {
+        const [existingFoto] = await db.query(
+          `SELECT id, foto_path FROM kasus_bukti_foto WHERE bukti_id = ? AND nomor_bukti = ?`,
+          [f.bukti_id, f.nomor_bukti]
+        );
+
+        if (existingFoto.length > 0) {
+          // 🗑️ Hapus file lama di storage (kalau ada)
+          const oldPath = path.join(__dirname, '..', existingFoto[0].foto_path);
+          if (fs.existsSync(oldPath)) {
+            try {
+              fs.unlinkSync(oldPath);
+            } catch (err) {
+              console.error(`Gagal hapus file lama: ${oldPath}`, err);
+            }
+          }
+
+          // 🔁 Update path baru di database
+          await db.query(
+            `UPDATE kasus_bukti_foto 
+       SET foto_path = ?, uploaded_at = NOW() 
+       WHERE bukti_id = ? AND nomor_bukti = ?`,
+            [f.path, f.bukti_id, f.nomor_bukti]
+          );
+        } else {
+          // ➕ Insert baru
+          const foto_id = uuidv4();
+          await db.query(
+            `INSERT INTO kasus_bukti_foto (id, bukti_id, jenis_bukti, nomor_bukti, foto_path, uploaded_at)
+       VALUES (?, ?, ?, ?, ?, NOW())`,
+            [foto_id, f.bukti_id, f.jenis_bukti, f.nomor_bukti, f.path]
+          );
+        }
+      }
+
+      /* 🧹 Tambahan: hapus foto lama yang tidak dikirim lagi */
+
+      // 1️⃣ Ambil semua nomor_bukti yang baru diupload
+      const newNomorsByBukti = {};
+      for (const f of allFiles) {
+        if (!newNomorsByBukti[f.bukti_id]) newNomorsByBukti[f.bukti_id] = [];
+        newNomorsByBukti[f.bukti_id].push(f.nomor_bukti);
+      }
+
+      // 2️⃣ Untuk setiap bukti_id, cari foto lama yang tidak ada di upload baru
+      for (const [bukti_id, newNomors] of Object.entries(newNomorsByBukti)) {
+        const [oldFotos] = await db.query(
+          `SELECT id, foto_path, nomor_bukti FROM kasus_bukti_foto WHERE bukti_id = ?`,
+          [bukti_id]
+        );
+
+        for (const old of oldFotos) {
+          if (!newNomors.includes(old.nomor_bukti)) {
+            // 🗑️ Hapus file di storage
+            const oldPath = path.join(__dirname, '..', old.foto_path);
+            if (fs.existsSync(oldPath)) {
+              try {
+                fs.unlinkSync(oldPath);
+                console.log(`🧹 Hapus foto lama: ${oldPath}`);
+              } catch (err) {
+                console.error(`Gagal hapus file lama: ${oldPath}`, err);
+              }
+            }
+
+            // 🗑️ Hapus record dari DB
+            await db.query(`DELETE FROM kasus_bukti_foto WHERE id = ?`, [old.id]);
+          }
+        }
+      }
+    }
+
+    // ✅ Response
+    res.json({
+      message: 'Data pengaduan dan seluruh bukti berhasil disimpan',
+      kasus_id: id,
+      pengaduan: pengaduanData,
+      bukti: {
+        bukti_pembelian: { jenis: jenis_bukti_pembelian },
+        bukti_saksi: status_saksi
+          ? {
+            status: status_saksi,
+            hubungan: status_saksi === 'ada' ? hubungan_dengan_saksi || null : null,
+          }
+          : null,
+        barang_bukti: {
+          status: status_barang_bukti,
+          keterangan: keterangan_barang_bukti || null,
+        },
+        foto_bukti: req.files
+          ? Object.values(req.files).flat().map(file => ({
+            nama_file: file.originalname,
+            path: file.path.replace(/\\/g, '/').replace(/^.*uploads/, '/uploads'),
+          }))
+          : [],
+      },
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error saat update pengaduan:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
@@ -301,23 +511,34 @@ const submitKasus = async (req, res) => {
 
   try {
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
-    if (rowsKasus.length === 0) return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+    if (rowsKasus.length === 0)
+      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
 
-    const kasusData = rowsKasus[0];
-    if (kasusData.created_by !== req.user.id) {
+    const kasus = rowsKasus[0];
+    if (kasus.created_by !== req.user.id)
       return res.status(403).json({ message: 'Tidak boleh submit kasus orang lain' });
-    }
 
-    if (!konfirmasi) return res.status(400).json({ message: 'Harus centang konfirmasi' });
+    if (!konfirmasi)
+      return res.status(400).json({ message: 'Harus mencentang konfirmasi sebelum submit' });
 
-    await db.query(`UPDATE kasus SET status = 'menunggu verifikasi', submitted_at = NOW() WHERE id = ?`, [id]);
+    // ✅ Update status ke menunggu verifikasi
+    await db.query(`
+      UPDATE kasus
+      SET status = 'menunggu verifikasi', submitted_at = NOW()
+      WHERE id = ?
+    `, [id]);
 
-    res.json({ message: 'Kasus berhasil dikirim, menunggu verifikasi', kasus_id: id });
+    res.json({
+      message: 'Kasus berhasil dikirim dan menunggu verifikasi',
+      kasus_id: id,
+      status: 'menunggu verifikasi'
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error submitKasus:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
+
 
 /**
  * Verifikasi kasus oleh admin/superadmin
@@ -328,103 +549,165 @@ const verifyKasus = async (req, res) => {
 
   try {
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
-    if (rowsKasus.length === 0) return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+    if (rowsKasus.length === 0)
+      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
 
-    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-      return res.status(403).json({ message: 'Hanya admin/superadmin' });
-    }
+    const kasus = rowsKasus[0];
+    if (!['admin', 'superadmin'].includes(req.user.role))
+      return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa verifikasi' });
 
     if (status === 'ditolak') {
-      if (!alasanPenolakan) return res.status(400).json({ message: 'Alasan penolakan wajib' });
-      await db.query('UPDATE kasus SET status = ?, alasan_penolakan = ?, verified_at = NOW(), verified_by = ? WHERE id = ?',
-        [status, alasanPenolakan, req.user.id, id]);
+      if (!alasanPenolakan)
+        return res.status(400).json({ message: 'Alasan penolakan wajib diisi' });
+
+      await db.query(`
+        UPDATE kasus
+        SET status = 'ditolak', alasan_penolakan = ?, verified_at = NOW(), verified_by = ?
+        WHERE id = ?
+      `, [alasanPenolakan, req.user.id, id]);
     } else if (status === 'diterima') {
-      if (!tanggalSidang || !jamSidang) return res.status(400).json({ message: 'Tanggal & jam sidang wajib' });
-      await db.query('UPDATE kasus SET status = ?, tanggal_sidang = ?, jam_sidang = ?, verified_at = NOW(), verified_by = ? WHERE id = ?',
-        [status, tanggalSidang, jamSidang, req.user.id, id]);
+      if (!tanggalSidang || !jamSidang)
+        return res.status(400).json({ message: 'Tanggal dan jam sidang wajib diisi' });
+
+      await db.query(`
+        UPDATE kasus
+        SET status = 'diterima', tanggal_sidang = ?, jam_sidang = ?, verified_at = NOW(), verified_by = ?
+        WHERE id = ?
+      `, [tanggalSidang, jamSidang, req.user.id, id]);
     } else {
-      return res.status(400).json({ message: 'Status tidak valid' });
+      return res.status(400).json({ message: 'Status verifikasi tidak valid' });
     }
 
-    res.json({ message: `Kasus berhasil diverifikasi (${status})`, kasus_id: id });
+    res.json({
+      message: `Kasus berhasil diverifikasi (${status})`,
+      kasus_id: id,
+      status
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error verifyKasus:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
 
+
 /**
- * Get semua kasus
+ * Get semua kasus (lengkap dengan relasi)
  */
 const getAllKasus = async (req, res) => {
   try {
-    let rows;
+    let query = '';
+    let params = [];
 
     if (req.user.role === 'superadmin') {
-      [rows] = await db.query('SELECT * FROM kasus');
+      query = 'SELECT * FROM kasus';
     } else if (req.user.role === 'admin') {
-      [rows] = await db.query(
-        "SELECT * FROM kasus WHERE NOT (status = 'draf' AND created_by != ?)",
-        [req.user.id]
-      );
+      query = "SELECT * FROM kasus WHERE NOT (status = 'draf' AND created_by != ?)";
+      params = [req.user.id];
     } else {
-      [rows] = await db.query(
-        'SELECT * FROM kasus WHERE created_by = ?',
-        [req.user.id]
-      );
+      query = 'SELECT * FROM kasus WHERE created_by = ?';
+      params = [req.user.id];
     }
 
-    // Loop semua kasus
-    for (let row of rows) {
-      // ambil data diri
-      const [dataDiri] = await db.query('SELECT * FROM kasus_data_diri WHERE kasus_id = ?', [row.id]);
-      row.dataDiri = dataDiri;
+    const [kasusList] = await db.query(query, params);
 
-      // ambil pelaku usaha
-      const [pelakuUsaha] = await db.query('SELECT * FROM kasus_pelaku_usaha WHERE kasus_id = ?', [row.id]);
-      row.pelakuUsaha = pelakuUsaha;
+    for (const k of kasusList) {
+      const [dataDiri] = await db.query('SELECT * FROM kasus_data_diri WHERE kasus_id = ?', [k.id]);
+      const [pelakuUsaha] = await db.query('SELECT * FROM kasus_pelaku_usaha WHERE kasus_id = ?', [k.id]);
+      const [pengaduan] = await db.query('SELECT * FROM kasus_pengaduan WHERE kasus_id = ?', [k.id]);
+      const [kronologis] = await db.query('SELECT * FROM kasus_kronologis WHERE kasus_id = ?', [k.id]);
 
-      // ambil kronologis
-      const [kronologis] = await db.query('SELECT * FROM kasus_kronologis WHERE kasus_id = ?', [row.id]);
-      row.kronologis = kronologis;
+      // Ambil bukti-bukti terkait
+      const [buktiPembelian] = await db.query('SELECT * FROM kasus_bukti_pembelian WHERE kasus_id = ?', [k.id]);
+      const [barangBukti] = await db.query('SELECT * FROM kasus_barang_bukti WHERE kasus_id = ?', [k.id]);
+      const [buktiSaksi] = await db.query('SELECT * FROM kasus_bukti_saksi WHERE kasus_id = ?', [k.id]);
 
-      // ambil pengaduan
-      const [pengaduan] = await db.query('SELECT * FROM kasus_pengaduan WHERE kasus_id = ?', [row.id]);
-      // untuk tiap pengaduan, ambil bukti
-      for (let p of pengaduan) {
-        const [bukti] = await db.query('SELECT * FROM kasus_bukti WHERE pengaduan_id = ?', [p.id]);
-        p.bukti = bukti;
+      // Ambil semua foto
+      const allBuktiIds = [
+        ...(buktiPembelian.map(b => b.id)),
+        ...(barangBukti.map(b => b.id)),
+        ...(buktiSaksi.map(b => b.id))
+      ];
+      let fotoList = [];
+      if (allBuktiIds.length > 0) {
+        const [fotoRows] = await db.query(
+          `SELECT * FROM kasus_bukti_foto WHERE bukti_id IN (?)`,
+          [allBuktiIds]
+        );
+        fotoList = fotoRows;
       }
-      row.pengaduan = pengaduan;
+
+      k.data_diri = dataDiri[0] || null;
+      k.pelaku_usaha = pelakuUsaha[0] || null;
+      k.kronologis = kronologis[0] || null;
+      k.pengaduan = pengaduan[0] || null;
+      k.bukti = {
+        pembelian: buktiPembelian,
+        barang_bukti: barangBukti,
+        saksi: buktiSaksi,
+        foto: fotoList
+      };
     }
 
-    res.json(rows);
+    res.json(kasusList);
   } catch (err) {
-    console.error(err);
+    console.error('Error getAllKasus:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
 
+
 /**
- * Get kasus by id
+ * Get detail satu kasus (lengkap)
  */
 const getKasusById = async (req, res) => {
   const { id } = req.params;
+
   try {
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
-    if (rowsKasus.length === 0) return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+    if (rowsKasus.length === 0)
+      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
 
     const k = rowsKasus[0];
-    if (req.user.role === 'user' && k.created_by !== req.user.id) {
-      return res.status(403).json({ message: 'Tidak boleh lihat kasus orang lain' });
-    }
-    if (req.user.role === 'admin' && k.status === 'draf' && k.created_by !== req.user.id) {
-      return res.status(403).json({ message: 'Admin tidak boleh lihat draf orang lain' });
+    if (req.user.role === 'user' && k.created_by !== req.user.id)
+      return res.status(403).json({ message: 'Tidak boleh melihat kasus orang lain' });
+
+    const [dataDiri] = await db.query('SELECT * FROM kasus_data_diri WHERE kasus_id = ?', [id]);
+    const [pelakuUsaha] = await db.query('SELECT * FROM kasus_pelaku_usaha WHERE kasus_id = ?', [id]);
+    const [pengaduan] = await db.query('SELECT * FROM kasus_pengaduan WHERE kasus_id = ?', [id]);
+    const [kronologis] = await db.query('SELECT * FROM kasus_kronologis WHERE kasus_id = ?', [id]);
+    const [buktiPembelian] = await db.query('SELECT * FROM kasus_bukti_pembelian WHERE kasus_id = ?', [id]);
+    const [barangBukti] = await db.query('SELECT * FROM kasus_barang_bukti WHERE kasus_id = ?', [id]);
+    const [buktiSaksi] = await db.query('SELECT * FROM kasus_bukti_saksi WHERE kasus_id = ?', [id]);
+
+    const allBuktiIds = [
+      ...(buktiPembelian.map(b => b.id)),
+      ...(barangBukti.map(b => b.id)),
+      ...(buktiSaksi.map(b => b.id))
+    ];
+    let fotoList = [];
+    if (allBuktiIds.length > 0) {
+      const [fotoRows] = await db.query(
+        `SELECT * FROM kasus_bukti_foto WHERE bukti_id IN (?)`,
+        [allBuktiIds]
+      );
+      fotoList = fotoRows;
     }
 
-    res.json(k);
+    res.json({
+      ...k,
+      data_diri: dataDiri[0] || null,
+      pelaku_usaha: pelakuUsaha[0] || null,
+      pengaduan: pengaduan[0] || null,
+      kronologis: kronologis[0] || null,
+      bukti: {
+        pembelian: buktiPembelian,
+        barang_bukti: barangBukti,
+        saksi: buktiSaksi,
+        foto: fotoList
+      }
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Error getKasusById:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
