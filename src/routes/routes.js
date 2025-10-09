@@ -27,6 +27,7 @@ router.post('/kasus/:id/submit-kasus', authMiddleware, kasusController.submitKas
 router.post('/kasus/:id/verify-kasus', authMiddleware, kasusController.verifyKasus);
 router.get('/kasus', authMiddleware, kasusController.getAllKasus);
 router.get('/kasus/:id', authMiddleware, kasusController.getKasusById);
+router.get('/kasus/:id/sidang-update', authMiddleware, kasusController.getKasusById);
 
 // superadmin
 router.get('/users', roleCheck(['superadmin']), userController.getAllUsers);

@@ -712,6 +712,55 @@ const getKasusById = async (req, res) => {
   }
 };
 
+const updateSidang = async (req, res) => {
+  const { id } = req.params;
+  const { tuntas } = req.body; // boolean, apakah sidang tuntas atau tidak
+
+  try {
+    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
+    if (rowsKasus.length === 0)
+      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+
+    const kasus = rowsKasus[0];
+
+    // cek hak akses admin/superadmin
+    if (!['admin', 'superadmin'].includes(req.user.role))
+      return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa update sidang' });
+
+    let sidangKe = kasus.sidang_ke || 0;
+
+    if (tuntas) {
+      // sidang tuntas, status selesai
+      await db.query(
+        'UPDATE kasus SET status = ?, sidang_selesai = ?, sidang_ke = ? WHERE id = ?',
+        ['selesai', true, sidangKe + 1, id]
+      );
+
+      return res.json({ message: 'Kasus selesai', sidang_ke: sidangKe + 1, status: 'selesai' });
+    } else {
+      // sidang belum tuntas, naikkan sidang_ke
+      if (sidangKe >= 3) {
+        // sudah sidang 3x, tetap dianggap selesai
+        await db.query(
+          'UPDATE kasus SET status = ?, sidang_selesai = ?, sidang_ke = ? WHERE id = ?',
+          ['selesai', true, sidangKe, id]
+        );
+        return res.json({ message: 'Kasus selesai setelah sidang 3x', sidang_ke: sidangKe, status: 'selesai' });
+      } else {
+        // sidang berikutnya
+        await db.query(
+          'UPDATE kasus SET sidang_ke = ? WHERE id = ?',
+          [sidangKe + 1, id]
+        );
+        return res.json({ message: `Sidang ke-${sidangKe + 1} selesai, kasus belum tuntas`, sidang_ke: sidangKe + 1, status: kasus.status });
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
+};
+
 module.exports = {
   createKasus,
   updateDataDiri,
@@ -722,4 +771,5 @@ module.exports = {
   verifyKasus,
   getAllKasus,
   getKasusById,
+  updateSidang,
 };
