@@ -39,7 +39,7 @@ const updateDataDiri = async (req, res) => {
   const { id } = req.params;
   const {
     nama_lengkap,
-    tanggal_lahir,
+    umur,
     jenis_kelamin,
     kota,
     alamat,
@@ -47,7 +47,6 @@ const updateDataDiri = async (req, res) => {
     no_hp,
     kode_pos,
     identitas,
-    use_profile,
   } = req.body;
 
   try {
@@ -61,90 +60,45 @@ const updateDataDiri = async (req, res) => {
       return res.status(403).json({ message: 'Tidak boleh mengedit kasus orang lain' });
     }
 
-    let data = {};
-    let foto_identitas_path = null;
+    // 🧩 Validasi input wajib
+    if (
+      !nama_lengkap || !umur || !jenis_kelamin || !kota ||
+      !alamat || !email || !no_hp || !kode_pos || !identitas
+    ) {
+      return res.status(400).json({ message: 'Semua field data diri wajib diisi' });
+    }
 
-    // Path folder target
+    // 📂 Folder penyimpanan file
     const targetFolder = path.join(__dirname, '..', 'uploads', req.user.id, 'kasus', id);
     if (!fs.existsSync(targetFolder)) fs.mkdirSync(targetFolder, { recursive: true });
 
-    // 🧩 Jika pakai data dari profil pengguna
-    if (use_profile === 'true' || use_profile === true) {
-      const [profile_rows] = await db.query('SELECT * FROM profiles WHERE user_id = ?', [req.user.id]);
-      if (profile_rows.length === 0)
-        return res.status(404).json({ message: 'Profile tidak ditemukan' });
+    let foto_identitas_path = null;
 
-      const profile = profile_rows[0];
-      const [user_rows] = await db.query('SELECT email FROM users WHERE id = ?', [req.user.id]);
-      if (user_rows.length === 0)
-        return res.status(404).json({ message: 'User tidak ditemukan' });
-
-      const user = user_rows[0];
-
-      // Hitung umur dari tanggal_lahir di profile
-      const umur = hitungUmur(profile.tanggal_lahir);
-
-      // Copy foto_identitas dari profile ke folder target
-      if (profile.foto_identitas) {
-        const srcPath = path.join(__dirname, '..', profile.foto_identitas);
-        const ext = path.extname(srcPath);
-        const destFilename = `identitas${ext}`;
-        const destPath = path.join(targetFolder, destFilename);
-        fs.copyFileSync(srcPath, destPath);
-        foto_identitas_path = '/' + path.relative(path.join(__dirname, '..'), destPath).replace(/\\/g, '/');
-      }
-
-      data = {
-        nama_lengkap: profile.nama_lengkap,
-        umur,
-        jenis_kelamin: profile.jenis_kelamin,
-        kota: profile.kota,
-        alamat: profile.alamat,
-        email: user.email,
-        no_hp: profile.no_hp,
-        kode_pos: profile.kode_pos,
-        identitas: profile.identitas,
-        foto_identitas: foto_identitas_path,
-      };
-    } else {
-      // 🧾 Input manual
-      if (
-        !nama_lengkap || !tanggal_lahir || !jenis_kelamin || !kota ||
-        !alamat || !email || !no_hp || !kode_pos || !identitas
-      ) {
-        return res.status(400).json({ message: 'Semua field data diri wajib diisi' });
-      }
-
-      // Hitung umur dari tanggal_lahir
-      const umur = hitungUmur(tanggal_lahir);
-
-      // Simpan foto baru (kalau ada)
-      if (req.file) {
-        const ext = path.extname(req.file.originalname);
-        const destFilename = `identitas${ext}`;
-        const destPath = path.join(targetFolder, destFilename);
-        fs.renameSync(req.file.path, destPath);
-        foto_identitas_path = '/' + path.relative(path.join(__dirname, '..'), destPath).replace(/\\/g, '/');
-      }
-
-      data = {
-        nama_lengkap,
-        umur,
-        jenis_kelamin,
-        kota,
-        alamat,
-        email,
-        no_hp,
-        kode_pos,
-        identitas,
-        foto_identitas: foto_identitas_path,
-      };
+    // 📸 Simpan foto baru (kalau ada)
+    if (req.file) {
+      const ext = path.extname(req.file.originalname);
+      const destFilename = `identitas${ext}`;
+      const destPath = path.join(targetFolder, destFilename);
+      fs.renameSync(req.file.path, destPath);
+      foto_identitas_path = '/' + path.relative(path.join(__dirname, '..'), destPath).replace(/\\/g, '/');
     }
 
-    // 🧠 Tambahkan kasus_id ke object data
-    data.kasus_id = id;
+    // 💾 Data yang akan disimpan
+    const data = {
+      kasus_id: id,
+      nama_lengkap,
+      umur: parseInt(umur, 10),
+      jenis_kelamin,
+      kota,
+      alamat,
+      email,
+      no_hp,
+      kode_pos,
+      identitas,
+      foto_identitas: foto_identitas_path,
+    };
 
-    // 🔍 Cek apakah sudah ada data sebelumnya
+    // 🔍 Cek apakah data sudah ada sebelumnya
     const [existing] = await db.query('SELECT * FROM kasus_data_diri WHERE kasus_id = ?', [id]);
 
     if (existing.length > 0) {
@@ -165,21 +119,6 @@ const updateDataDiri = async (req, res) => {
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
-
-/**
- * Fungsi bantu: hitung umur dari tanggal lahir (format YYYY-MM-DD)
- */
-function hitungUmur(tanggal) {
-  const today = new Date();
-  const birthDate = new Date(tanggal);
-  let umur = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    umur--;
-  }
-  return umur;
-}
 
 /**
  * Update data pelaku usaha
