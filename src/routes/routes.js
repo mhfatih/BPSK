@@ -19,12 +19,12 @@ router.put('/change-password', authMiddleware, userController.changePassword);
 
 // ==================== KASUS ====================
 router.post('/kasus/kasus-add', authMiddleware, kasusController.createKasus);
-router.post('/kasus/:id/data-diri-update', authMiddleware, upload.KasusDataDiri.single('foto_identitas'), kasusController.updateDataDiri);
-router.post('/kasus/:id/pelaku-usaha-update', authMiddleware, kasusController.updatePelakuUsaha);
-router.post('/kasus/:id/tentang-pengaduan-update', authMiddleware, upload.KasusBukti.fields([{ name: 'foto_bukti_pembelian', maxCount: 10 },{ name: 'foto_barang_bukti', maxCount: 10 },]), kasusController.updateTentangPengaduan);
-router.post('/kasus/:id/kronologis-update', authMiddleware, kasusController.updateKronologis);
-router.post('/kasus/:id/submit-kasus', authMiddleware, kasusController.submitKasus);
-router.post('/kasus/:id/verify-kasus', authMiddleware, kasusController.verifyKasus);
+router.put('/kasus/:id/data-diri-update', authMiddleware, upload.KasusDataDiri.single('foto_identitas'), kasusController.updateDataDiri);
+router.put('/kasus/:id/pelaku-usaha-update', authMiddleware, kasusController.updatePelakuUsaha);
+router.put('/kasus/:id/tentang-pengaduan-update', authMiddleware, upload.KasusPengaduanBukti.single('foto_bukti'), kasusController.updateTentangPengaduan);
+router.put('/kasus/:id/kronologis-update', authMiddleware, kasusController.updateKronologis);
+router.put('/kasus/:id/submit-kasus', authMiddleware, kasusController.submitKasus);
+router.put('/kasus/:id/verify-kasus', authMiddleware, kasusController.verifyKasus);
 router.get('/kasus', authMiddleware, kasusController.getAllKasus);
 router.get('/kasus/:id', authMiddleware, kasusController.getKasusById);
 router.get('/kasus/:id/sidang-update', authMiddleware, kasusController.getKasusById);
