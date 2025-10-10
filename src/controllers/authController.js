@@ -75,12 +75,16 @@ const login = async (req, res) => {
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: false,
-      maxAge: 3600000
+      secure: true,
+      maxAge: 3600000,
+      sameSite: 'none'
     });
 
     res.json({
       message: `Login berhasil, selamat datang ${user.nama_lengkap}`,
+      token,
+      id: user.id,
+      nama_lengkap: user.nama_lengkap,
       role: user.role
     });
   } catch (err) {
