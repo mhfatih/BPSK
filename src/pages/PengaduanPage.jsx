@@ -11,17 +11,17 @@ export default function PengaduanPage() {
     tanggal: new Date().toISOString().split("T")[0],
     nomorRegistrasi: `REG-${Date.now()}`,
     
-    nama: "",
-    tanggalLahir: "",
+    nama_lengkap: "",
+    tanggal_lahir: "",
     umur: "",
-    gender: "",
+    jenis_kelamin: "",
     alamat: "",
-    kodepos: "",
+    kode_pos: "",
     kota: "",
-    telepon: "",
+    no_hp: "",
     email: "",
-    nik: "",
-    fotoIdentitas: null,
+    identitas: "",
+    foto_identitas: null,
 
     namaPemilik: "",
     namaUsaha: "",
@@ -52,30 +52,58 @@ export default function PengaduanPage() {
     setUseProfile(newState);
   
     if (newState) {
+      // === Aktifkan: Ambil dari profil ===
       setLoading(true);
       try {
-        const res = await fetch("/api/profile"); // Ganti sesuai endpoint API kamu
+        const res = await fetch("http://localhost:3000/api/profile", {
+          credentials: "include", // penting agar cookie token dikirim
+        });
+        if (!res.ok) throw new Error("Gagal mengambil data profil");
+  
         const data = await res.json();
   
+        // console.log("Profil user:", data);
+  
         setFormData({
-          ...formData,
-          nama: data.nama || "",
-          tanggalLahir: data.tanggalLahir || "",
-          gender: data.gender || "",
-          alamat: data.alamat || "",
-          kodepos: data.kodepos || "",
-          kota: data.kota || "",
-          telepon: data.telepon || "",
+          nama_lengkap: data.profile?.nama_lengkap || "",
+          tanggal_lahir: data.profile?.tanggal_lahir
+            ? data.profile.tanggal_lahir.split("T")[0]
+            : "",
+          umur: data.profile?.umur || "",
+          jenis_kelamin: data.profile?.jenis_kelamin || "",
+          alamat: data.profile?.alamat || "",
+          kode_pos: data.profile?.kode_pos || "",
+          kota: data.profile?.kota || "", // ✅ sesuai field backend
+          no_hp: data.profile?.no_hp || "",
           email: data.email || "",
-          nik: data.nik || "",
+          identitas: data.profile?.identitas || "",
+          foto_identitas: data.profile?.foto_identitas || "",
         });
       } catch (error) {
         console.error("Gagal mengambil data profil:", error);
+        alert("Tidak dapat memuat data profil pengguna");
       } finally {
         setLoading(false);
       }
+    } else {
+      // === Nonaktifkan: Hapus semua data form ===
+      setFormData({
+        nama_lengkap: "",
+        tanggal_lahir: "",
+        umur:"",
+        jenis_kelamin: "",
+        alamat: "",
+        kode_pos: "",
+        kota: "",
+        no_hp: "",
+        email: "",
+        identitas: "",
+        foto_identitas: null,
+      });
     }
   };
+  
+  
 
     // Handle tambah lampiran baru
   const handleAddFile = () => {
@@ -104,30 +132,62 @@ export default function PengaduanPage() {
   };
 
   const handleChange = (e) => {
-    const { name, value, type, files, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "file"
-          ? files[0]
-          : type === "checkbox"
-          ? checked
-          : value,
-    }));
+    const { name, value, type, checked, files } = e.target;
+  
+    setFormData((prevData) => {
+      let updatedData = { ...prevData };
+  
+      if (type === "file" && name === "foto_identitas") {
+        updatedData.foto_identitas = files[0];
+      } 
+      else if (name === "tanggal_lahir") {
+        // Hitung umur otomatis
+        const today = new Date();
+        const birthDate = new Date(value);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (
+          monthDiff < 0 ||
+          (monthDiff === 0 && today.getDate() < birthDate.getDate())
+        ) {
+          age--;
+        }
+  
+        updatedData.tanggal_lahir = value;
+        updatedData.umur = age;
+      } 
+      else if (type === "checkbox") {
+        updatedData[name] = checked;
+  
+        // Kosongkan deskripsi kalau uncheck
+        if (name === "kerugianMaterial" && !checked) {
+          updatedData.deskripsiMaterial = "";
+        }
+        if (name === "kerugianFisik" && !checked) {
+          updatedData.deskripsiFisik = "";
+        }
+      } 
+      else {
+        updatedData[name] = value;
+      }
+  
+      return updatedData;
+    });
   };
+  
 
-  const handleTanggalLahir = (e) => {
-    const value = e.target.value;
-    const birthDate = new Date(value);
-    const ageDiff = Date.now() - birthDate.getTime();
-    const age = new Date(ageDiff).getUTCFullYear() - 1970;
+  // const handleTanggalLahir = (e) => {
+  //   const value = e.target.value;
+  //   const birthDate = new Date(value);
+  //   const ageDiff = Date.now() - birthDate.getTime();
+  //   const age = new Date(ageDiff).getUTCFullYear() - 1970;
 
-    setFormData((prev) => ({
-      ...prev,
-      tanggalLahir: value,
-      umur: age >= 0 ? age : "",
-    }));
-  };
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     tanggalLahir: value,
+  //     umur: age >= 0 ? age : "",
+  //   }));
+  // };
 
   const nextStep = () => setStep((prev) => prev + 1);
   const prevStep = () => setStep((prev) => prev - 1);
@@ -192,28 +252,25 @@ export default function PengaduanPage() {
           </div>
         )}
 
-        {/* Step 2 */}
+        {/* Step 2: Data Pengadu */}
         {step === 2 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold mb-4">Data Pengadu</h2>
-            {/* 🔥 Pilihan pakai profil atau manual */}
-          
-            {/* 🌙 Toggle Ambil dari Profil */}
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600">
+        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-8 transition-all duration-300">
+          {/* Header & Toggle Profil */}
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold text-gray-800">Data Pengadu</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
                 {useProfile
                   ? loading
                     ? "Mengambil data profil..."
-                    : "Menggunakan data dari profil."
-                  : "Isi data secara manual."}
-              </p>
-
-              {/* Toggle Switch (Animated) */}
+                    : "Menggunakan data profil"
+                  : "Isi manual"}
+              </span>
               <div
                 onClick={handleToggleProfile}
-                className={`relative w-14 h-7 flex items-center cursor-pointer transition-all duration-300 ${
+                className={`relative w-14 h-7 flex items-center cursor-pointer transition-all duration-300 rounded-full ${
                   useProfile ? "bg-blue-600" : "bg-gray-300"
-                } rounded-full shadow-inner`}
+                }`}
               >
                 <div
                   className={`absolute left-1 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${
@@ -222,337 +279,445 @@ export default function PengaduanPage() {
                 />
               </div>
             </div>
-            
-            <div className="relative">
-            
-            <FloatingInput
-                label="Nama Lengkap"
-                name="nama"
-                value={formData.nama}
+          </div>
+
+          {/* FORM */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Nama Lengkap */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nama Lengkap
+              </label>
+              <input
+                type="text"
+                name="nama_lengkap"
+                value={formData.nama_lengkap}
                 onChange={handleChange}
                 disabled={useProfile && !loading}
-            />
-            <div className="flex items-center pt-3 pb-3 gap-5">
-              <input
-                type="date"
-                name="tanggalLahir"
-                className="border p-2 rounded"
-                value={formData.tanggalLahir}
-                onChange={handleTanggalLahir}
-                disabled={useProfile && !loading} //kalau pakai profil → tidak bisa edit
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="Masukkan nama lengkap"
               />
-              <span>Umur: {formData.umur || "-"} tahun</span>
             </div>
-            <div className="flex gap-4 pt-2 pb-2">
-              <label>
-                <input
-                  type="radio"
-                  name="gender"
-                  value="Laki-laki"
-                  checked={formData.gender === "Laki-laki"}
-                  onChange={handleChange}
-                  disabled={useProfile && !loading}               
-                /> Laki-laki
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
               </label>
-              <label>
-                <input
-                  type="radio"
-                  name="gender"
-                  value="Perempuan"
-                  checked={formData.gender === "Perempuan"}
-                  onChange={handleChange}
-                  disabled={useProfile && !loading}               
-                /> Perempuan
-              </label>
-            </div>
-            <div className="flex items-center pt-2 pb-2 gap-5">
-            <FloatingInput
-                label="Alamat Lengkap"
-                name="alamat"
-                value={formData.alamat}
-                onChange={handleChange}
-                disabled={useProfile && !loading}                  
-            />
-            </div>                  
-
-            <div className="flex items-center pt-2 pb-2 gap-5">
-            <FloatingInput
-                label="Kode Pos"
-                name="kodepos"
-                value={formData.kodepos}
-                onChange={handleChange}
-                disabled={useProfile && !loading}                 
-            />
-            </div>                 
-            <div className="flex items-center pt-2 pb-2 gap-5">
-            <select
-              name="kota"
-              className="w-full border p-2 rounded"
-              value={formData.kota}
-              onChange={handleChange}
-              disabled={useProfile && !loading}         
-            >
-              <option value="">Pilih Kota/Kabupaten</option>
-              <option>Bandung</option>
-              <option>Jakarta</option>
-              <option>Surabaya</option>
-              <option>Yogyakarta</option>
-            </select>
-            </div>  
-
-            <div className="flex items-center pt-2 pb-2 gap-5">           
-            <FloatingInput
-                label="Nomor Telepon"
-                name="telepon"
-                type="tel"                  
-                value={formData.telepon}
-                onChange={handleChange}
-                disabled={useProfile && !loading}                   
-            />
-            </div>  
-
-            <div className="flex items-center pt-2 pb-2 gap-5">           
-            <FloatingInput
-                label="Email"
+              <input
+                type="email"
                 name="email"
-                type="email"                  
                 value={formData.email}
                 onChange={handleChange}
-                disabled={useProfile && !loading}                  
-            />
-            </div>                
-            
-            <div className="flex items-center pt-2 pb-2 gap-5">           
-            <FloatingInput
-                label="NIK"
-                name="nik"
-                type="text"                  
-                value={formData.nik}
+                disabled={useProfile && !loading}
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="Masukkan email aktif"
+              />
+            </div>
+
+            {/* Nomor Telepon */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nomor Telepon
+              </label>
+              <input
+                type="tel"
+                name="no_hp"
+                value={formData.no_hp}
                 onChange={handleChange}
-                disabled={useProfile && !loading}                  
-            />
-            </div>  
-            
+                disabled={useProfile && !loading}
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="08xxxxxxxxxx"
+              />
+            </div>
+
+            {/* Jenis Kelamin (Select) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Jenis Kelamin
+              </label>
+              <select
+                name="jenis_kelamin"
+                value={formData.jenis_kelamin}
+                onChange={handleChange}
+                disabled={useProfile && !loading}
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+              >
+                <option value="">Pilih Jenis Kelamin</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+            </div>
+
+            {/* Tanggal Lahir + Umur */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tanggal Lahir
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="date"
+                  name="tanggal_lahir"
+                  value={formData.tanggal_lahir}
+                  onChange={handleChange}
+                  disabled={useProfile && !loading}
+                  className="flex-1 border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+                <span className="text-sm text-gray-700">
+                  Umur: <strong>{formData.umur || "-"}</strong> th
+                </span>
+              </div>
+            </div>
+
+            {/* NIK */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                NIK
+              </label>
+              <input
+                type="text"
+                name="identitas"
+                value={formData.identitas}
+                onChange={handleChange}
+                disabled={useProfile && !loading}
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="Masukkan NIK"
+              />
+            </div>
+
+            {/* Alamat */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alamat Lengkap
+              </label>
+              <textarea
+                name="alamat"
+                rows="2"
+                value={formData.alamat}
+                onChange={handleChange}
+                disabled={useProfile && !loading}
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                placeholder="Masukkan alamat lengkap"
+              />
+            </div>
+
+            {/* Kota */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kota / Kabupaten
+              </label>
+              <select
+                name="kota"
+                value={formData.kota}
+                onChange={handleChange}
+                disabled={useProfile && !loading}
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+              >
+                <option value="">Pilih Kota/Kabupaten</option>
+                <option value="Kota Tangerang">Kota Tangerang</option>
+                <option value="Kota Tangerang Selatan">Kota Tangerang Selatan</option>
+                <option value="Kabupaten Tangerang">Kabupaten Tangerang</option>
+                <option value="Kabupaten Serang">Kabupaten Serang</option>
+                <option value="Kota Serang">Kota Serang</option>  
+                <option value="Kota Cilegon">Kota Cilegon</option>
+                <option value="Kabupaten Pandeglang">Kabupaten Pandeglang</option>  
+                <option value="Kabupaten Lebak">Kabupaten Lebak</option>  
+                  
+              </select>
+            </div>
+
+            {/* Kode Pos */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kode Pos
+              </label>
+              <input
+                type="text"
+                name="kode_pos"
+                value={formData.kode_pos}
+                onChange={handleChange}
+                disabled={useProfile && !loading}
+                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="Masukkan kode pos"
+              />
+            </div>
+          </div>
+
+          {/* FOTO IDENTITAS */}
+          <div className="border-t pt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Foto Identitas (KTP / SIM)
+            </label>
             <input
               type="file"
-              name="fotoIdentitas"
-              className="w-full border p-2 rounded"
-              accept="image/*,"
+              name="foto_Identitas"
+              
+              className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              accept="image/*"
               onChange={handleChange}
-              disabled={useProfile && !loading}            
+              disabled={useProfile && !loading}
             />
 
-            {formData.fotoIdentitas && (
-            <div className="mt-2">
+            {formData.foto_identitas && (
+              <div className="mt-2">
                 <img
-                src={URL.createObjectURL(formData.fotoIdentitas)}
-                alt="Preview"
-                className="w-40 h-40 object-cover rounded border"
+                  src={
+                    typeof formData.foto_identitas === "string"
+                      ? formData.foto_identitas
+                      : URL.createObjectURL(formData.foto_identitas)
+                  }
+                  alt="Preview"
+                  className="w-40 h-40 object-cover rounded border"
                 />
-            </div>
-            )}          
-            </div>
-            </div>          
-        )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
+        
         {/* Step 3 */}
         {step === 3 && (
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg mb-2">Data Pelaku Usaha</h3>
-            <div className="flex items-center pt-2 pb-2 gap-5">           
-            <FloatingInput
-                label="Nama Pemilik"
+          <div className="space-y-6">
+            <h3 className="text-2xl font-semibold text-gray-800">
+              Data Pelaku Usaha
+            </h3>
+
+            {/* Nama Pemilik */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nama Pemilik
+              </label>
+              <input
+                type="text"
                 name="namaPemilik"
-                type="text"                  
                 value={formData.namaPemilik}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
-            />
-            </div>  
-            
-            <div className="flex items-center pt-2 pb-2 gap-5">           
-            <FloatingInput
-                label="Nama Perusahaan"
-                name="namaPerusahaan"
-                type="text"                  
+                className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+              />
+            </div>
+
+            {/* Nama Perusahaan */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nama Perusahaan
+              </label>
+              <input
+                type="text"
+                name="namaUsaha"
                 value={formData.namaUsaha}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
-            />
+                className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+              />
             </div>
-            <div className="flex items-center pt-2 pb-2 gap-5">           
-            <FloatingInput
-                label="Alamat Perusahaan"
+
+            {/* Alamat Perusahaan */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alamat Perusahaan
+              </label>
+              <input
+                type="text"
                 name="alamatUsaha"
-                type="text"                  
                 value={formData.alamatUsaha}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
-            />
-            </div>  
-                            
-            <div className="flex items-center pt-2 pb-2 gap-5">
-            <FloatingInput
-                label="Kode Pos"
-                name="kodeposUsaha"
-                value={formData.kodeposUsaha}
-                onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
-            />
-            </div>                 
-            <div className="flex items-center pt-2 pb-2 gap-5">
-            <select
-              name="kotaUsaha"
-              className="w-full border p-2 rounded"
-              value={formData.kotaUsaha}
-              onChange={handleChange}
-            //   disabled={useProfile} // kalau pakai profil → tidak bisa edit            
-            >
-              <option value="">Pilih Kota/Kabupaten</option>
-              <option>Bandung</option>
-              <option>Jakarta</option>
-              <option>Surabaya</option>
-              <option>Yogyakarta</option>
-            </select>
-            </div>  
+                className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+              />
+            </div>
 
-            <div className="flex items-center pt-2 pb-2 gap-5">           
-            <FloatingInput
-                label="Nomor Telepon"
+            {/* Kode Pos + Kota */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Kode Pos */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kode Pos
+                </label>
+                <input
+                  type="text"
+                  name="kodeposUsaha"
+                  value={formData.kodeposUsaha}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+                />
+              </div>
+
+              {/* Kota / Kabupaten */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kota / Kabupaten
+                </label>
+                <select
+                  name="kotaUsaha"
+                  value={formData.kotaUsaha}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+                >
+                <option value="">Pilih Kota/Kabupaten</option>
+                <option value="Kota Tangerang">Kota Tangerang</option>
+                <option value="Kota Tangerang Selatan">Kota Tangerang Selatan</option>
+                <option value="Kabupaten Tangerang">Kabupaten Tangerang</option>
+                <option value="Kabupaten Serang">Kabupaten Serang</option>
+                <option value="Kota Serang">Kota Serang</option>  
+                <option value="Kota Cilegon">Kota Cilegon</option>
+                <option value="Kabupaten Pandeglang">Kabupaten Pandeglang</option>  
+                <option value="Kabupaten Lebak">Kabupaten Lebak</option>  
+                </select>
+              </div>
+            </div>
+
+            {/* Nomor Telepon */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nomor Telepon
+              </label>
+              <input
+                type="tel"
                 name="teleponUsaha"
-                type="tel"                  
                 value={formData.teleponUsaha}
                 onChange={handleChange}
-                //   disabled={useProfile} // kalau pakai profil → tidak bisa edit                   
-            />
-            </div>  
-  
+                className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+              />
+            </div>
           </div>
         )}
-        
+
 
         {/* Step 4 */}
         {step === 4 && (
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg mb-2">Tentang Pengaduan</h3>
-            
-            <div className="flex-col  pb-1 gap-5">
-            <label className="text-sm text-gray-600 mb-1">Jenis Pengaduan</label>
-            <select
-              name="jenisPengaduan"
-              className="w-full border p-2 rounded"
-              value={formData.jenisAduan}
-              onChange={handleChange}
-            //   disabled={useProfile} // kalau pakai profil → tidak bisa edit            
-            >
-              <option value="">Pilih Jenis Pengaduan</option>
-              <option>Industri dan Pertambangan</option>
-              <option>Pertanian dan Kehutanan</option>
-              <option>Standar Mutu</option>
-              <option>Jasa</option>
-              <option>Iklan</option>
-              <option>Klausula Baku</option>
-              <option>Label</option>
-              <option>Lain-lain</option>
-            </select>
-            </div> 
+          <div className="space-y-6">
+            <h3 className="text-2xl font-semibold text-gray-800">
+              Tentang Pengaduan
+            </h3>
 
-            <div className="flex items-center gap-5 pt-3 pb-3">
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-600 mb-1">Tanggal Kejadian</label>
+            {/* Jenis Pengaduan */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Jenis Pengaduan
+              </label>
+              <select
+                name="jenisAduan"
+                value={formData.jenisAduan}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              >
+                <option value="">Pilih Jenis Pengaduan</option>
+                <option>Industri dan Pertambangan</option>
+                <option>Pertanian dan Kehutanan</option>
+                <option>Standar Mutu</option>
+                <option>Jasa</option>
+                <option>Iklan</option>
+                <option>Klausula Baku</option>
+                <option>Label</option>
+                <option>Lain-lain</option>
+              </select>
+            </div>
+
+            {/* Tanggal & Waktu Kejadian */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tanggal Kejadian
+                </label>
                 <input
                   type="date"
                   name="tanggalKejadian"
-                  className="border p-2 rounded"
                   value={formData.tanggalKejadian}
                   onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 />
               </div>
 
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-600 mb-1">Waktu Kejadian</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Waktu Kejadian
+                </label>
                 <input
                   type="time"
                   name="waktuKejadian"
-                  className="border p-2 rounded"
                   value={formData.waktuKejadian}
                   onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col">
-            <label className="text-sm text-gray-600 mb-1">Tempat Kejadian</label>
-                <input
-                  type="text"
-                  name="tempatKejadian"
-                  className="border p-2 rounded"
-                  value={formData.tempatKejadian}
-                  onChange={handleChange}
-                />
+            {/* Tempat Kejadian */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tempat Kejadian
+              </label>
+              <input
+                type="text"
+                name="tempatKejadian"
+                value={formData.tempatKejadian}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-xl p-2.5 shadow-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              />
             </div>
 
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600 mb-1">Bentuk Kerugian</label>
+            {/* Bentuk Kerugian */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bentuk Kerugian
+              </label>
 
-                {/* Checkbox Material */}
-                <div className="grid grid-cols-12 gap-2 mb-2 items-center">
-                  <div className="col-span-2 flex items-center gap-2 py-3">
-                    <input
-                      type="checkbox"
-                      id="material"
-                      name="kerugianMaterial"
-                      className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
-                      checked={formData.kerugianMaterial}
-                      onChange={handleChange}
-                    />
-                    <label htmlFor="material" className="text-sm">
-                      Material
-                    </label>
-                  </div>
+              {/* Material */}
+              <div className="flex items-start gap-3 mb-2">
+                <input
+                  type="checkbox"
+                  id="kerugianMaterial"
+                  name="kerugianMaterial"
+                  checked={formData.kerugianMaterial}
+                  onChange={handleChange}
+                  className="w-5 h-5 accent-blue-600 mt-1 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <label htmlFor="kerugianMaterial" className="text-sm font-medium text-gray-700">
+                    Material
+                  </label>
                   {formData.kerugianMaterial && (
                     <input
                       type="text"
                       name="deskripsiMaterial"
-                      className="col-span-10 border p-2 rounded"
                       placeholder="Detail kerugian material"
                       value={formData.deskripsiMaterial}
                       onChange={handleChange}
+                      className="mt-2 w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     />
                   )}
                 </div>
-
-              {/* Checkbox Fisik */}
-              <div className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-2 flex items-center gap-2 py-3">
-                  <input
-                    type="checkbox"
-                    id="fisik"
-                    name="kerugianFisik"
-                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
-                    checked={formData.kerugianFisik}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="fisik" className="text-sm">
-                    Fisik
-                  </label>
-                </div>
-                {formData.kerugianFisik && (
-                  <input
-                    type="text"
-                    name="deskripsiFisik"
-                    className="col-span-10 border p-2 rounded"
-                    placeholder="Detail kerugian fisik"
-                    value={formData.deskripsiFisik}
-                    onChange={handleChange}
-                  />
-                )}
               </div>
 
+              {/* Fisik */}
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="kerugianFisik"
+                  name="kerugianFisik"
+                  checked={formData.kerugianFisik}
+                  onChange={handleChange}
+                  className="w-5 h-5 accent-blue-600 mt-1 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <label htmlFor="kerugianFisik" className="text-sm font-medium text-gray-700">
+                    Fisik
+                  </label>
+                  {formData.kerugianFisik && (
+                    <input
+                      type="text"
+                      name="deskripsiFisik"
+                      placeholder="Detail kerugian fisik"
+                      value={formData.deskripsiFisik}
+                      onChange={handleChange}
+                      className="mt-2 w-full border border-gray-300 rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    />
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Lampiran Bukti */}
-            <div className="mt-4">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Lampiran Bukti (Gambar atau PDF)
               </label>
@@ -560,156 +725,134 @@ export default function PengaduanPage() {
               {formData.lampiran.map((file, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 mb-2 border p-2 rounded bg-gray-50"
+                  className="flex flex-col sm:flex-row items-center gap-3 mb-2 border border-gray-200 p-3 rounded-xl bg-gray-50 shadow-sm"
                 >
                   <input
-                  type="text"
-                  name="labelLampiran"
-                  placeholder="Bukti-Bukti"
-                  className="border p-2 rounded"
-                  value={formData.tempatKejadian}
-                  onChange={handleChange}
-                />
+                    type="text"
+                    name={`labelLampiran-${index}`}
+                    placeholder="Judul bukti"
+                    className="w-full sm:w-1/3 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    value={formData[`labelLampiran-${index}`] || ""}
+                    onChange={handleChange}
+                  />
                   <input
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={(e) => handleFileChange(e, index)}
-                    className="flex-1 text-sm"
+                    className="w-full sm:w-2/3 text-sm border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   />
                   {file && (
-                  <span className="text-xs text-gray-600 truncate w-32">
-                    {file.name}
-                  </span>
+                    <span className="text-xs text-gray-500 truncate w-32">
+                      {file.name}
+                    </span>
                   )}
                   {index > 0 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveFile(index)}
-                      className="text-red-500 hover:text-red-700 text-sm"
+                      className="text-red-500 hover:text-red-700 text-sm transition"
                     >
                       ✕
                     </button>
                   )}
                 </div>
-                
               ))}
 
-              
-              <button
+              {/* <button
                 type="button"
                 onClick={handleAddFile}
-                className="mt-2 flex items-center gap-2 px-3 py-2 border border-blue-500 text-blue-600 rounded hover:bg-blue-50 transition"
+                className="mt-2 flex items-center gap-2 px-3 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm"
               >
                 ➕ Tambah Lampiran
-              </button>
-              
+              </button> */}
             </div>
-
-            {/* <input
-              type="file"
-              name="berkas"
-              onChange={handleChange}
-              className="border px-3 py-2 rounded w-full"
-            />
-            {formData.berkas && (
-              <p className="text-sm text-gray-600">File dipilih: {formData.berkas.name}</p>
-            )} */}
           </div>
         )}
-              
+
         {/* Step 5 */}
         {step === 5 && (
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg mb-2">Kronologis & Berkas Pendukung</h3>
-            <textarea
-              name="kronologis"
-              value={formData.kronologis}
-              onChange={handleChange}
-              placeholder="Tuliskan kronologis pengaduan Anda..."
-              className="border px-3 py-2 rounded w-full"
-              rows="4"
-              required
-            />
-            <div className="flex-col  pb-1 gap-5">
-            <label className="text-sm text-gray-600 mb-1">Jenis Tuntutan Ganti Rugi Yang Diinginkan</label>
+          <div className="space-y-6">
+            <h3 className="text-2xl font-semibold text-gray-800">
+              Kronologis & Berkas Pendukung
+            </h3>
 
-                <div className="col-span-2 flex items-center gap-2 py-3">
-                  <input
-                    type="checkbox"
-                    id="barang"
-                    name="gantiBarang"
-                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
-                    checked={formData.gantiBarang}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="barang" className="text-sm">
-                    Penggantian barang/jasa yang sejenis atau setara lainnya
-                  </label>
-                </div>
-                <div className="col-span-2 flex items-center gap-2 py-3">
-                  <input
-                    type="checkbox"
-                    id="uang"
-                    name="gantiUang"
-                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
-                    checked={formData.gantiUang}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="uang" className="text-sm">
-                   Pengembalian uang, atau
-                  </label>
-                </div>
-                <div className="col-span-2 flex items-center gap-2 py-3">
-                  <input
-                    type="checkbox"
-                    id="rawat"
-                    name="gantiRawat"
-                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
-                    checked={formData.gantiRawat}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="rawat" className="text-sm">
-                   Perawatan kesehatan dan/atau
-                  </label>
-                </div>
-                <div className="col-span-2 flex items-center gap-2 py-3">
-                  <input
-                    type="checkbox"
-                    id="santunan"
-                    name="gantiSantunan"
-                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
-                    checked={formData.gantiSantunan}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="santunan" className="text-sm">
-                    Pemberian santunan
-                  </label>
-                </div>
-                <div className="col-span-2 flex items-center gap-2 py-3">
-                  <input
-                    type="checkbox"
-                    id="teguran"
-                    name="gantiTeguran"
-                    className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
-                    checked={formData.gantiTeguran}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="teguran" className="text-sm">
-                    Teguran kepada pelaku usaha
-                  </label>
-                </div>
-                {/* Checkbox Moril */}
-                <div className="grid grid-cols-12 gap-2 py-3 items-center">
-                  <div className="col-span-2 flex items-center gap-2">
+            {/* Kronologis */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kronologis Pengaduan
+              </label>
+              <textarea
+                name="kronologis"
+                value={formData.kronologis}
+                onChange={handleChange}
+                placeholder="Tuliskan kronologis pengaduan Anda..."
+                className="border border-gray-300 px-3 py-2 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                rows="4"
+                required
+              />
+            </div>
+
+            {/* Jenis Tuntutan */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Jenis Tuntutan Ganti Rugi yang Diinginkan
+              </label>
+
+              <div className="space-y-3 bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+                {[
+                  {
+                    id: "barang",
+                    name: "gantiBarang",
+                    label: "Penggantian barang/jasa yang sejenis atau setara lainnya",
+                  },
+                  {
+                    id: "uang",
+                    name: "gantiUang",
+                    label: "Pengembalian uang",
+                  },
+                  {
+                    id: "rawat",
+                    name: "gantiRawat",
+                    label: "Perawatan kesehatan dan/atau",
+                  },
+                  {
+                    id: "santunan",
+                    name: "gantiSantunan",
+                    label: "Pemberian santunan",
+                  },
+                  {
+                    id: "teguran",
+                    name: "gantiTeguran",
+                    label: "Teguran kepada pelaku usaha",
+                  },
+                ].map((item) => (
+                  <div key={item.id} className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id={item.id}
+                      name={item.name}
+                      checked={formData[item.name]}
+                      onChange={handleChange}
+                      className="mt-0.5 w-5 h-5 transform scale-110 accent-blue-600 cursor-pointer"
+                    />
+                    <label htmlFor={item.id} className="text-sm text-gray-700">
+                      {item.label}
+                    </label>
+                  </div>
+                ))}
+
+                {/* Moril */}
+                <div className="grid grid-cols-12 gap-3 items-start">
+                  <div className="col-span-12 md:col-span-3 flex items-start gap-3">
                     <input
                       type="checkbox"
                       id="moril"
                       name="gantiMoril"
-                      className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
                       checked={formData.gantiMoril}
                       onChange={handleChange}
+                      className="mt-0.5 w-5 h-5 transform scale-110 accent-blue-600 cursor-pointer"
                     />
-                    <label htmlFor="moril" className="text-sm">
+                    <label htmlFor="moril" className="text-sm text-gray-700">
                       Moril
                     </label>
                   </div>
@@ -717,25 +860,26 @@ export default function PengaduanPage() {
                     <input
                       type="text"
                       name="deskripsiMoril"
-                      className="col-span-10 border p-2 rounded"
-                      placeholder=" "
+                      className="col-span-12 md:col-span-9 border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="Tuliskan detail tuntutan moril"
                       value={formData.deskripsiMoril}
                       onChange={handleChange}
                     />
                   )}
                 </div>
-                {/* Checkbox Lain-lain */}
-                <div className="grid grid-cols-12 gap-2 py-3 items-center">
-                  <div className="col-span-2 flex items-center gap-2">
+
+                {/* Lain-lain */}
+                <div className="grid grid-cols-12 gap-3 items-start">
+                  <div className="col-span-12 md:col-span-3 flex items-start gap-3">
                     <input
                       type="checkbox"
                       id="lainLain"
                       name="gantiLain"
-                      className="w-5 h-5 transform scale-125 accent-blue-600 cursor-pointer"
                       checked={formData.gantiLain}
                       onChange={handleChange}
+                      className="mt-0.5 w-5 h-5 transform scale-110 accent-blue-600 cursor-pointer"
                     />
-                    <label htmlFor="lain" className="text-sm flex items-center">
+                    <label htmlFor="lainLain" className="text-sm text-gray-700">
                       Lain-lain
                     </label>
                   </div>
@@ -743,68 +887,208 @@ export default function PengaduanPage() {
                     <input
                       type="text"
                       name="deskripsiLain"
-                      className="col-span-10 border p-2 rounded"
-                      placeholder=" "
+                      className="col-span-12 md:col-span-9 border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      placeholder="Tuliskan jenis tuntutan lain"
                       value={formData.deskripsiLain}
                       onChange={handleChange}
                     />
                   )}
                 </div>
-
-            
-            </div> 
+              </div>
+            </div>
           </div>
         )}
-
         
         {/* Step 6 - Konfirmasi Data */}
         {step === 6 && (
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold border-b pb-2 text-gray-800">
+            <h3 className="text-2xl font-semibold text-gray-800">
               Konfirmasi Data
             </h3>
 
-            {/* Data Ringkasan */}
-            <div className="bg-gray-50 border rounded-xl p-5 shadow-sm">
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            {/* 🗓️ Awal Pendaftaran */}
+            <div className="bg-gray-50 border rounded-xl p-6 shadow-sm">
+              <h4 className="text-md font-semibold text-gray-700 mb-3">
+                🗓️ Pendaftaran Awal
+              </h4>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                 <div>
-                  <dt className="font-medium text-gray-600">No Registrasi</dt>
-                  <dd className="text-gray-800">{formData.nomorRegistrasi || "-"}</dd>
+                  <dt className="font-medium text-gray-600">Tanggal Pendaftaran</dt>
+                  <dd className="text-gray-800">{formData.tanggal || "-"}</dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-gray-600">Nama</dt>
-                  <dd className="text-gray-800">{formData.nama || "-"}</dd>
+                  <dt className="font-medium text-gray-600">Nomor Registrasi</dt>
+                  <dd className="text-gray-800">{formData.nomorRegistrasi || "-"}</dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* Data Ringkasan */}
+            <div className="bg-gray-50 border rounded-xl p-6 shadow-sm">
+              <h4 className="text-md font-semibold text-gray-700 mb-3">
+                🧍 Data Diri
+              </h4>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                <div>
+                  <dt className="font-medium text-gray-600">Nama Lengkap</dt>
+                  <dd className="text-gray-800">{formData.nama_lengkap || "-"}</dd>
                 </div>
                 <div>
                   <dt className="font-medium text-gray-600">Email</dt>
                   <dd className="text-gray-800">{formData.email || "-"}</dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-gray-600">Pelaku Usaha</dt>
-                  <dd className="text-gray-800">{formData.pelakuUsaha || "-"}</dd>
+                  <dt className="font-medium text-gray-600">Tanggal Lahir</dt>
+                  <dd className="text-gray-800">{formData.tanggal_lahir || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Umur</dt>
+                  <dd className="text-gray-800">{formData.umur ? `${formData.umur} tahun` : "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Jenis Kelamin</dt>
+                  <dd className="text-gray-800">{formData.jenis_kelamin || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Kota / Kabupaten</dt>
+                  <dd className="text-gray-800">{formData.kota || "-"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-gray-600">Alamat</dt>
+                  <dd className="text-gray-800">{formData.alamat || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Kode Pos</dt>
+                  <dd className="text-gray-800">{formData.kode_pos || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Nomor HP</dt>
+                  <dd className="text-gray-800">{formData.no_hp || "-"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-gray-600">Foto Identitas</dt>
+                  <dd>
+                    {formData.foto_identitas ? (
+                      <img
+                        src={
+                          typeof formData.foto_identitas === "string"
+                            ? formData.foto_identitas
+                            : URL.createObjectURL(formData.foto_identitas)
+                        }
+                        alt="Foto Identitas"
+                        className="w-32 h-32 object-cover rounded-lg border mt-2"
+                      />
+                    ) : (
+                      <span className="text-gray-800">Tidak ada</span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* Data Pelaku Usaha */}
+            <div className="bg-gray-50 border rounded-xl p-6 shadow-sm">
+              <h4 className="text-md font-semibold text-gray-700 mb-3">
+                🏢 Data Pelaku Usaha
+              </h4>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                <div>
+                  <dt className="font-medium text-gray-600">Nama Pemilik</dt>
+                  <dd className="text-gray-800">{formData.namaPemilik || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Nama Perusahaan</dt>
+                  <dd className="text-gray-800">{formData.namaUsaha || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Telepon Usaha</dt>
+                  <dd className="text-gray-800">{formData.teleponUsaha || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Kota / Kabupaten</dt>
+                  <dd className="text-gray-800">{formData.kotaUsaha || "-"}</dd>
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="font-medium text-gray-600">Alamat Usaha</dt>
                   <dd className="text-gray-800">{formData.alamatUsaha || "-"}</dd>
                 </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Kode Pos</dt>
+                  <dd className="text-gray-800">{formData.kodeposUsaha || "-"}</dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* Tentang Pengaduan */}
+            <div className="bg-gray-50 border rounded-xl p-6 shadow-sm">
+              <h4 className="text-md font-semibold text-gray-700 mb-3">
+                📋 Tentang Pengaduan
+              </h4>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                <div>
+                  <dt className="font-medium text-gray-600">Jenis Pengaduan</dt>
+                  <dd className="text-gray-800">{formData.jenisAduan || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Tanggal Kejadian</dt>
+                  <dd className="text-gray-800">{formData.tanggalKejadian || "-"}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-600">Waktu Kejadian</dt>
+                  <dd className="text-gray-800">{formData.waktuKejadian || "-"}</dd>
+                </div>
                 <div className="sm:col-span-2">
+                  <dt className="font-medium text-gray-600">Tempat Kejadian</dt>
+                  <dd className="text-gray-800">{formData.tempatKejadian || "-"}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-gray-600">Kerugian</dt>
+                  <dd className="text-gray-800">
+                    {[
+                      formData.kerugianMaterial && "Material",
+                      formData.kerugianFisik && "Fisik",
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "-"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* Kronologis & Tuntutan */}
+            <div className="bg-gray-50 border rounded-xl p-6 shadow-sm">
+              <h4 className="text-md font-semibold text-gray-700 mb-3">
+                🧾 Kronologis & Tuntutan
+              </h4>
+              <dl className="grid grid-cols-1 gap-y-3 text-sm">
+                <div>
                   <dt className="font-medium text-gray-600">Kronologis</dt>
                   <dd className="text-gray-800 whitespace-pre-line">
                     {formData.kronologis || "-"}
                   </dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-gray-600">Berkas</dt>
+                  <dt className="font-medium text-gray-600">Jenis Tuntutan</dt>
                   <dd className="text-gray-800">
-                    {formData.berkas ? formData.berkas.name : "Tidak ada"}
+                    {[
+                      formData.gantiBarang && "Penggantian barang/jasa",
+                      formData.gantiUang && "Pengembalian uang",
+                      formData.gantiRawat && "Perawatan kesehatan",
+                      formData.gantiSantunan && "Pemberian santunan",
+                      formData.gantiTeguran && "Teguran kepada pelaku usaha",
+                      formData.gantiMoril && `Moril (${formData.deskripsiMoril})`,
+                      formData.gantiLain && `Lain-lain (${formData.deskripsiLain})`,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "-"}
                   </dd>
                 </div>
               </dl>
             </div>
 
             {/* Persetujuan */}
-            <div className="flex items-center gap-3 mt-6 bg-blue-50 border border-blue-200 p-4 rounded-lg">
-              <label className="relative inline-flex items-center cursor-pointer">
+            <div className="flex items-start gap-3 mt-6 bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm">
+              <label className="relative inline-flex items-center cursor-pointer mt-1">
                 <input
                   type="checkbox"
                   name="persetujuan"
@@ -817,12 +1101,15 @@ export default function PengaduanPage() {
                 <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 peer-checked:translate-x-5"></div>
               </label>
 
-              <span className="text-sm text-gray-700">
-                Demikian formulir ini saya isi dengan benar dan jujur serta dapat dipertanggungjawabkan sesuai dengan peraturan perundang-undangan yang berlaku.
-              </span>
+              <p className="text-sm text-gray-700">
+                Dengan ini saya menyatakan bahwa data yang saya isi adalah benar dan
+                dapat dipertanggungjawabkan sesuai dengan peraturan perundang-undangan
+                yang berlaku.
+              </p>
             </div>
           </div>
         )}
+
 
 
         {/* Navigation */}

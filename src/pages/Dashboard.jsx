@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
+import { useNavigate} from "react-router-dom";
 
 // import logo from '../logo.png';
 
@@ -18,43 +19,73 @@ import { RiAdminLine } from "react-icons/ri";
 import { CgProfile } from "react-icons/cg";
 
 
-const menuItems = [
-    {
-        icons: <MdOutlineDashboard size={30} />,
-        label: 'Dashboard',
-        path: '/dashboard'
-  },
-  {
-    icons: <GoLaw size={30} />,
-    label: 'Daftar Kasus',
-    path: '/dashboard/kasus'
-  },
-  {
-    icons: <FaRegPlusSquare size={30} />,
-    label: 'Tambah Pengaduan',
-    path: '/dashboard/pengaduan'
-  },
-  {
-    icons: <RiAdminLine size={30} />,
-    label: 'Manajemen',
-    path: '/dashboard/manajemen'
-    
-  },
-  {
-    icons: <CgProfile size={30} />,
-    label: 'Profile',
-    path: '/dashboard/profile'
-  },
-  // {
-  //   icons: <TbReportSearch size={30} />,
-  //   label: 'Laporan Saya',
-  //   path: '/dashboard/laporan'
-  // }
-]
+const menuItems = {
+  superadmin: [
+    { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
+    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/dashboard/kasus" },
+    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/dashboard/pengaduan" },
+    { icons: <RiAdminLine size={30} />, label: "Manajemen", path: "/dashboard/manajemen" },
+    { icons: <CgProfile size={30} />, label: "Profile", path: "/dashboard/profile" },
+  ],
+
+  admin: [
+    { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
+    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/dashboard/kasus" },
+    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/dashboard/pengaduan" },
+    { icons: <CgProfile size={30} />, label: "Profile", path: "/dashboard/profile" },
+  ],
+
+  user: [
+    { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
+    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/dashboard/kasus" },
+    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/dashboard/pengaduan" },
+    { icons: <CgProfile size={30} />, label: "Profile", path: "/dashboard/profile" },
+  ],
+};
+
 
 export default function Dashboard() {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [menus, setMenus] = useState([]);
 
   const [open, setOpen] = useState(true)
+
+  // Fungsi logout
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        alert(data.message || "Logout berhasil!");
+        navigate("/login");
+      } else {
+        alert("Gagal logout, coba lagi.");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Terjadi kesalahan koneksi.");
+    }
+  };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      setUser(parsed);
+  
+      // Pilih menu sesuai role
+      setMenus(menuItems[parsed.role] || menuItems.user);
+    }
+  }, []);
 
     return (
     <div className='flex h-screen'>
@@ -72,38 +103,28 @@ export default function Dashboard() {
 
       {/* Body */}
 
-      <ul className='flex-1'>
-        {                
-          menuItems.map((item, index) => {
-            return (
-                <li key={index}>
-                <NavLink
-                to={item.path}
-                end={item.path === "/dashboard"}
-                className={({ isActive }) =>
-                    `group relative flex items-center gap-2 px-3 py-2 my-2 rounded-md duration-300 
-                    ${isActive ? 'bg-blue-800 font-semibold' : 'hover:bg-blue-700'}`
-                }
-                >
-                <div>{item.icons}</div>
+      <ul className="flex-1">
+        {menus.map((item, index) => (
+          <li key={index}>
+            <NavLink
+              to={item.path}
+              end={item.path === "/dashboard"}
+              className={({ isActive }) =>
+                `group relative flex items-center gap-2 px-3 py-2 my-2 rounded-md duration-300 
+                ${isActive ? "bg-blue-800 font-semibold" : "hover:bg-blue-700"}`
+              }
+            >
+              <div>{item.icons}</div>
+              <p className={`${!open && "hidden"} duration-500`}>{item.label}</p>
 
-                {/* Teks menu normal (hanya tampil kalau open = true) */}
-                <p className={`${!open && 'hidden'} duration-500`}>{item.label}</p>
-
-                {/* Tooltip (muncul hanya kalau sidebar ditutup) */}
-                {!open && (
-                    <span
-                    className="absolute left-full ml-2 px-2 py-1 rounded-md bg-black text-white text-xs
-                                opacity-0 group-hover:opacity-100 whitespace-nowrap duration-200"
-                    >
-                    {item.label}
-                    </span>
-                )}
-                </NavLink>
-              </li>
-            )
-          })
-        }
+              {!open && (
+                <span className="absolute left-full ml-2 px-2 py-1 rounded-md bg-black text-white text-xs opacity-0 group-hover:opacity-100 whitespace-nowrap duration-200">
+                  {item.label}
+                </span>
+              )}
+            </NavLink>
+          </li>
+        ))}
       </ul>
       {/* footer */}
       {/* <div className='flex items-center gap-2 px-3 py-2'>
@@ -123,10 +144,33 @@ export default function Dashboard() {
           <h1 className="text-lg font-semibold text-gray-700">
             Aplikasi BPSK
           </h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">Admin</span>
+          <div className="relative">
+          {/* Tombol user */}
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded-md transition"
+          >
+            <span className="text-sm text-gray-600">
+            {user?.nama_lengkap || "Admin"}
+          </span>
             <FaUserCircle size={28} className="text-gray-600" />
-          </div>
+          </button>
+
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 bg-white border rounded-md shadow-lg w-40">
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("token");
+                      localStorage.removeItem("user");
+                      window.location.href = "/login";
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+        </div>
         </header>
 
         {/* Content */}

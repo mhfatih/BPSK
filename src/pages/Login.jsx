@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 export default function Login() {
@@ -7,34 +7,62 @@ export default function Login() {
     email: "",
     password: "",
     konfpass: "",
+    role:"user", // default role (user/admin tergantung sistem)
     captcha: "",
   });
   const { executeRecaptcha } = useGoogleReCaptcha();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
 
-        if (!executeRecaptcha) {
-            alert("Captcha belum siap, coba lagi.");
-            return;
-        }
-
-        const handleCaptcha = (value) => {
-            console.log("Captcha value:", value);
-            setVerified(true); // ✅ jika user lolos captcha
-        };
-      
-        // ✅ Dapatkan token dari reCAPTCHA v3
-        const token = await executeRecaptcha("login_form");
-        console.log("reCAPTCHA token:", token);
-
-        // Kirim data + token ke backend
-        const payload = { ...form, recaptchaToken: token };
-        console.log("Payload:", payload);
-
-        // contoh fetch:
-    // await fetch("/api/login", { method: "POST", body: JSON.stringify(payload) })
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+  
+    if (!executeRecaptcha) {
+      alert("Captcha belum siap, coba lagi.");
+      setLoading(false);
+      return;
     }
+  
+    try {
+      const token = await executeRecaptcha("login_form");
+  
+      const payload = {
+        email: form.email,
+        password: form.password,
+        konfpassword: form.konfpass,
+        role: form.role,
+        recaptchaToken: token,
+      };
+  
+      const res = await fetch("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include", // 🟢 penting untuk cookie
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        alert("Login berhasil!");
+        localStorage.setItem("token", data.token); // simpan token JWT misalnya
+        localStorage.setItem("user", JSON.stringify(data.user)); // simpan nama_lengkap
+        console.log("User after login:", data.user)
+        navigate("/dashboard");
+        
+      } else {
+        alert(data.message || "Login gagal!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan koneksi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
     
   
 
@@ -73,14 +101,17 @@ export default function Login() {
                   />
                   
             {/* Password */}
-          <input
+          {/* <input
             type="password"
             placeholder="Konfirmasi Password"
             value={form.konfpass}
             onChange={(e) => setForm({ ...form, konfpass: e.target.value })}
                       className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#1E88E5]"
                       required
-          />
+          /> */}
+
+          {/* 👇 Role hidden, tetap dikirim ke API */}
+          <input type="hidden" value={form.role} readOnly />
 
           {/* Captcha
           <ReCAPTCHA
@@ -94,9 +125,12 @@ export default function Login() {
           {/* Tombol Login */}
           <button
             type="submit"
-            className="w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white py-2 rounded-md font-medium transition"
+            disabled={loading}
+            className={`w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white py-2 rounded-md font-medium transition ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
-            Login
+            {loading ? "Memproses..." : "Login"}
           </button>
         </form>
 

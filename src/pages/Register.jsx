@@ -1,48 +1,71 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 export default function Register() {
   const [form, setForm] = useState({
-    name: "",
+    nama_lengkap: "",
     email: "",
     password: "",
-    konfpass: "",
+    role:"user",
+    confirm_password: "",
   });
 
-  const handleSubmit = (e) => {
-      e.preventDefault();
-      
-      if (form.password !== form.konfpass) {
-        alert("Password dan Konfirmasi Password tidak sama!");
-        return;
-      }
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-    console.log("Register data:", form);
-    // TODO: panggil API register pakai fetch/axios
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:3000/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("Registrasi berhasil!");
+
+        // ✅ Jika backend mengirim token JWT
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+
+        navigate("/login"); // atau navigate("/dashboard") kalau auto-login
+      } else {
+        alert(data.message || "Registrasi gagal");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Terjadi kesalahan koneksi ke server.");
+    } finally {
+      setLoading(false);
+    }
+  };
     
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
       {/* Box Register */}
-      <div className="bg-gray-700 text-white shadow-2xl rounded-lg p-6 w-full max-w-md">
+      <div className="bg-white text-gray-800 shadow-2xl rounded-lg p-6 w-full max-w-md border-t-4 border-[#43A047]">
         {/* Header */}
-        <h2 className="text-lg font-semibold text-center mb-1">E-Lapor</h2>
-        <p className="text-sm text-center text-gray-300 mb-6">
+        <h2 className="text-xl font-bold text-center mb-1 text-[#43A047]">E-Lapor</h2>
+        <p className="text-sm text-center text-gray-600 mb-6">
           Sistem Pengaduan Sengketa Konsumen - Registrasi
         </p>
       <form
         onSubmit={handleSubmit}
-        
       >
-
         <input
         type="text"
         placeholder="Nama Lengkap"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
-        className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-teal-400"
+        value={form.nama_lengkap}
+        onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
+        className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#43A047]"
         required
         />
         <input
@@ -50,38 +73,43 @@ export default function Register() {
           placeholder="Email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-teal-400"
+          className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#43A047]"
             required
-        />
+          />
+          
+        {/* 👇 Role hidden, tetap dikirim ke API */}
+        <input type="hidden" value={form.role} readOnly />
+        
         <input
           type="password"
           placeholder="Password"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
-          className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-teal-400"
+          className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#43A047]"
             required
         />
         <input
             type="password"
             placeholder="Konfirmasi Password"
-            value={form.konfpass}
-            onChange={(e) => setForm({ ...form, konfpass: e.target.value })}
-            className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-teal-400"
+            value={form.confirm_password}
+            onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
+            className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#43A047]"
             required
         />
         
-
-
         <button
-          type="submit"
-          className="w-full bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-md font-medium"
-        >
-          Registrasi
-        </button>
+            type="submit"
+            disabled={loading}
+            className={`w-full bg-[#43A047] hover:bg-[#2E7D32] text-white py-2 rounded-md font-medium transition ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? "Mendaftarkan..." : "Daftar"}
+          </button>
 
-        <p className="text-sm text-center mt-4 text-gray-300">
+        <p className="text-sm text-center mt-4">
           Sudah punya akun?{" "}
-          <Link to="/login" className="text-blue-400 font-medium hover:underline">
+          <Link to="/login" className="text-[#1E88E5] font-medium hover:underline">
             Login
           </Link>
         </p>

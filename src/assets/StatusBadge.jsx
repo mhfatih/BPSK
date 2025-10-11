@@ -2,6 +2,7 @@ import { Clock, CheckCircle, XCircle, ClipboardCheck } from "lucide-react";
 
 const StatusBadge = ({ status }) => {
   const iconMap = {
+    Draft: <Square-pen size={16} className="mr-1" />,
     Pending: <Clock size={16} className="mr-1" />,
     Diterima: <CheckCircle size={16} className="mr-1" />,
     Ditolak: <XCircle size={16} className="mr-1" />,
@@ -9,6 +10,7 @@ const StatusBadge = ({ status }) => {
   };
 
   const colorMap = {
+    Draft: "bg-gray-200 text-gray-700",
     Pending: "bg-yellow-100 text-yellow-800",
     Diterima: "bg-green-100 text-green-800",
     Ditolak: "bg-red-100 text-red-800",

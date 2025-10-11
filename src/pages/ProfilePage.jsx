@@ -1,9 +1,269 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
-export default function ManajemenPage({
-  
-}) {
+export default function ProfilePage() {
+  const [profile, setProfile] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState(null); // preview foto
+  const token = localStorage.getItem("token");
+
+  // Ambil profil dari backend
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/profile", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (res.ok) setProfile(data);
+        else alert(data.message || "Gagal memuat profil");
+      } catch (err) {
+        console.error(err);
+        alert("Gagal terhubung ke server");
+      }
+    };
+
+    fetchProfile();
+  }, [token]);
+
+  // Handle perubahan form
+  const handleChange = (e) => {
+    setProfile({
+      ...profile,
+      profile: {
+        ...profile.profile,
+        [e.target.name]: e.target.value,
+      },
+    });
+  };
+
+  // Handle upload foto
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfile({
+        ...profile,
+        profile: {
+          ...profile.profile,
+          foto_identitas: file,
+        },
+      });
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Simpan perubahan profil
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData();
+    Object.entries(profile.profile).forEach(([key, value]) => {
+      if (value) formData.append(key, value);
+    });
+
+    try {
+      const res = await fetch("http://localhost:3000/api/profile", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("Profil berhasil diperbarui!");
+        setProfile(data.user); // update state dengan data terbaru
+        setEditMode(false);
+        setPreview(null);
+      } else {
+        alert(data.message || "Gagal memperbarui profil");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan koneksi ke server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!profile) {
+    return <p className="text-center mt-10">Memuat data profil...</p>;
+  }
+
   return (
-    <p>Ini halaman Profile</p>
+    <div className="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-6">
+      <h2 className="text-xl font-bold mb-4 text-gray-700">Profil Saya</h2>
+
+      {!editMode ? (
+        <>
+          <div className="flex flex-col items-center mb-6">
+            <img
+              src={
+                preview ||
+                profile.profile.foto_identitas ||
+                "https://via.placeholder.com/120x120.png?text=No+Image"
+              }
+              alt="Foto Identitas"
+              className="w-32 h-32 rounded-full object-cover mb-3 border"
+            />
+            <p className="text-gray-700 font-medium">{profile.profile.nama_lengkap}</p>
+            <p className="text-sm text-gray-500">{profile.email}</p>
+            <p className="text-sm text-gray-500 capitalize">{profile.role}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><strong>Tanggal Lahir:</strong> {profile.profile.tanggal_lahir || "-"}</div>
+            <div><strong>Jenis Kelamin:</strong> {profile.profile.jenis_kelamin || "-"}</div>
+            <div><strong>Kota:</strong> {profile.profile.kota || "-"}</div>
+            <div><strong>Alamat:</strong> {profile.profile.alamat || "-"}</div>
+            <div><strong>Kode Pos:</strong> {profile.profile.kode_pos || "-"}</div>
+            <div><strong>No. HP:</strong> {profile.profile.no_hp || "-"}</div>
+            <div><strong>Identitas:</strong> {profile.profile.identitas || "-"}</div>
+          </div>
+
+          <button
+            onClick={() => setEditMode(true)}
+            className="mt-6 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
+          >
+            Edit Profil
+          </button>
+        </>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium">Nama Lengkap</label>
+            <input
+              type="text"
+              name="nama_lengkap"
+              value={profile.profile.nama_lengkap || ""}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium">Tanggal Lahir</label>
+              <input
+                type="date"
+                name="tanggal_lahir"
+                value={profile.profile.tanggal_lahir || ""}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Jenis Kelamin</label>
+              <select
+                name="jenis_kelamin"
+                value={profile.profile.jenis_kelamin || ""}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+              >
+                <option value="">Pilih</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Alamat</label>
+            <textarea
+              name="alamat"
+              value={profile.profile.alamat || ""}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium">Kota</label>
+              <input
+                type="text"
+                name="kota"
+                value={profile.profile.kota || ""}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Kode Pos</label>
+              <input
+                type="text"
+                name="kode_pos"
+                value={profile.profile.kode_pos || ""}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">No. HP</label>
+              <input
+                type="text"
+                name="no_hp"
+                value={profile.profile.no_hp || ""}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Nomor Identitas</label>
+            <input
+              type="text"
+              name="identitas"
+              value={profile.profile.identitas || ""}
+              onChange={handleChange}
+              className="w-full border rounded p-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Foto Identitas</label>
+            <input
+              type="file"
+              name="foto_identitas"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="w-full border rounded p-2"
+            />
+            {preview && (
+              <img
+                src={preview}
+                alt="Preview"
+                className="w-24 h-24 object-cover rounded mt-2"
+              />
+            )}
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+            >
+              {loading ? "Menyimpan..." : "Simpan"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition"
+            >
+              Batal
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
