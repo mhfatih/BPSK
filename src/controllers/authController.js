@@ -7,37 +7,30 @@ const SECRET_KEY = 'secret123';
 const register = async (req, res) => {
   const { email, nama_lengkap, password, confirm_password } = req.body;
 
-  if (!email || !nama_lengkap || !password || !confirm_password) {
+  if (!email || !nama_lengkap || !password || !confirm_password)
     return res.status(400).json({ message: 'Semua field wajib diisi' });
-  }
 
-  if (password !== confirm_password) {
-    return res.status(400).json({ message: 'Password dan konfirmasi password tidak sama' });
-  }
+  if (password !== confirm_password)
+    return res.status(400).json({ message: 'Password dan konfirmasi tidak sama' });
 
   try {
-    // cek email udah ada atau belum
-    const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (rows.length > 0) {
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0)
       return res.status(400).json({ message: 'Email sudah terdaftar' });
-    }
 
-    const user_id = uuidv4();
-    const profile_id = uuidv4();
+    const userId = uuidv4();
 
-    // insert ke tabel users
-    await db.query(
-      'INSERT INTO users (id, email, password, role) VALUES (?, ?, ?, ?)',
-      [user_id, email, password, 'user']
-    );
+    await db.query(`
+      INSERT INTO users (id, email, password, role)
+      VALUES (?, ?, ?, 'user')
+    `, [userId, email, password]);
 
-    // insert ke tabel profiles
-    await db.query(
-      'INSERT INTO profiles (id, user_id, nama_lengkap) VALUES (?, ?, ?)',
-      [profile_id, user_id, nama_lengkap]
-    );
+    await db.query(`
+      INSERT INTO profiles (user_id, nama_lengkap)
+      VALUES (?, ?)
+    `, [userId, nama_lengkap]);
 
-    res.status(201).json({ message: 'Registrasi berhasil' });
+    res.status(201).json({ message: 'Registrasi berhasil', user_id: userId });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
@@ -48,42 +41,26 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  if (!email || !password)
     return res.status(400).json({ message: 'Email dan password wajib diisi' });
-  }
 
   try {
-    const [rows] = await db.query(
-      `SELECT u.id, u.email, u.password, u.role, p.nama_lengkap 
-       FROM users u 
-       JOIN profiles p ON u.id = p.user_id 
-       WHERE u.email = ?`,
-      [email]
-    );
-
-    if (rows.length === 0 || rows[0].password !== password) {
+    const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (rows.length === 0 || rows[0].password !== password)
       return res.status(401).json({ message: 'Email atau password salah' });
-    }
 
     const user = rows[0];
-
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       SECRET_KEY,
       { expiresIn: '1h' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      maxAge: 3600000,
-    });
-
+    res.cookie('token', token, { httpOnly: true, secure: true, maxAge: 3600000 });
     res.json({
-      message: `Login berhasil, selamat datang ${user.nama_lengkap}`,
+      message: `Login berhasil, selamat datang!`,
       token,
       id: user.id,
-      nama_lengkap: user.nama_lengkap,
       role: user.role
     });
   } catch (err) {
