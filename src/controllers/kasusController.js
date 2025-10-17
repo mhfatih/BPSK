@@ -32,7 +32,7 @@ const getAllKasus = async (req, res) => {
         FROM kasus k
         LEFT JOIN kasus_data_diri d ON k.id = d.kasus_id
         LEFT JOIN kasus_pelaku_usaha p ON k.id = p.kasus_id
-        WHERE NOT (k.status = 'draf' AND k.created_by != ?)
+        WHERE NOT (k.status = 'Draf' AND k.created_by != ?)
         ORDER BY k.created_at DESC
       `;
       params = [req.user.id];
@@ -108,7 +108,7 @@ const createKasus = async (req, res) => {
   try {
     await db.query(
       `INSERT INTO kasus (id, created_by, status, created_at) 
-       VALUES (?, ?, 'draf', NOW())`,
+       VALUES (?, ?, 'Draf', NOW())`,
       [kasusId, req.user.id]
     );
 
@@ -193,15 +193,15 @@ const submitKasus = async (req, res) => {
     // ✅ Jika semua lengkap → ubah status
     await db.query(`
       UPDATE kasus
-      SET status = 'menunggu verifikasi',
+      SET status = 'Diproses',
           submitted_at = NOW()
       WHERE id = ?
     `, [id]);
 
     res.json({
-      message: 'Kasus berhasil dikirim dan menunggu verifikasi',
+      message: 'Kasus berhasil dikirim dan Diproses',
       kasus_id: id,
-      status: 'menunggu verifikasi'
+      status: 'Diproses'
     });
   } catch (err) {
     console.error('Error submitKasus:', err);
@@ -229,24 +229,24 @@ const verifyKasus = async (req, res) => {
     }
 
     // Logika verifikasi
-    if (status === 'ditolak') {
+    if (status === 'Ditolak') {
       if (!alasanPenolakan) {
         return res.status(400).json({ message: 'Alasan penolakan wajib diisi' });
       }
 
       await db.query(
         `UPDATE kasus 
-         SET status = 'ditolak', 
+         SET status = 'Ditolak', 
              alasan_penolakan = ?, 
              verified_at = NOW(), 
              verified_by = ? 
          WHERE id = ?`,
         [alasanPenolakan, req.user.id, id]
       );
-    } else if (status === 'diterima') {
+    } else if (status === 'Diterima') {
       await db.query(
         `UPDATE kasus 
-         SET status = 'diterima', 
+         SET status = 'Diterima', 
              verified_at = NOW(), 
              verified_by = ? 
          WHERE id = ?`,
@@ -269,7 +269,7 @@ const verifyKasus = async (req, res) => {
 };
 
 /**
- * Create sidang baru (hanya jika status kasus = 'diterima')
+ * Create sidang baru (hanya jika status kasus = 'Diterima')
  */
 const createSidang = async (req, res) => {
   const { id } = req.params; // id kasus
@@ -286,7 +286,7 @@ const createSidang = async (req, res) => {
     if (!['admin', 'superadmin'].includes(req.user.role))
       return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa membuat sidang' });
 
-    if (kasus.status !== 'diterima')
+    if (kasus.status !== 'Diterima')
       return res.status(400).json({ message: 'Kasus belum diterima, tidak bisa membuat sidang' });
 
     // 🔢 Hitung sidang ke-
@@ -357,7 +357,7 @@ const updateSidangById = async (req, res) => {
     if (!['admin', 'superadmin'].includes(req.user.role))
       return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa update sidang' });
 
-    if (kasus.status !== 'diterima')
+    if (kasus.status !== 'Diterima')
       return res.status(400).json({ message: 'Kasus belum diterima, tidak bisa update sidang' });
 
     // 💾 Update data sidang
