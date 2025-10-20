@@ -4,8 +4,8 @@ export default function ManajemenPage() {
   const [users, setUsers] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [form, setForm] = useState({
-    email: "",
     nama_lengkap: "",
+    email: "",
     password: "",
     role: "user",
   });

@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { SquarePen, Eye, ShieldCheck } from 'lucide-react';
+import { MdOutlineDashboard } from "react-icons/md";
 import StatusBadge from "../assets/StatusBadge";
+import { apiClient } from "../api/apiClient";
+import { formatDate } from "../assets/FormatDate";
 
-const statusOptions = ["Draft", "Pending", "Ditolak", "Diterima", "Selesai"];
+const statusOptions = ["Draf", "Diproses", "Ditolak", "Diterima", "Selesai"];
 const statuses = ["Semua", ...statusOptions];
 
 export default function KasusPage() {
@@ -17,14 +21,21 @@ export default function KasusPage() {
   const itemsPerPage = 15;
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/login", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchProfile = async () => {
+      try {
+        const data = await apiClient("/profile", { method: "GET" });
         const user = data.user || data;
         setCurrentUser(user);
         setRole(user.role);
-      })
-      .catch(() => console.warn("Gagal ambil data user login"));
+      } catch (err) {
+        console.warn("Gagal ambil data user login:", err.message);
+        if (err.message.includes("Token") || err.message.includes("Unauthorized")) {
+          navigate("/login"); // arahkan user ke halaman login
+        }
+      }
+    };
+  
+    fetchProfile();
   }, []);
   
   useEffect(() => {
@@ -32,28 +43,26 @@ export default function KasusPage() {
   
     const fetchKasus = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/kasus", {
-          credentials: "include",
-        });
-        const kasusList = await res.json();
+        const kasusList = await apiClient("/kasus", { credentials: "include" });
   
         const detailedKasus = kasusList.map((item) => ({
           id: item.id,
-          nomor: item.nomorRegistrasi || "-",
-          pengadu: item.data_diri?.nama_lengkap || "-",
-          pelakuUsaha: item.pelaku_usaha?.perusahaan || item.pelaku_usaha?.namaUsaha || "-",
+          nomor_registrasi: `REG-${item.id.substring(0, 8).toUpperCase()}`,
+          pengadu: item.nama_pengadu || "-",
+          pelakuUsaha: item.nama_perusahaan || item.pelaku_usaha?.namaUsaha || "-",
           tanggal: item.pengaduan?.tanggal || item.created_at || "-",
-          status: item.status || "Draft",
-          user_id: item.user_id,
+          status: item.status || "Draf",
+          user_id: item.created_by,
         }));
   
+        console.log(kasusList);
         let visibleKasus = detailedKasus;
   
         if (role === "user") {
           visibleKasus = detailedKasus.filter(k => k.user_id === currentUser.id);
         } else if (role === "admin") {
           visibleKasus = detailedKasus.filter(
-            k => k.status === "Pending" || k.user_id === currentUser.id
+            k => k.status === "Diproses" || k.user_id === currentUser.id
           );
         }
   
@@ -77,7 +86,7 @@ export default function KasusPage() {
     if (search.trim() !== "") {
       data = data.filter(
         (item) =>
-          item.nomor.toLowerCase().includes(search.toLowerCase()) ||
+          item.nomor_registrasi.toLowerCase().includes(search.toLowerCase()) ||
           item.pengadu.toLowerCase().includes(search.toLowerCase()) ||
           item.pelakuUsaha.toLowerCase().includes(search.toLowerCase())
       );
@@ -100,28 +109,28 @@ export default function KasusPage() {
   );
 
   // Update status
-  const handleUpdateStatus = async (id, newStatus) => {
-    try {
-      const res = await fetch(`http://localhost:3000/api/kasus/${id}/update-status`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
-        setKasus((prev) =>
-          prev.map((k) => (k.id === id ? { ...k, status: newStatus } : k))
-        );
-      } else {
-        alert(data.message || "Gagal update status");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan server");
-    }
-  };
+  // const handleUpdateStatus = async (id, newStatus) => {
+  //   try {
+  //     const res = await fetch(`http://localhost:3000/api/kasus/${id}/update-status`, {
+  //       method: "POST",
+  //       credentials: "include",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ status: newStatus }),
+  //     });
+  //     const data = await res.json();
+  //     if (res.ok) {
+  //       alert(data.message);
+  //       setKasus((prev) =>
+  //         prev.map((k) => (k.id === id ? { ...k, status: newStatus } : k))
+  //       );
+  //     } else {
+  //       alert(data.message || "Gagal update status");
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert("Terjadi kesalahan server");
+  //   }
+  // };
 
   return (
     <div className="p-4 bg-white shadow-md rounded-lg">
@@ -170,41 +179,45 @@ export default function KasusPage() {
                   <td className="px-4 py-2 border text-center">
                     {startIndex + index + 1}
                   </td>
-                  <td className="px-4 py-2 border">{item.nomor}</td>
+                  <td className="px-4 py-2 border">{item.nomor_registrasi}</td>
                   <td className="px-4 py-2 border">{item.pengadu}</td>
                   <td className="px-4 py-2 border">{item.pelakuUsaha}</td>
                   <td className="px-4 py-2 border">
-                    {item.tanggal
-                      ? new Date(item.tanggal).toLocaleDateString("id-ID")
-                      : "-"}
+                    {formatDate(item.tanggal)}
                   </td>
                   <td className="px-4 py-2 border">
                     <StatusBadge status={item.status} />
                   </td>
-                  <td className="px-4 py-2 border text-center space-x-2">
+                  <td className="flex items-center justify-center gap-2">
                     
                     
                     {/* Tombol Lihat */}
                     <Link
-                      to={`/dashboard/kasus/${item.id}`}
-                      className="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded"
+                      to={`/dashboard/pengaduan/${item.id}/view`}
+                      className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded"
                     >
-                      Lihat
+                      <Eye size={16}  />
                     </Link>
 
                     {/* Tombol Edit Draft */}
-                    {currentUser && (
-                      ((role === "user" && item.status === "Draft" && item.user_id === currentUser.id) ||
-                      (role === "admin" && item.status === "Draft" && item.user_id === currentUser.id) ||
-                      (role === "superadmin" && item.status === "Draft")) && (
+                    {currentUser && role && (
+                    (
+                      (
+                        (["user", "admin"].includes(role) &&
+                          item.status?.toLowerCase() === "draf" &&
+                          item.user_id?.toString() === currentUser.id?.toString()
+                        ) ||
+                        (role === "superadmin" && item.status?.toLowerCase() === "draf")
+                      ) && (
                         <Link
                           to={`/dashboard/kasus/edit/${item.id}`}
-                          className="px-2 py-1 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded"
+                          className="flex items-center justify-center p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded"
                         >
-                          Lanjutkan
+                          <SquarePen size={16} />
                         </Link>
                       )
-                    )}
+                    )
+                  )}
 
                     {/* Verifikasi untuk admin/superadmin */}
                     {(role === "admin" || role === "superadmin") && item.status === "Pending" && (
@@ -212,7 +225,7 @@ export default function KasusPage() {
                         onClick={() => handleUpdateStatus(item.id, "Diterima")}
                         className="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded"
                       >
-                        Verifikasi
+                        <ShieldCheck size={20}/>
                       </button>
                     )}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
-import { useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { getProfile } from '../api/ProfileServices';
 
 // import logo from '../logo.png';
 
@@ -76,16 +77,38 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      setUser(parsed);
-  
-      // Pilih menu sesuai role
-      setMenus(menuItems[parsed.role] || menuItems.user);
-    }
-  }, []);
+   // ✅ Ambil user dari localStorage atau API
+   useEffect(() => {
+    const loadUser = async () => {
+      const stored = localStorage.getItem("user");
+
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setUser(parsed);
+
+          // atur menu sesuai role
+          const role = parsed.role || "user";
+          setMenus(menuItems[role] || menuItems.user);
+
+          // Jika nama_lengkap belum ada, ambil dari API
+          if (!parsed.nama_lengkap) {
+            const profileRes = await getProfile();
+            setUser({ ...parsed, nama_lengkap: profileRes.nama_lengkap });
+            // localStorage.setItem("user", JSON.stringify(updatedUser));
+            // setUser(updatedUser);
+          }
+        } catch (err) {
+          console.error("Gagal parse data user:", err);
+        }
+      } else {
+        // Kalau tidak ada user di localStorage, paksa ke login
+        navigate("/login");
+      }
+    };
+
+    loadUser();
+  }, [navigate]);
 
     return (
     <div className='flex h-screen'>
@@ -151,7 +174,7 @@ export default function Dashboard() {
             className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded-md transition"
           >
             <span className="text-sm text-gray-600">
-            {user?.nama_lengkap || "Admin"}
+            {user?.profile?.profile?.nama_lengkap || "Pengguna"}
           </span>
             <FaUserCircle size={28} className="text-gray-600" />
           </button>

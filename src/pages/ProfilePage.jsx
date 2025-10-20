@@ -1,33 +1,40 @@
 import React, { useEffect, useState } from "react";
+import { apiClient } from "../api/apiClient";
+import { apiUploadClient } from "../api/apiUploadClient";
+import { formatDate } from "../assets/FormatDate";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null); // preview foto
+  const [currentUser, setCurrentUser] = useState(null);
+  const [role, setRole] = useState(""); // role bisa dari session / cookie
   const token = localStorage.getItem("token");
 
-  // Ambil profil dari backend
+  // 🔹 Ambil profil dari backend
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const data = await apiClient("/profile", {
+          method: "GET",
+          credentials: "include",
         });
-
-        const data = await res.json();
-        if (res.ok) setProfile(data);
-        else alert(data.message || "Gagal memuat profil");
+        setProfile(data);
+        const user = data.user || data;
+        setCurrentUser(user);
+        setRole(user.role);
       } catch (err) {
-        console.error(err);
-        alert("Gagal terhubung ke server");
+        console.error("Gagal ambil profil:", err);
+        alert(err.message || "Gagal memuat profil");
+        if (err.message.includes("Token") || err.message.includes("Unauthorized")) {
+          navigate("/login"); // arahkan user ke halaman login
+        }
       }
     };
 
     fetchProfile();
-  }, [token]);
+  }, []);
 
   // Handle perubahan form
   const handleChange = (e) => {
@@ -59,37 +66,31 @@ export default function ProfilePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    const formData = new FormData();
-    Object.entries(profile.profile).forEach(([key, value]) => {
-      if (value) formData.append(key, value);
-    });
-
+  
     try {
-      const res = await fetch("http://localhost:3000/api/profile", {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+      const formData = new FormData();
+      Object.entries(profile.profile).forEach(([key, value]) => {
+        if (value) formData.append(key, value);
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert("Profil berhasil diperbarui!");
-        setProfile(data.user); // update state dengan data terbaru
-        setEditMode(false);
-        setPreview(null);
-      } else {
-        alert(data.message || "Gagal memperbarui profil");
-      }
+  
+      // ✅ panggil apiUploadClient langsung, bukan .put()
+      const res = await apiUploadClient("/profile", {
+        method: "PUT",
+        formData,
+      });
+  
+      alert(res.message || "Profil berhasil diperbarui!");
+      setProfile(res.user || res.data?.user || profile); // fallback aman
+      setEditMode(false);
+      setPreview(null);
     } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan koneksi ke server");
+      console.error("Error update profil:", err);
+      alert(err.message || "Gagal memperbarui profil");
     } finally {
       setLoading(false);
     }
   };
+  
 
   if (!profile) {
     return <p className="text-center mt-10">Memuat data profil...</p>;
@@ -117,7 +118,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><strong>Tanggal Lahir:</strong> {profile.profile.tanggal_lahir || "-"}</div>
+            <div><strong>Tanggal Lahir:</strong> {formatDate(profile.profile.tanggal_lahir) || "-"}</div>
             <div><strong>Jenis Kelamin:</strong> {profile.profile.jenis_kelamin || "-"}</div>
             <div><strong>Kota:</strong> {profile.profile.kota || "-"}</div>
             <div><strong>Alamat:</strong> {profile.profile.alamat || "-"}</div>
@@ -185,7 +186,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium">Kota</label>
               <input
                 type="text"
@@ -194,7 +195,27 @@ export default function ProfilePage() {
                 onChange={handleChange}
                 className="w-full border rounded p-2"
               />
+            </div> */}
+            <div>
+              <label className="block text-sm font-medium">Kota / Kabupaten</label>
+              <select
+                  name="kota"
+                  value={profile.profile.kota}
+                  onChange={handleChange}
+                  className="w-full border border rounded  p-2.5"
+                >
+                <option value="">Pilih Kota/Kabupaten</option>
+                <option value="Kota Tangerang">Kota Tangerang</option>
+                <option value="Kota Tangerang Selatan">Kota Tangerang Selatan</option>
+                <option value="Kabupaten Tangerang">Kabupaten Tangerang</option>
+                <option value="Kabupaten Serang">Kabupaten Serang</option>
+                <option value="Kota Serang">Kota Serang</option>  
+                <option value="Kota Cilegon">Kota Cilegon</option>
+                <option value="Kabupaten Pandeglang">Kabupaten Pandeglang</option>  
+                <option value="Kabupaten Lebak">Kabupaten Lebak</option>  
+                </select>             
             </div>
+              
             <div>
               <label className="block text-sm font-medium">Kode Pos</label>
               <input

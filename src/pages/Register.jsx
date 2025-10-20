@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { register } from "../api/authService";
 import { useState } from "react";
 
 export default function Register() {
@@ -12,6 +13,9 @@ export default function Register() {
 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

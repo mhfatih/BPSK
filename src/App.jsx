@@ -10,6 +10,12 @@ import PengaduanPage from "./pages/PengaduanPage";
 import ManajemenPage from "./pages/ManajemenPage";
 import ProfilePage from "./pages/ProfilePage";
 import MultiStepPengaduan from "./pages/MultiStepPengaduan";
+import ViewPengaduan from "./pages/PengaduanView";
+import TambahPengaduan from "./pages/TambahPengaduan";
+import PengaduanDataDiri from "./pages/PengaduanDataDiri";
+import PelakuUsaha from "./pages/PengaduanPelakuUsaha";
+import TentangPengaduan from "./pages/TentangPengaduan";
+import KronologisPengaduan from "./pages/PengaduanKronologis";
 
 
 function App() {
@@ -29,11 +35,20 @@ function App() {
       </ProtectedRoute>
     }
   >
-    <Route index element={<DashboardPage />} />
-    <Route path="kasus" element={<KasusPage />} />
-    <Route path="kasus/:id" element={<KasusDetail />} />
-    <Route path="pengaduan" element={<MultiStepPengaduan />} />
-    <Route path="profile" element={<ProfilePage />} />
+    <Route index element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+    <Route path="profile" element={<ProtectedRoute> <ProfilePage /> </ProtectedRoute>} />    
+    <Route path="kasus" element={<ProtectedRoute> <KasusPage /> </ProtectedRoute>} />
+    {/* <Route path="/pengaduan/tambah" element={<TambahPengaduan />} />     */}
+    <Route path="kasus/:id" element={<ProtectedRoute><KasusDetail /> </ProtectedRoute> } />
+    <Route path="pengaduan/:id/view" element={<ViewPengaduan />} />    
+    <Route path="pengaduan" element={<TambahPengaduan />} />
+    <Route path="pengaduan/:id/data-diri" element={<PengaduanDataDiri />} />
+    <Route path="pengaduan/:id/pelaku-usaha" element={<PelakuUsaha />} />
+    <Route path="pengaduan/:id/tentang-pengaduan" element={<TentangPengaduan />} />
+    <Route path="pengaduan/:id/kronologis-pengaduan" element={<KronologisPengaduan />} />    
+
+        
+    
 
     {/* Hanya superadmin */}
     <Route

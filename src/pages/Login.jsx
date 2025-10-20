@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { login } from "../api/authService";
+import { getProfile } from "../api/ProfileServices";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { apiClient } from "../api/apiClient";
 
 export default function Login() {
   const [form, setForm] = useState({
@@ -27,41 +30,114 @@ export default function Login() {
   
     try {
       const token = await executeRecaptcha("login_form");
+      const data = await login(form.email, form.password, form.role, token);
+
+      console.log("Respon dari API login:", data);
   
-      const payload = {
-        email: form.email,
-        password: form.password,
-        konfpassword: form.konfpass,
-        role: form.role,
-        recaptchaToken: token,
-      };
-  
-      const res = await fetch("http://localhost:3000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        credentials: "include", // 🟢 penting untuk cookie
-      });
-  
-      const data = await res.json();
-  
-      if (res.ok) {
-        alert("Login berhasil!");
-        localStorage.setItem("token", data.token); // simpan token JWT misalnya
-        localStorage.setItem("user", JSON.stringify(data.user)); // simpan nama_lengkap
-        console.log("User after login:", data.user)
-        navigate("/dashboard");
-        
-      } else {
-        alert(data.message || "Login gagal!");
+      if (!data || data.error || data.status === "error") {
+        alert(data.message || "Login gagal. Periksa kembali email dan password Anda.");
+        return;
       }
+  
+      // simpan sementara dulu
+      localStorage.setItem("token", data.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: data.id,
+          role: data.role,
+          token: data.token,
+        })
+      );
+      
+      // 🔄 Ambil profil lengkap agar ada nama_lengkap
+      try {
+        const profileRes = await getProfile();
+        console.log("Profil pengguna:", profileRes);
+
+        if (profileRes) {
+          const storedUser = JSON.parse(localStorage.getItem("user"));
+          const updatedUser = {
+            ...storedUser,
+            nama_lengkap: profileRes.nama_lengkap || "Pengguna",
+            profile: profileRes, // simpan semua data profil kalau mau
+          };
+
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      } catch (profileErr) {
+        console.warn("Gagal mengambil profil:", profileErr);
+      }
+
+      // ⏳ Pastikan tersimpan dulu
+      await new Promise((resolve) => setTimeout(resolve, 200));
+  
+      navigate("/dashboard");
     } catch (err) {
-      console.error(err);
-      alert("Terjadi kesalahan koneksi.");
+      console.error("Login error:", err);
+      if (err.message === "Failed to fetch" || err.name === "TypeError") {
+        alert("Tidak dapat terhubung ke server. Periksa koneksi internet Anda.");
+      } else if (err.response?.status === 401) {
+        alert("Sesi Anda telah berakhir. Silakan login kembali.");
+        navigate("/login");
+      } else {
+        alert(err.message || "Terjadi kesalahan saat login. Coba lagi nanti.");
+      }
     } finally {
       setLoading(false);
     }
   };
+  
+  
+
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  
+  //   if (!executeRecaptcha) {
+  //     alert("Captcha belum siap, coba lagi.");
+  //     setLoading(false);
+  //     return;
+  //   }
+  
+  //   try {
+  //     const token = await executeRecaptcha("login_form");
+  
+  //     const payload = {
+  //       email: form.email,
+  //       password: form.password,
+  //       konfpassword: form.konfpass,
+  //       role: form.role,
+  //       recaptchaToken: token,
+  //     };
+  
+  //     const res = await fetch("http://localhost:3000/api/login", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(payload),
+  //       credentials: "include", // 🟢 penting untuk cookie
+  //     });
+  
+  //     const data = await res.json();
+  
+  //     if (res.ok) {
+  //       alert("Login berhasil!");
+  //       localStorage.setItem("token", data.token); // simpan token JWT misalnya
+  //       localStorage.setItem("user", JSON.stringify(data.user)); // simpan nama_lengkap
+  //       console.log("User after login:", data.user)
+  //       navigate("/dashboard");
+        
+  //     } else {
+  //       alert(data.message || "Login gagal!");
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert("Terjadi kesalahan koneksi.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   
     
   

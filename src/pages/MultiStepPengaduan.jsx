@@ -53,10 +53,9 @@ export default function MultiStepPengaduan() {
     tanggal_kejadian: "",
     waktu_kejadian: "",
     lokasi_kejadian: "",
-    kerugian_material: false,
-    keterangan_material: "",
-    kerugian_fisik: false,
-    keterangan_fisik: "",
+    bentuk_kerugian: "",
+    detail_kerugian: "",
+    
     // lampiran: array of Files
     lampiran: [{ jenis: "", label: "", file: null }],
 
@@ -122,19 +121,6 @@ const handleAddLampiran = () => {
   const handleLampiranJenisChange = (e, index) => {
     const newLampiran = [...formData.lampiran];
     newLampiran[index].jenis = e.target.value;
-    setFormData(prev => ({ ...prev, lampiran: newLampiran }));
-  };
-  
-  const handleLampiranLabelChange = (e, index) => {
-    const newLampiran = [...formData.lampiran];
-    newLampiran[index].label = e.target.value;
-    setFormData(prev => ({ ...prev, lampiran: newLampiran }));
-  };
-  
-  const handleLampiranFileChange = (e, index) => {
-    const file = e.target.files[0];
-    const newLampiran = [...formData.lampiran];
-    newLampiran[index].file = file;
     setFormData(prev => ({ ...prev, lampiran: newLampiran }));
   };
 
@@ -510,10 +496,8 @@ const handleAddLampiran = () => {
       tanggal_kejadian: "",
       waktu_kejadian: "",
       lokasi_kejadian: "",
-      kerugian_material: false,
-      keterangan_material: "",
-      kerugian_fisik: false,
-      keterangan_fisik: "",
+      bentuk_kerugian: "",
+      detail_kerugian: "",
       lampiran: [null],
       kronologis: "",
       gantiBarang: false,
@@ -750,53 +734,124 @@ const handleAddLampiran = () => {
             </div>
             </div>
 
-            {/* Kerugian */}
-            <div className="space-y-2">
-            <label className="block text-sm text-gray-600 mb-1">Bentuk Kerugian</label>
-            <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                <input
-                    type="checkbox"
-                    name="kerugian_material"
-                    checked={formData.kerugian_material}
-                    onChange={handleChange}
-                    className="w-5 h-5 accent-blue-600"
-                /> Material
-                </label>
-                <label className="flex items-center gap-2">
-                <input
-                    type="checkbox"
-                    name="kerugian_fisik"
-                    checked={formData.kerugian_fisik}
-                    onChange={handleChange}
-                    className="w-5 h-5 accent-blue-600"
-                /> Fisik
-                </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* 🧾 Bentuk & Keterangan Kerugian */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bentuk Kerugian
+              </label>
+              <select
+                name="bentuk_kerugian"
+                value={formData.bentuk_kerugian}
+                onChange={handleChange}
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Pilih Bentuk Kerugian</option>
+                <option value="fisik">Fisik</option>
+                <option value="material">Material</option>
+              </select>
             </div>
 
-            {formData.kerugian_material && (
-                <input
-                name="keterangan_material"
-                value={formData.keterangan_material}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Keterangan Kerugian
+              </label>
+              <textarea
+                name="keterangan_kerugian"
+                value={formData.keterangan_kerugian || ""}
                 onChange={handleChange}
-                placeholder="Detail kerugian material"
-                className="w-full border rounded p-2"
-                />
-            )}
-            {formData.kerugian_fisik && (
-                <input
-                name="keterangan_fisik"
-                value={formData.keterangan_fisik}
-                onChange={handleChange}
-                placeholder="Detail kerugian fisik"
-                className="w-full border rounded p-2"
-                />
-            )}
+                placeholder="Jelaskan detail kerugian yang dialami"
+                rows="3"
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
+
+            {/* 📄 Bukti Pembelian */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bukti Pembelian
+              </label>
+              <select
+                name="bukti_pembelian"
+                value={formData.bukti_pembelian}
+                onChange={handleChange}
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Pilih Bukti Pembelian</option>
+                <option value="bon pembelian">Bon Pembelian</option>
+                <option value="kwitansi">Kwitansi</option>
+                <option value="faktur">Faktur</option>
+                <option value="tanda terima">Tanda Terima</option>
+                <option value="lain-lain">Lain-lain</option>
+              </select>
+            </div>
+
+            {/* 👥 Bukti Saksi */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bukti Saksi
+              </label>
+              <select
+                name="bukti_saksi"
+                value={formData.bukti_saksi}
+                onChange={handleChange}
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Pilih Bukti Saksi</option>
+                <option value="ada">Ada</option>
+                <option value="tidak ada">Tidak Ada</option>
+              </select>
+
+              {formData.bukti_saksi === "ada" && (
+                <input
+                  type="text"
+                  name="hubungan_saksi"
+                  value={formData.hubungan_saksi}
+                  onChange={handleChange}
+                  placeholder="Hubungan dengan Saksi"
+                  className="w-full border rounded-lg p-2 mt-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              )}
+            </div>
+
+            {/* 📦 Barang Bukti */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Barang Bukti
+              </label>
+              <select
+                name="barang_bukti"
+                value={formData.barang_bukti}
+                onChange={handleChange}
+                className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Pilih Barang Bukti</option>
+                <option value="ada">Ada</option>
+                <option value="tidak ada">Tidak Ada</option>
+              </select>
+            </div>
+
+            {/* 🖼️ Upload Foto Bukti */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Foto Bukti (Opsional)
+              </label>
+              <input
+                type="file"
+                name="foto_bukti"
+                onChange={handleChange}
+                accept="image/*"
+                className="w-full border rounded-lg p-2 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+            
 
             {/* Lampiran Bukti */}
-            <div className="space-y-3">
-            <label className="block text-sm text-gray-600 mb-1">Lampiran Bukti</label>
+            {/* <div className="space-y-3">
+            <label className="block text-sm text-gray-600 mb-1 w-full">Lampiran Bukti</label>
             {formData.lampiran.map((item, idx) => (
                 <div
                 key={idx}
@@ -851,7 +906,7 @@ const handleAddLampiran = () => {
             >
                 + Tambah Bukti
             </button>
-            </div>
+            </div> */}
         </div>
         )}
 

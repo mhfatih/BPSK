@@ -16,39 +16,29 @@ export default function KasusDetail({ data }) {
   // 🟢 Dummy role — ganti dengan sistem loginmu (misalnya dari context/auth)
 const USER_ROLE = "admin"; // atau "user"
 
-  useEffect(() => {
-    // ✅ Dummy data simulasi dari formData
-    const dummy = {
-      id,
-      nomorRegistrasi: `REG-${Date.now()}`,
-      tanggal: new Date().toISOString().split("T")[0],
-      nama: "Budi Santoso",
-      tanggalLahir: "1990-05-12",
-      umur: 35,
-      gender: "Laki-laki",
-      alamat: "Jl. Merdeka No. 12",
-      kodepos: "40123",
-      kota: "Bandung",
-      telepon: "08123456789",
-      email: "budi@example.com",
-      nik: "3210123456789000",
-      fotoIdentitas: "https://via.placeholder.com/150",
-      namaPemilik: "Budi Santoso",
-      namaUsaha: "PT Elektronik Jaya",
-      alamatUsaha: "Jl. Industri No. 45",
-      kodeposUsaha: "40111",
-      kotaUsaha: "Bandung",
-      teleponUsaha: "0229876543",
-      kronologis:
-        "Saya membeli produk elektronik namun mengalami kerusakan dan tidak dapat klaim garansi.",
-      lampiran: ["BuktiTransaksi.pdf", "FotoKerusakan.jpg"],
-      persetujuan: true,
-      status: "Pending",
-    };
+useEffect(() => {
+  const fetchKasus = async () => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/kasus/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      if (!res.ok) throw new Error("Gagal mengambil data kasus");
+      const data = await res.json();
+      setKasus(data);
+      setStatus(data.status);
+    } catch (err) {
+      console.error("Error fetch kasus:", err);
+    }
+  };
 
-    setKasus(dummy);
-    setStatus(dummy.status);
-  }, [id]);
+  fetchKasus();
+}, [id]);
+
+
+if (loading) return <p>Memuat data...</p>;
+if (!kasus) return <p>Kasus tidak ditemukan.</p>;
 
   if (!kasus) return <p className="p-4">Memuat data...</p>;
 
@@ -59,15 +49,15 @@ const USER_ROLE = "admin"; // atau "user"
     doc.text("Laporan Pengaduan Konsumen", 10, 20);
 
     doc.setFontSize(12);
-    doc.text(`Nomor Registrasi: ${kasus.nomorRegistrasi}`, 10, 40);
-    doc.text(`Nama: ${kasus.nama}`, 10, 50);
-    doc.text(`Email: ${kasus.email}`, 10, 60);
-    doc.text(`Telepon: ${kasus.telepon}`, 10, 70);
-    doc.text(`Alamat: ${kasus.alamat}`, 10, 80);
-    doc.text(`Kronologis: ${kasus.kronologis}`, 10, 100, { maxWidth: 180 });
+    doc.text(`Nomor Registrasi: ${kasus.id}`, 10, 40);
+    doc.text(`Nama: ${kasus.data_diri?.nama_lengkap}`, 10, 50);
+    doc.text(`Email: ${kasus.data_diri?.email}`, 10, 60);
+    doc.text(`Telepon: ${kasus.data_diri?.no_hp}`, 10, 70);
+    doc.text(`Alamat: ${kasus.data_diri.alamat}`, 10, 80);
+    doc.text(`Kronologis: ${kasus.kronologis?.kronologis}`, 10, 100, { maxWidth: 180 });
     doc.text(`Status: ${kasus.status}`, 10, 130);
 
-    doc.save(`Pengaduan_${kasus.nomorRegistrasi}.pdf`);
+    doc.save(`Pengaduan_${kasus.id}.pdf`);
   };
 
   // 🟡 Simulasi ubah status
@@ -100,23 +90,25 @@ const USER_ROLE = "admin"; // atau "user"
         <div>
           <p><strong>No Registrasi:</strong> {kasus.nomorRegistrasi}</p>
           <p><strong>Tanggal:</strong> {kasus.tanggal}</p>
-          <p><strong>Nama:</strong> {kasus.nama}</p>
-          <p><strong>Email:</strong> {kasus.email}</p>
-          <p><strong>Telepon:</strong> {kasus.telepon}</p>
-          <p><strong>Kota:</strong> {kasus.kota}</p>
+          <p><strong>Nama:</strong> {kasus.data_diri?.nama_lengkap}</p>
+          <p><strong>Email:</strong> {kasus.data_diri?.email}</p>
+          <p><strong>Telepon:</strong> {kasus.data_diri?.no_hp}</p>
+          <p><strong>Kota:</strong> {kasus.data_diri?.kota}</p>
         </div>
         <div>
-          <p><strong>Nama Usaha:</strong> {kasus.namaUsaha}</p>
-          <p><strong>Alamat Usaha:</strong> {kasus.alamatUsaha}</p>
-          <p><strong>Kota Usaha:</strong> {kasus.kotaUsaha}</p>
-          <p><strong>Telepon Usaha:</strong> {kasus.teleponUsaha}</p>
+          <p><strong>Nama Pemilik:</strong> {kasus.pelaku_usaha?.nama_pemilik}</p>
+          <p><strong>Nama Usaha:</strong> {kasus.pelaku_usaha?.perusahaan}</p>
+          <p><strong>Alamat Usaha:</strong> {kasus.pelaku_usaha?.alamat}</p>
+          <p><strong>Kota Usaha:</strong> {kasus.pelaku_usaha?.kota}</p>
+          <p><strong>Kode Pos Usaha:</strong> {kasus.pelaku_usaha?.kode_pos}</p>
+          <p><strong>Telepon Usaha:</strong> {kasus.pelaku_usaha?.no_hp}</p>
         </div>
       </div>
 
       <div className="mb-6">
         <h3 className="font-semibold text-gray-700 mb-2">Kronologis</h3>
         <p className="bg-gray-50 border p-3 rounded-lg text-sm text-gray-800">
-          {kasus.kronologis}
+          {kasus.kronologis?.kronologis}
         </p>
       </div>
 
