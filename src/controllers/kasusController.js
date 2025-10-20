@@ -214,7 +214,7 @@ const submitKasus = async (req, res) => {
  */
 const verifyKasus = async (req, res) => {
   const { id } = req.params;
-  const { status, alasanPenolakan } = req.body;
+  const { status, alasan_penolakan } = req.body;
 
   try {
     // Cek apakah kasus ada
@@ -230,7 +230,7 @@ const verifyKasus = async (req, res) => {
 
     // Logika verifikasi
     if (status === 'Ditolak') {
-      if (!alasanPenolakan) {
+      if (!alasan_penolakan) {
         return res.status(400).json({ message: 'Alasan penolakan wajib diisi' });
       }
 
@@ -241,7 +241,7 @@ const verifyKasus = async (req, res) => {
              verified_at = NOW(), 
              verified_by = ? 
          WHERE id = ?`,
-        [alasanPenolakan, req.user.id, id]
+        [alasan_penolakan, req.user.id, id]
       );
     } else if (status === 'Diterima') {
       await db.query(
