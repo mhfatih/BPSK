@@ -101,11 +101,25 @@ const updateDataDiri = async (req, res) => {
       await db.query('INSERT INTO kasus_data_diri SET ?', [data]);
     }
 
+    // 🧭 Tentukan wilayah berdasarkan kota
+    let wilayah = null;
+    const wkp1 = ['Kota Tangerang', 'Kota Tangerang Selatan', 'Kabupaten Tangerang'];
+    if (wkp1.includes(kota)) {
+      wilayah = 'WKP1';
+    } else {
+      wilayah = 'WKP2';
+    }
+
+    // 💾 Update kolom wilayah di tabel kasus
+    await db.query('UPDATE kasus SET wilayah = ? WHERE id = ?', [wilayah, id]);
+
     console.log('Data yang disimpan:', data);
+    console.log('Wilayah ditetapkan:', wilayah);
 
     res.json({
       message: 'Data diri berhasil disimpan',
       kasus_id: id,
+      wilayah,
       foto_identitas: foto_identitas_path,
     });
   } catch (err) {
@@ -141,7 +155,7 @@ const getPelakuUsaha = async (req, res) => {
  */
 const updatePelakuUsaha = async (req, res) => {
   const { id } = req.params;
-  const { nama_pemilik, perusahaan, kota, alamat, kode_pos, no_hp, faksimile } = req.body;
+  const { nama_pemilik, perusahaan, kota, alamat, kode_pos, no_hp, email } = req.body;
 
   try {
     // cek kasus
@@ -157,7 +171,7 @@ const updatePelakuUsaha = async (req, res) => {
 
     // validasi
     if (!nama_pemilik || !perusahaan || !kota || !alamat || !kode_pos || !no_hp) {
-      return res.status(400).json({ message: 'Semua field pelaku usaha wajib diisi (faksimile opsional)' });
+      return res.status(400).json({ message: 'Semua field pelaku usaha wajib diisi' });
     }
 
     const data = {
@@ -167,7 +181,7 @@ const updatePelakuUsaha = async (req, res) => {
       alamat,
       kode_pos,
       no_hp,
-      faksimile: faksimile || null
+      email
     };
 
     // cek sudah ada atau belum

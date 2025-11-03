@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 
 const authController = require('../controllers/authController');
+const userController = require('../controllers/userController');
 const kasusController = require('../controllers/kasusController');
 const formController = require('../controllers/formController');
-const userController = require('../controllers/userController');
+const sidangController = require('../controllers/sidangController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleCheck = require('../middlewares/roleMiddleware');
@@ -28,9 +29,9 @@ router.get('/kasus', authMiddleware, kasusController.getAllKasus);
 router.get('/kasus/:id', authMiddleware, kasusController.getKasusById);
 router.put('/kasus/:id/submit-kasus', authMiddleware, kasusController.submitKasus);
 router.put('/kasus/:id/verify-kasus', authMiddleware, kasusController.verifyKasus);
-router.get('/kasus/:id/sidang', authMiddleware, kasusController.getSidangByKasusId);
-router.post('/kasus/:id/sidang', authMiddleware, kasusController.createSidang);
-router.put('/kasus/:sidangId/sidang', authMiddleware, kasusController.updateSidangById);
+router.get('/kasus/:id/sidang', authMiddleware, sidangController.getSidangByKasusId);
+router.post('/kasus/:id/sidang', authMiddleware, sidangController.createSidang);
+router.put('/kasus/:sidangId/sidang', authMiddleware, sidangController.updateSidangById);
 
 // ==================== FORM ====================
 router.get('/kasus/:id/data-diri', authMiddleware, formController.getDataDiri);

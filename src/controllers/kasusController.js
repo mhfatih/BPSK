@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { sendEmail } = require('../utils/mailer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
@@ -13,6 +14,7 @@ const getAllKasus = async (req, res) => {
 
     // Hak akses berdasarkan role
     if (req.user.role === 'superadmin') {
+      // 🟩 Superadmin: bisa melihat semua kasus
       query = `
         SELECT 
           k.*, 
@@ -24,6 +26,7 @@ const getAllKasus = async (req, res) => {
         ORDER BY k.created_at DESC
       `;
     } else if (req.user.role === 'admin') {
+      // 🟦 Admin: hanya bisa melihat kasus sesuai wilayah admin-nya
       query = `
         SELECT 
           k.*, 
@@ -32,10 +35,11 @@ const getAllKasus = async (req, res) => {
         FROM kasus k
         LEFT JOIN kasus_data_diri d ON k.id = d.kasus_id
         LEFT JOIN kasus_pelaku_usaha p ON k.id = p.kasus_id
-        WHERE NOT (k.status = 'Draf' AND k.created_by != ?)
+        WHERE k.wilayah = ?
+          AND NOT (k.status = 'Draf' AND k.created_by != ?)
         ORDER BY k.created_at DESC
       `;
-      params = [req.user.id];
+      params = [req.user.wilayah, req.user.id];
     } else {
       query = `
         SELECT 
@@ -198,6 +202,57 @@ const submitKasus = async (req, res) => {
       WHERE id = ?
     `, [id]);
 
+    // 📧 Kirim email notifikasi pakai helper
+    await sendEmail(
+      d.email,
+      'Pengaduan Berhasil Dikirim',
+      `
+      <h3>Halo ${d.nama_lengkap},</h3>
+      <p>Terima kasih telah mengirimkan pengaduan Anda melalui sistem kami.</p>
+      <p>Status pengaduan Anda saat ini: <b>Diproses</b>.</p>
+      <p>Kami akan segera menindaklanjuti laporan Anda. Paling lama 3 x 24 jam kerja.</p>
+      <hr/>
+      <p><b>ID Kasus:</b> ${id}</p>
+      <p><b>Jenis Pengaduan:</b> ${t.jenis_pengaduan}</p>
+      <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
+      `
+    );
+
+    // 📧 Kirim email ke semua admin & superadmin sekaligus
+    try {
+      // Ambil semua admin dan superadmin
+      const [admins] = await db.query(`
+        SELECT email FROM users
+        WHERE role IN ('admin', 'superadmin')
+      `);
+
+      // Ambil semua email admin jadi satu array
+      const adminEmails = admins.map(a => a.email);
+
+      if (adminEmails.length > 0) {
+        await sendEmail(
+          adminEmails.join(','),
+          'Pengaduan Baru Diterima',
+          `
+          <h3>Halo Admin & Superadmin,</h3>
+          <p>Ada pengaduan baru yang telah dikirim oleh <b>${d.nama_lengkap}</b>.</p>
+          <p>Mohon untuk segera meninjau dan memproses pengaduan di sistem.</p>
+          <hr/>
+          <p><b>ID Kasus:</b> ${id}</p>
+          <p><b>Jenis Pengaduan:</b> ${t.jenis_pengaduan}</p>
+          <p><b>Status:</b> Diproses</p>
+          <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
+          `
+        );
+
+        console.log(`📨 Notifikasi terkirim ke semua admin/superadmin (${adminEmails.length} penerima)`);
+      } else {
+        console.log('⚠️ Tidak ada admin/superadmin yang terdaftar.');
+      }
+    } catch (err) {
+      console.error('❌ Gagal kirim notifikasi ke admin/superadmin:', err);
+    }
+
     res.json({
       message: 'Kasus berhasil dikirim dan Diproses',
       kasus_id: id,
@@ -214,23 +269,37 @@ const submitKasus = async (req, res) => {
  */
 const verifyKasus = async (req, res) => {
   const { id } = req.params;
-  const { status, alasan_penolakan } = req.body;
+  const { status, alasanPenolakan } = req.body;
 
   try {
-    // Cek apakah kasus ada
+    // 🔍 Cek apakah kasus ada
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
     if (rowsKasus.length === 0) {
       return res.status(404).json({ message: 'Kasus tidak ditemukan' });
     }
 
-    // Cek role user
+    const kasus = rowsKasus[0];
+
+    // 🚫 Hanya admin/superadmin yang boleh verifikasi
     if (!['admin', 'superadmin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa verifikasi' });
     }
 
-    // Logika verifikasi
+    // 🔍 Ambil data diri pelapor (untuk kirim email)
+    const [dataDiri] = await db.query(
+      'SELECT nama_lengkap, email FROM kasus_data_diri WHERE kasus_id = ?',
+      [id]
+    );
+
+    const pelapor = dataDiri[0];
+
+    if (!pelapor || !pelapor.email) {
+      console.warn('⚠️ Tidak ditemukan email pelapor untuk kasus ID:', id);
+    }
+
+    // 🔁 Proses verifikasi
     if (status === 'Ditolak') {
-      if (!alasan_penolakan) {
+      if (!alasanPenolakan) {
         return res.status(400).json({ message: 'Alasan penolakan wajib diisi' });
       }
 
@@ -241,9 +310,26 @@ const verifyKasus = async (req, res) => {
              verified_at = NOW(), 
              verified_by = ? 
          WHERE id = ?`,
-        [alasan_penolakan, req.user.id, id]
+        [alasanPenolakan, req.user.id, id]
       );
-    } else if (status === 'Diterima') {
+
+      // 📧 Kirim email ke pelapor kalau email ada
+      if (pelapor?.email) {
+        await sendEmail(
+          pelapor.email,
+          'Hasil Verifikasi Pengaduan Anda',
+          `
+          <h3>Halo ${pelapor.nama_lengkap},</h3>
+          <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
+          <p>Status saat ini: <b style="color:red;">DITOLAK</b></p>
+          <p><b>Alasan Penolakan:</b> ${alasanPenolakan}</p>
+          <hr/>
+          <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+          `
+        );
+      }
+    } 
+    else if (status === 'Diterima') {
       await db.query(
         `UPDATE kasus 
          SET status = 'Diterima', 
@@ -252,11 +338,28 @@ const verifyKasus = async (req, res) => {
          WHERE id = ?`,
         [req.user.id, id]
       );
-    } else {
+
+      // 📧 Kirim email ke pelapor kalau email ada
+      if (pelapor?.email) {
+        await sendEmail(
+          pelapor.email,
+          'Hasil Verifikasi Pengaduan Anda',
+          `
+          <h3>Halo ${pelapor.nama_lengkap},</h3>
+          <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
+          <p>Status saat ini: <b style="color:green;">DITERIMA</b></p>
+          <p>Terima kasih atas partisipasi Anda dalam melaporkan pengaduan.</p>
+          <hr/>
+          <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+          `
+        );
+      }
+    } 
+    else {
       return res.status(400).json({ message: 'Status verifikasi tidak valid' });
     }
 
-    // Respons sukses
+    // ✅ Respons sukses
     res.json({
       message: `Kasus berhasil diverifikasi (${status})`,
       kasus_id: id,
@@ -268,121 +371,10 @@ const verifyKasus = async (req, res) => {
   }
 };
 
-/**
- * Create sidang baru (hanya jika status kasus = 'Diterima')
- */
-const createSidang = async (req, res) => {
-  const { id } = req.params; // id kasus
-  const { tanggalSidang, jamMulai, jamSelesai, hasilSidang } = req.body;
-
-  try {
-    // 🔍 Cek kasus
-    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
-    if (rowsKasus.length === 0) return res.status(404).json({ message: 'Kasus tidak ditemukan' });
-
-    const kasus = rowsKasus[0];
-
-    // 🚫 Validasi role dan status
-    if (!['admin', 'superadmin'].includes(req.user.role))
-      return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa membuat sidang' });
-
-    if (kasus.status !== 'Diterima')
-      return res.status(400).json({ message: 'Kasus belum diterima, tidak bisa membuat sidang' });
-
-    // 🔢 Hitung sidang ke-
-    const [existingSidang] = await db.query('SELECT COUNT(*) AS count FROM kasus_sidang WHERE kasus_id = ?', [id]);
-    const sidangKe = existingSidang[0].count + 1;
-
-    // 🚫 Maksimum 3 sidang
-    if (sidangKe > 3)
-      return res.status(400).json({ message: 'Sidang sudah mencapai batas maksimal (3 kali)' });
-
-    const sidangId = uuidv4();
-
-    // 💾 Simpan sidang baru
-    await db.query(`
-      INSERT INTO kasus_sidang (id, kasus_id, sidang_ke, tanggal_sidang, jam_mulai, jam_selesai, hasil_sidang)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [sidangId, id, sidangKe, tanggalSidang, jamMulai, jamSelesai, hasilSidang || null]);
-
-    res.status(201).json({
-      message: `Sidang ke-${sidangKe} berhasil dibuat`,
-      sidang_id: sidangId,
-      kasus_id: id,
-      sidang_ke: sidangKe
-    });
-  } catch (err) {
-    console.error('Error createSidang:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
-  }
-};
-
-/**
- * Get semua sidang berdasarkan kasus_id
- */
-const getSidangByKasusId = async (req, res) => {
-  const { id } = req.params; // id kasus
-  try {
-    const [sidangList] = await db.query(
-      'SELECT * FROM kasus_sidang WHERE kasus_id = ? ORDER BY sidang_ke ASC',
-      [id]
-    );
-
-    res.json(sidangList);
-  } catch (err) {
-    console.error('Error getSidangByKasusId:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
-  }
-};
-
-/**
- * Update data sidang berdasarkan id sidang
- */
-const updateSidangById = async (req, res) => {
-  const { sidangId } = req.params;
-  const { tanggalSidang, jamMulai, jamSelesai, hasilSidang } = req.body;
-
-  try {
-    // 🔍 Cek data sidang
-    const [sidangRows] = await db.query('SELECT * FROM kasus_sidang WHERE id = ?', [sidangId]);
-    if (sidangRows.length === 0)
-      return res.status(404).json({ message: 'Data sidang tidak ditemukan' });
-
-    // 🔍 Ambil kasus untuk validasi status
-    const kasusId = sidangRows[0].kasus_id;
-    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [kasusId]);
-    const kasus = rowsKasus[0];
-
-    // 🚫 Validasi role dan status
-    if (!['admin', 'superadmin'].includes(req.user.role))
-      return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa update sidang' });
-
-    if (kasus.status !== 'Diterima')
-      return res.status(400).json({ message: 'Kasus belum diterima, tidak bisa update sidang' });
-
-    // 💾 Update data sidang
-    await db.query(
-      'UPDATE kasus_sidang SET tanggal_sidang = ?, jam_mulai = ?, jam_selesai = ?, hasil_sidang = ? WHERE id = ?',
-      [tanggalSidang, jamMulai, jamSelesai, hasilSidang, sidangId]
-    );
-
-    res.json({
-      message: 'Data sidang berhasil diperbarui',
-      sidang_id: sidangId,
-    });
-  } catch (err) {
-    console.error('Error updateSidangById:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
-  }
-};
-
 module.exports = {
   getAllKasus,
   getKasusById,
   createKasus,
   submitKasus,
   verifyKasus,
-  createSidang,
-  getSidangByKasusId,
-  updateSidangById
 };
