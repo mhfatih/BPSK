@@ -5,57 +5,86 @@ const fs = require('fs');
 const db = require('../db');
 
 /**
- * Get semua kasus (lengkap dengan relasi)
+ * Get semua kasus
  */
 const getAllKasus = async (req, res) => {
   try {
-    let query = '';
+    const subquerySidangTerakhir = `
+      SELECT s1.kasus_id, s1.hasil_sidang
+      FROM kasus_sidang s1
+      WHERE (s1.kasus_id, s1.sidang_ke) IN (
+        SELECT kasus_id, MAX(sidang_ke)
+        FROM kasus_sidang
+        GROUP BY kasus_id
+      )
+    `;
+
+    let baseQuery = `
+      SELECT 
+        k.id,
+        k.status,
+        k.wilayah,
+        k.pengadu_nama,
+        k.jenis_pengaduan,
+        k.jumlah_kerugian,
+        s.hasil_sidang,
+        k.created_at,
+        k.created_by,
+        k.submitted_at,
+        k.verified_at,
+        k.verified_by,
+        k.processed_at,
+        k.processed_by,
+        k.finished_at,
+        k.finished_by,
+        (
+          SELECT GROUP_CONCAT(p.perusahaan SEPARATOR ', ')
+          FROM kasus_pelaku_usaha p
+          WHERE p.kasus_id = k.id
+        ) AS perusahaan_list,
+        pc.nama AS created_by_name,
+        pv.nama AS verified_by_name,
+        pp.nama AS processed_by_name,
+        pf.nama AS finished_by_name
+      FROM kasus k
+      LEFT JOIN (${subquerySidangTerakhir}) s ON k.id = s.kasus_id
+      LEFT JOIN users uc ON k.created_by = uc.id
+      LEFT JOIN profiles pc ON uc.id = pc.user_id
+      LEFT JOIN users uv ON k.verified_by = uv.id
+      LEFT JOIN profiles pv ON uv.id = pv.user_id
+      LEFT JOIN users up ON k.processed_by = up.id
+      LEFT JOIN profiles pp ON up.id = pp.user_id
+      LEFT JOIN users uf ON k.finished_by = uf.id
+      LEFT JOIN profiles pf ON uf.id = pf.user_id
+    `;
+
+    let whereClause = '';
     let params = [];
 
-    // Hak akses berdasarkan role
     if (req.user.role === 'superadmin') {
-      // 🟩 Superadmin: bisa melihat semua kasus
-      query = `
-        SELECT 
-          k.*, 
-          d.nama_lengkap AS nama_pengadu, 
-          p.perusahaan AS nama_perusahaan
-        FROM kasus k
-        LEFT JOIN kasus_data_diri d ON k.id = d.kasus_id
-        LEFT JOIN kasus_pelaku_usaha p ON k.id = p.kasus_id
-        ORDER BY k.created_at DESC
-      `;
+      whereClause = '';
     } else if (req.user.role === 'admin') {
-      // 🟦 Admin: hanya bisa melihat kasus sesuai wilayah admin-nya
-      query = `
-        SELECT 
-          k.*, 
-          d.nama_lengkap AS nama_pengadu, 
-          p.perusahaan AS nama_perusahaan
-        FROM kasus k
-        LEFT JOIN kasus_data_diri d ON k.id = d.kasus_id
-        LEFT JOIN kasus_pelaku_usaha p ON k.id = p.kasus_id
+      whereClause = `
         WHERE k.wilayah = ?
           AND NOT (k.status = 'Draf' AND k.created_by != ?)
-        ORDER BY k.created_at DESC
       `;
       params = [req.user.wilayah, req.user.id];
     } else {
-      query = `
-        SELECT 
-          k.*, 
-          d.nama_lengkap AS nama_pengadu, 
-          p.perusahaan AS nama_perusahaan
-        FROM kasus k
-        LEFT JOIN kasus_data_diri d ON k.id = d.kasus_id
-        LEFT JOIN kasus_pelaku_usaha p ON k.id = p.kasus_id
-        WHERE k.created_by = ?
-        ORDER BY k.created_at DESC
-      `;
+      whereClause = `WHERE k.created_by = ?`;
       params = [req.user.id];
     }
 
-    const [kasusList] = await db.query(query, params);
+    const finalQuery = `
+      ${baseQuery}
+      ${whereClause}
+      ORDER BY k.created_at DESC
+    `;
+
+    const [kasusList] = await db.query(finalQuery, params);
+
+    kasusList.forEach(k => {
+      k.perusahaan_list = k.perusahaan_list ? k.perusahaan_list.split(', ') : [];
+    });
 
     res.json(kasusList);
   } catch (err) {
@@ -65,37 +94,73 @@ const getAllKasus = async (req, res) => {
 };
 
 /**
- * Get detail satu kasus (lengkap)
+ * Get detail satu kasus
  */
 const getKasusById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Ambil data utama dari tabel kasus
-    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
+    // 🧩 Subquery ambil hasil sidang terakhir
+    const subquerySidangTerakhir = `
+      SELECT s1.kasus_id, s1.hasil_sidang
+      FROM kasus_sidang s1
+      INNER JOIN (
+        SELECT kasus_id, MAX(sidang_ke) AS sidang_terakhir
+        FROM kasus_sidang
+        GROUP BY kasus_id
+      ) s2 ON s1.kasus_id = s2.kasus_id AND s1.sidang_ke = s2.sidang_terakhir
+    `;
+
+    // 🧩 Ambil data utama dari tabel kasus (gabung profil + hasil sidang)
+    const [rowsKasus] = await db.query(`
+      SELECT 
+        k.*, 
+        s.hasil_sidang,
+        pc.nama AS created_by_name,
+        pv.nama AS verified_by_name,
+        pp.nama AS processed_by_name,
+        pf.nama AS finished_by_name
+      FROM kasus k
+      LEFT JOIN users uc ON k.created_by = uc.id
+      LEFT JOIN profiles pc ON uc.id = pc.user_id
+      LEFT JOIN users uv ON k.verified_by = uv.id
+      LEFT JOIN profiles pv ON uv.id = pv.user_id
+      LEFT JOIN users up ON k.processed_by = up.id
+      LEFT JOIN profiles pp ON up.id = pp.user_id
+      LEFT JOIN users uf ON k.finished_by = uf.id
+      LEFT JOIN profiles pf ON uf.id = pf.user_id
+      LEFT JOIN (${subquerySidangTerakhir}) s ON k.id = s.kasus_id
+      WHERE k.id = ?
+    `, [id]);
+
     if (rowsKasus.length === 0)
       return res.status(404).json({ message: 'Kasus tidak ditemukan' });
 
     const kasus = rowsKasus[0];
 
-    // Hanya pembuat kasus yang boleh melihat, kecuali admin/superadmin
+    // 🧩 Hanya pembuat kasus yang boleh melihat, kecuali admin/superadmin
     if (req.user.role === 'user' && kasus.created_by !== req.user.id)
       return res.status(403).json({ message: 'Tidak boleh melihat kasus orang lain' });
 
-    // Ambil semua data tambahan dari table lain
-    const [dataDiri] = await db.query('SELECT * FROM kasus_data_diri WHERE kasus_id = ?', [id]);
-    const [pelakuUsaha] = await db.query('SELECT * FROM kasus_pelaku_usaha WHERE kasus_id = ?', [id]);
-    const [pengaduan] = await db.query('SELECT * FROM kasus_pengaduan WHERE kasus_id = ?', [id]);
-    const [kronologis] = await db.query('SELECT * FROM kasus_kronologis WHERE kasus_id = ?', [id]);
+    // 🏢 Ambil semua pelaku usaha terkait
+    const [pelakuUsaha] = await db.query(`
+      SELECT 
+        id,
+        perusahaan,
+        pemilik,
+        kota,
+        alamat,
+        kode_pos,
+        no_hp,
+        email
+      FROM kasus_pelaku_usaha
+      WHERE kasus_id = ?
+    `, [id]);
 
-    // Kalau nanti ada table lain, tinggal tambah query di sini
-
+    // 🧾 Susun hasil akhir
     res.json({
-      ...kasus, // ambil semua kolom dari tabel kasus utama
-      data_diri: dataDiri[0] || null,
-      pelaku_usaha: pelakuUsaha[0] || null,
-      pengaduan: pengaduan[0] || null,
-      kronologis: kronologis[0] || null
+      ...kasus,
+      pelaku_usaha: pelakuUsaha || []
     });
   } catch (err) {
     console.error('Error getKasusById:', err);
@@ -110,17 +175,19 @@ const createKasus = async (req, res) => {
   const kasusId = uuidv4();
 
   try {
+    // 🔹 Buat 1 record baru di tabel kasus utama
     await db.query(
-      `INSERT INTO kasus (id, created_by, status, created_at) 
+      `INSERT INTO kasus (id, created_by, status, created_at)
        VALUES (?, ?, 'Draf', NOW())`,
       [kasusId, req.user.id]
     );
 
-    // 🔹 Buat entri kosong di semua tabel terkait
-    await db.query('INSERT INTO kasus_data_diri (kasus_id) VALUES (?)', [kasusId]);
-    await db.query('INSERT INTO kasus_pelaku_usaha (kasus_id) VALUES (?)', [kasusId]);
-    await db.query('INSERT INTO kasus_pengaduan (kasus_id) VALUES (?)', [kasusId]);
-    await db.query('INSERT INTO kasus_kronologis (kasus_id) VALUES (?)', [kasusId]);
+    // 🔹 Buat pelaku usaha default (1)
+    await db.query(
+      `INSERT INTO kasus_pelaku_usaha (id, kasus_id)
+       VALUES (?, ?)`,
+      [uuidv4(), kasusId]
+    );
 
     res.status(201).json({
       message: 'Kasus baru berhasil dibuat',
@@ -133,14 +200,14 @@ const createKasus = async (req, res) => {
 };
 
 /**
- * Submit pengaduan (hanya jika semua data lengkap)
+ * Submit pengaduan
  */
 const submitKasus = async (req, res) => {
   const { id } = req.params;
   const { konfirmasi } = req.body;
 
   try {
-    // 🔍 Cek apakah kasus ada
+    // 🔍 Ambil data utama kasus
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
     if (rowsKasus.length === 0)
       return res.status(404).json({ message: 'Kasus tidak ditemukan' });
@@ -155,108 +222,83 @@ const submitKasus = async (req, res) => {
     if (!konfirmasi)
       return res.status(400).json({ message: 'Harus mencentang konfirmasi sebelum submit' });
 
-    // ✅ Ambil semua data terkait
-    const [dataDiri] = await db.query('SELECT * FROM kasus_data_diri WHERE kasus_id = ?', [id]);
-    const [pelaku] = await db.query('SELECT * FROM kasus_pelaku_usaha WHERE kasus_id = ?', [id]);
-    const [pengaduan] = await db.query('SELECT * FROM kasus_pengaduan WHERE kasus_id = ?', [id]);
-    const [kronologis] = await db.query('SELECT * FROM kasus_kronologis WHERE kasus_id = ?', [id]);
+    // 🏢 Ambil pelaku usaha utama
+    const [pelakuUsaha] = await db.query('SELECT * FROM kasus_pelaku_usaha WHERE kasus_id = ?', [id]);
+    const p = pelakuUsaha[0];
 
-    // 🚨 Validasi kelengkapan data diri
-    const d = dataDiri[0];
+    // 🚨 Validasi kelengkapan data utama (semua kolom di tabel kasus yang wajib)
     if (
-      !d || !d.nama_lengkap || !d.umur || !d.jenis_kelamin || !d.kota ||
-      !d.alamat || !d.email || !d.no_hp || !d.kode_pos || !d.identitas
+      !kasus.pengadu_nama || !kasus.pengadu_umur || !kasus.pengadu_jenis_kelamin || !kasus.pengadu_kota ||
+      !kasus.pengadu_alamat || !kasus.pengadu_email || !kasus.pengadu_no_hp || !kasus.pengadu_kode_pos ||
+      !kasus.pengadu_identitas || !kasus.jenis_pengaduan || !kasus.tanggal_kejadian || !kasus.waktu_kejadian ||
+      !kasus.lokasi_kejadian || !kasus.kronologis || !kasus.jenis_tuntutan
     ) {
-      return res.status(400).json({ message: 'Data diri belum lengkap. Harap lengkapi sebelum submit.' });
+      return res.status(400).json({ message: 'Data kasus belum lengkap. Harap lengkapi semua sebelum submit.' });
     }
 
     // 🚨 Validasi pelaku usaha
-    const p = pelaku[0];
-    if (
-      !p || !p.nama_pemilik || !p.perusahaan || !p.kota ||
-      !p.alamat || !p.kode_pos || !p.no_hp
-    ) {
+    if (!p || !p.perusahaan || !p.kota || !p.alamat || !p.kode_pos || (!p.email && !p.no_hp)) {
       return res.status(400).json({ message: 'Data pelaku usaha belum lengkap. Harap lengkapi sebelum submit.' });
-    }
-
-    // 🚨 Validasi tentang pengaduan
-    const t = pengaduan[0];
-    if (
-      !t || !t.jenis_pengaduan || !t.tanggal_kejadian || !t.waktu_kejadian ||
-      !t.lokasi_kejadian
-    ) {
-      return res.status(400).json({ message: 'Data tentang pengaduan belum lengkap. Harap lengkapi sebelum submit.' });
-    }
-
-    // 🚨 Validasi kronologis
-    const k = kronologis[0];
-    if (!k || !k.kronologis || !k.jenis_tuntutan) {
-      return res.status(400).json({ message: 'Data kronologis belum lengkap. Harap lengkapi sebelum submit.' });
     }
 
     // ✅ Jika semua lengkap → ubah status
     await db.query(`
       UPDATE kasus
-      SET status = 'Diproses',
+      SET status = 'Diverifikasi',
           submitted_at = NOW()
       WHERE id = ?
     `, [id]);
 
-    // 📧 Kirim email notifikasi pakai helper
+    // 📧 Kirim email notifikasi ke pengadu
     await sendEmail(
-      d.email,
+      kasus.pengadu_email,
       'Pengaduan Berhasil Dikirim',
       `
-      <h3>Halo ${d.nama_lengkap},</h3>
+      <h3>Halo ${kasus.pengadu_nama},</h3>
       <p>Terima kasih telah mengirimkan pengaduan Anda melalui sistem kami.</p>
-      <p>Status pengaduan Anda saat ini: <b>Diproses</b>.</p>
+      <p>Status pengaduan Anda saat ini: <b>Diverifikasi</b>.</p>
       <p>Kami akan segera menindaklanjuti laporan Anda. Paling lama 3 x 24 jam kerja.</p>
       <hr/>
       <p><b>ID Kasus:</b> ${id}</p>
-      <p><b>Jenis Pengaduan:</b> ${t.jenis_pengaduan}</p>
+      <p><b>Jenis Pengaduan:</b> ${kasus.jenis_pengaduan}</p>
       <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
       `
     );
 
-    // 📧 Kirim email ke semua admin & superadmin sekaligus
+    // 📧 Kirim email ke semua admin & superadmin
     try {
-      // Ambil semua admin dan superadmin
+      const wilayahKasus = kasus.wilayah;
       const [admins] = await db.query(`
         SELECT email FROM users
-        WHERE role IN ('admin', 'superadmin')
-      `);
+        WHERE (role = 'admin' AND wilayah = ?) OR role = 'superadmin'
+      `, [wilayahKasus]);
 
-      // Ambil semua email admin jadi satu array
       const adminEmails = admins.map(a => a.email);
-
       if (adminEmails.length > 0) {
         await sendEmail(
           adminEmails.join(','),
           'Pengaduan Baru Diterima',
           `
           <h3>Halo Admin & Superadmin,</h3>
-          <p>Ada pengaduan baru yang telah dikirim oleh <b>${d.nama_lengkap}</b>.</p>
+          <p>Ada pengaduan baru yang telah dikirim oleh <b>${kasus.pengadu_nama}</b>.</p>
+          <p>Wilayah kasus: <b>${wilayahKasus}</b></p>
           <p>Mohon untuk segera meninjau dan memproses pengaduan di sistem.</p>
           <hr/>
           <p><b>ID Kasus:</b> ${id}</p>
-          <p><b>Jenis Pengaduan:</b> ${t.jenis_pengaduan}</p>
-          <p><b>Status:</b> Diproses</p>
+          <p><b>Jenis Pengaduan:</b> ${kasus.jenis_pengaduan}</p>
+          <p><b>Status:</b> Diverifikasi</p>
           <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
           `
         );
-
-        console.log(`📨 Notifikasi terkirim ke semua admin/superadmin (${adminEmails.length} penerima)`);
-      } else {
-        console.log('⚠️ Tidak ada admin/superadmin yang terdaftar.');
       }
     } catch (err) {
       console.error('❌ Gagal kirim notifikasi ke admin/superadmin:', err);
     }
 
     res.json({
-      message: 'Kasus berhasil dikirim dan Diproses',
+      message: 'Kasus berhasil dikirim dan Diverifikasi',
       kasus_id: id,
-      status: 'Diproses'
+      status: 'Diverifikasi'
     });
   } catch (err) {
     console.error('Error submitKasus:', err);
@@ -269,10 +311,10 @@ const submitKasus = async (req, res) => {
  */
 const verifyKasus = async (req, res) => {
   const { id } = req.params;
-  const { status, alasanPenolakan } = req.body;
+  const { status, alasanPenolakan, no_registrasi } = req.body;
 
   try {
-    // 🔍 Cek apakah kasus ada
+    // 🔍 Ambil data utama kasus
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
     if (rowsKasus.length === 0) {
       return res.status(404).json({ message: 'Kasus tidak ditemukan' });
@@ -285,16 +327,14 @@ const verifyKasus = async (req, res) => {
       return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa verifikasi' });
     }
 
-    // 🔍 Ambil data diri pelapor (untuk kirim email)
-    const [dataDiri] = await db.query(
-      'SELECT nama_lengkap, email FROM kasus_data_diri WHERE kasus_id = ?',
-      [id]
-    );
-
-    const pelapor = dataDiri[0];
-
-    if (!pelapor || !pelapor.email) {
-      console.warn('⚠️ Tidak ditemukan email pelapor untuk kasus ID:', id);
+    // 🧭 Cek kesesuaian wilayah jika role = admin
+    if (req.user.role === 'admin') {
+      const adminWilayah = req.user.wilayah;
+      if (adminWilayah && kasus.wilayah !== adminWilayah) {
+        return res.status(403).json({
+          message: `Admin hanya boleh verifikasi kasus di wilayah ${adminWilayah}`,
+        });
+      }
     }
 
     // 🔁 Proses verifikasi
@@ -313,13 +353,13 @@ const verifyKasus = async (req, res) => {
         [alasanPenolakan, req.user.id, id]
       );
 
-      // 📧 Kirim email ke pelapor kalau email ada
-      if (pelapor?.email) {
+      // 📧 Kirim email ke pengadu
+      if (kasus.pengadu_email) {
         await sendEmail(
-          pelapor.email,
+          kasus.pengadu_email,
           'Hasil Verifikasi Pengaduan Anda',
           `
-          <h3>Halo ${pelapor.nama_lengkap},</h3>
+          <h3>Halo ${kasus.pengadu_nama},</h3>
           <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
           <p>Status saat ini: <b style="color:red;">DITOLAK</b></p>
           <p><b>Alasan Penolakan:</b> ${alasanPenolakan}</p>
@@ -328,33 +368,39 @@ const verifyKasus = async (req, res) => {
           `
         );
       }
-    } 
+    }
     else if (status === 'Diterima') {
+      if (!no_registrasi) {
+        return res.status(400).json({ message: 'Nomor registrasi wajib diisi untuk status Diterima' });
+      }
+
       await db.query(
         `UPDATE kasus 
          SET status = 'Diterima', 
+             no_registrasi = ?, 
              verified_at = NOW(), 
              verified_by = ? 
          WHERE id = ?`,
-        [req.user.id, id]
+        [no_registrasi, req.user.id, id]
       );
 
-      // 📧 Kirim email ke pelapor kalau email ada
-      if (pelapor?.email) {
+      // 📧 Kirim email ke pengadu
+      if (kasus.pengadu_email) {
         await sendEmail(
-          pelapor.email,
+          kasus.pengadu_email,
           'Hasil Verifikasi Pengaduan Anda',
           `
-          <h3>Halo ${pelapor.nama_lengkap},</h3>
+          <h3>Halo ${kasus.pengadu_nama},</h3>
           <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
           <p>Status saat ini: <b style="color:green;">DITERIMA</b></p>
+          <p><b>Nomor Registrasi:</b> ${no_registrasi}</p>
           <p>Terima kasih atas partisipasi Anda dalam melaporkan pengaduan.</p>
           <hr/>
           <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
           `
         );
       }
-    } 
+    }
     else {
       return res.status(400).json({ message: 'Status verifikasi tidak valid' });
     }
@@ -364,9 +410,157 @@ const verifyKasus = async (req, res) => {
       message: `Kasus berhasil diverifikasi (${status})`,
       kasus_id: id,
       status,
+      no_registrasi: status === 'Diterima' ? no_registrasi : null
     });
   } catch (err) {
     console.error('Error verifyKasus:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
+};
+
+/**
+ * Proses kasus oleh admin/superadmin
+ */
+const prosesKasus = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 🔍 Cek apakah kasus ada
+    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
+    if (rowsKasus.length === 0)
+      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+
+    const kasus = rowsKasus[0];
+
+    // 🚫 Hanya admin/superadmin yang bisa memproses
+    if (!['admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa memproses kasus' });
+    }
+
+    // 🧭 Admin hanya boleh memproses kasus di wilayahnya sendiri
+    if (req.user.role === 'admin') {
+      const adminWilayah = req.user.wilayah;
+      if (adminWilayah && kasus.wilayah !== adminWilayah) {
+        return res.status(403).json({
+          message: `Admin hanya boleh memproses kasus di wilayah ${adminWilayah}`,
+        });
+      }
+    }
+
+    // 🚫 Hanya bisa diproses kalau status-nya "Diterima"
+    if (kasus.status !== 'Diterima') {
+      return res.status(400).json({
+        message: 'Kasus hanya dapat diproses jika status-nya adalah Diterima',
+      });
+    }
+
+    // 🔁 Ubah status jadi "Diproses"
+    await db.query(
+      `UPDATE kasus 
+       SET status = 'Diproses',
+           processed_at = NOW(),
+           processed_by = ?
+       WHERE id = ?`,
+      [req.user.id, id]
+    );
+
+    // 📧 Kirim email notifikasi ke pelapor
+    if (kasus.pengadu_email) {
+      await sendEmail(
+        kasus.pengadu_email,
+        'Status Pengaduan Anda Telah Diproses',
+        `
+        <h3>Halo ${kasus.pengadu_nama},</h3>
+        <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> saat ini sedang dalam proses penanganan oleh tim BPSK.</p>
+        <p>Status saat ini: <b style="color:blue;">DIPROSES</b></p>
+        <p>Kami akan menghubungi Anda kembali jika diperlukan informasi tambahan.</p>
+        <hr/>
+        <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+        `
+      );
+    }
+
+    // ✅ Respons sukses
+    res.json({
+      message: 'Kasus berhasil diubah menjadi status Diproses',
+      kasus_id: id,
+      status: 'Diproses',
+    });
+  } catch (err) {
+    console.error('Error prosesKasus:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
+};
+
+/**
+ * Selesaikan kasus oleh admin/superadmin
+ */
+const selesaiKasus = async (req, res) => {
+  const { id } = req.params;
+  const { jumlah_kerugian } = req.body;
+
+  try {
+    // 🔍 Cek apakah kasus ada
+    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
+    if (rowsKasus.length === 0)
+      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+
+    const kasus = rowsKasus[0];
+
+    // 🚫 Hanya admin/superadmin yang bisa menyelesaikan kasus
+    if (!['admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa menyelesaikan kasus' });
+    }
+
+    // 🚫 Hanya bisa diselesaikan kalau status-nya "Diproses"
+    if (kasus.status !== 'Diproses') {
+      return res.status(400).json({
+        message: 'Kasus hanya dapat diselesaikan jika status-nya adalah Diproses',
+      });
+    }
+
+    // 🚨 Validasi jumlah kerugian
+    if (jumlah_kerugian === undefined || jumlah_kerugian === null || jumlah_kerugian === '') {
+      return res.status(400).json({ message: 'Jumlah kerugian wajib diisi' });
+    }
+
+    // 🔁 Ubah status jadi "Selesai"
+    await db.query(
+      `UPDATE kasus 
+       SET status = 'Selesai',
+           jumlah_kerugian = ?,
+           finished_at = NOW(),
+           finished_by = ?
+       WHERE id = ?`,
+      [jumlah_kerugian, req.user.id, id]
+    );
+
+    // 📧 Kirim email notifikasi ke pelapor langsung dari tabel kasus
+    if (kasus.pengadu_email) {
+      await sendEmail(
+        kasus.pengadu_email,
+        'Kasus Anda Telah Selesai',
+        `
+        <h3>Halo ${kasus.pengadu_nama},</h3>
+        <p>Kasus Anda dengan ID <b>${id}</b> telah selesai diproses oleh tim BPSK.</p>
+        <p>Status akhir: <b style="color:green;">SELESAI</b></p>
+        <p><b>Jumlah Kerugian:</b> Rp ${Number(jumlah_kerugian).toLocaleString('id-ID')}</p>
+        <p>Terima kasih atas partisipasi Anda dalam menyelesaikan pengaduan ini.</p>
+        <hr/>
+        <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+        `
+      );
+    }
+
+    // ✅ Respons sukses
+    res.json({
+      message: 'Kasus berhasil diselesaikan',
+      kasus_id: id,
+      status: 'Selesai',
+      jumlah_kerugian,
+    });
+  } catch (err) {
+    console.error('Error selesaiKasus:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
@@ -377,4 +571,6 @@ module.exports = {
   createKasus,
   submitKasus,
   verifyKasus,
+  prosesKasus,
+  selesaiKasus
 };
