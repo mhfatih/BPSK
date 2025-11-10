@@ -3,7 +3,8 @@ import { useParams, useNavigate, Outlet } from "react-router-dom";
 import { getKasusById, submitKasus, verifyKasus } from "../api/kasusServices";
 
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import logo from "../assets/LogoBanten.png";
+import { formatDate } from "../assets/FormatDate";
 
 export default function ViewPengaduan() {
   const { id } = useParams();
@@ -69,18 +70,67 @@ export default function ViewPengaduan() {
   };
 
   // 🧾 Fungsi untuk download ke PDF
-  const handleDownloadPDF = async () => {
-    const input = pdfRef.current;
-    if (!input) return;
-
+  const handleDownloadPDF = () => {
     try {
-      const canvas = await html2canvas(input, { scale: 2 });
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+  
+      const img = new Image();
+      img.src = logo;
+      pdf.addImage(img, "PNG", 12, 15, 25, 20); // x, y, width, height
+      pdf.addImage(img, "PNG", 175, 15, 25, 20); // x, y, width, height
+      // 🔹 KOP SURAT
+      pdf.setFont("times", "bold");
+      pdf.setFontSize(14);
+      pdf.text("BADAN PENYELESAIAN SENGKETA KONSUMEN (BPSK)", 105, 20, { align: "center" });
+      pdf.text("PROVINSI BANTEN WILAYAH KERJA PROVINSI I", 105, 27, { align: "center" });
+      
+      pdf.setFont("times", "italic");
+      pdf.setFontSize(10);
+      pdf.text("Ruko Permata Cisadane, Jl. Teuku Umar Bojong Jaya, Karawaci Kota Tangerang Banten 15115", 105, 33, { align: "center" });
+  
+      // 🔹 Garis pembatas bawah kop surat
+      pdf.setDrawColor(0);
+      pdf.setLineWidth(0.6);
+      pdf.line(15, 37, 195, 37);
+  
+      // 🔹 Judul Dokumen
+      pdf.setFontSize(13);
+      pdf.setFont("times", "bold");
+      pdf.text("LAPORAN PENGADUAN KASUS KONSUMEN", 105, 50, { align: "center" });
+  
+      // 🔹 Isi Dokumen
+      pdf.setFont("times", "normal");
+      pdf.setFontSize(11);
+      let y = 65;
+  
+      pdf.text(`Nomor Kasus   : ${kasus?.id || "-"}`, 20, y);
+      y += 8;
+      pdf.text(`Nama Pelapor  : ${kasus?.pelapor || "-"}`, 20, y);
+      y += 8;
+      pdf.text(`Jenis Pengaduan : ${kasus?.jenis_pengaduan || "-"}`, 20, y);
+      y += 8;
+      pdf.text(`Tanggal Kejadian : ${formatDate(kasus?.tanggal_kejadian) || "-"}`, 20, y);
+      y += 8;
+      pdf.text(`Lokasi Kejadian : ${kasus?.lokasi_kejadian || "-"}`, 20, y);
+      y += 8;
+      pdf.text(`Jenis Kerugian : ${kasus?.jenis_kerugian || "-"}`, 20, y);
+      y += 10;
+  
+      // 🔹 Paragraf penjelasan
+      const keterangan = kasus?.keterangan_kerugian || "Tidak ada keterangan tambahan.";
+      const splitText = pdf.splitTextToSize(keterangan, 170);
+      pdf.text("Keterangan Kerugian:", 20, y);
+      y += 7;
+      pdf.text(splitText, 25, y);
+      y += splitText.length * 6 + 10;
+  
+      // 🔹 Tanda tangan
+      pdf.text("Banten, " + new Date().toLocaleDateString("id-ID"), 140, y);
+      y += 25;
+      pdf.text("(....................................)", 140, y);
+      pdf.text("Petugas Verifikator", 145, y + 7);
+  
+      // 🔹 Simpan PDF
       pdf.save(`Pengaduan_${kasus?.id || "data"}.pdf`);
     } catch (err) {
       console.error("Gagal membuat PDF:", err);
@@ -210,7 +260,7 @@ export default function ViewPengaduan() {
               </div>
               <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
                 <p><b>Jenis Pengaduan:</b> {kasus.pengaduan.jenis_pengaduan}</p>
-                <p><b>Tanggal:</b> {kasus.pengaduan.tanggal_kejadian}</p>
+                <p><b>Tanggal:</b> {formatDate(kasus.pengaduan.tanggal_kejadian)}</p>
                 <p><b>Lokasi:</b> {kasus.pengaduan.lokasi_kejadian}</p>
                 <p><b>Jenis Kerugian:</b> {kasus.pengaduan.jenis_kerugian}</p>
                 <p className="col-span-2"><b>Keterangan:</b> {kasus.pengaduan.keterangan_kerugian}</p>
@@ -240,7 +290,7 @@ export default function ViewPengaduan() {
         {/* Tombol Navigasi */}
         <div className="flex justify-between items-center mt-8">
           <button
-            onClick={() => navigate("/dashoard/pengaduan/:id/kronologis-pengaduan")}
+            onClick={() => navigate(`/dashboard/pengaduan/${id}/kronologis-pengaduan`)}
             className="px-5 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition"
           >
             ← Kembali

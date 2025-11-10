@@ -16,6 +16,7 @@ import PengaduanDataDiri from "./pages/PengaduanDataDiri";
 import PelakuUsaha from "./pages/PengaduanPelakuUsaha";
 import TentangPengaduan from "./pages/TentangPengaduan";
 import KronologisPengaduan from "./pages/PengaduanKronologis";
+import JadwalSidang from "./pages/JadwalSidang";
 
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
     <Route path="kasus/:id" element={<ProtectedRoute><KasusDetail /> </ProtectedRoute> } />
     <Route path="pengaduan/:id/view" element={<ViewPengaduan />} />    
     <Route path="pengaduan" element={<TambahPengaduan />} />
+    <Route path="kasus/jadwal/:id" element={<JadwalSidang />} />
     <Route path="pengaduan/:id/data-diri" element={<PengaduanDataDiri />} />
     <Route path="pengaduan/:id/pelaku-usaha" element={<PelakuUsaha />} />
     <Route path="pengaduan/:id/tentang-pengaduan" element={<TentangPengaduan />} />

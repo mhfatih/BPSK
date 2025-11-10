@@ -145,6 +145,78 @@ export default function TentangPengaduan() {
 
           {/* Jenis Kerugian */}
           <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Jenis Kerugian
+            </label>
+
+            <div className="flex items-center gap-6">
+              {/* Checkbox Fisik */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  value="fisik"
+                  checked={
+                    form.jenis_kerugian === "fisik" ||
+                    form.jenis_kerugian === "fisik dan material"
+                  }
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    let newValue = form.jenis_kerugian;
+
+                    if (checked) {
+                      if (newValue === "material") newValue = "fisik dan material";
+                      else newValue = "fisik";
+                    } else {
+                      if (newValue === "fisik dan material") newValue = "material";
+                      else if (newValue === "fisik") newValue = "";
+                    }
+
+                    setForm({ ...form, jenis_kerugian: newValue });
+                  }}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700 text-sm">Fisik</span>
+              </label>
+
+              {/* Checkbox Material */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  value="material"
+                  checked={
+                    form.jenis_kerugian === "material" ||
+                    form.jenis_kerugian === "fisik dan material"
+                  }
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    let newValue = form.jenis_kerugian;
+
+                    if (checked) {
+                      if (newValue === "fisik") newValue = "fisik dan material";
+                      else newValue = "material";
+                    } else {
+                      if (newValue === "fisik dan material") newValue = "fisik";
+                      else if (newValue === "material") newValue = "";
+                    }
+
+                    setForm({ ...form, jenis_kerugian: newValue });
+                  }}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700 text-sm">Material</span>
+              </label>
+            </div>
+
+            {/* Info kecil */}
+            <p className="text-xs text-gray-500 mt-2">
+              Kamu dapat memilih salah satu atau keduanya.
+            </p>
+          </div>
+
+
+
+          {/* Jenis Kerugian */}
+          {/* <div>
             <label className="block text-sm font-medium">Jenis Kerugian</label>
             <select
               name="jenis_kerugian"
@@ -156,7 +228,7 @@ export default function TentangPengaduan() {
               <option value="fisik">Fisik</option>
               <option value="material">Material</option>
             </select>
-          </div>
+          </div> */}
 
           <div>
             <label className="block text-sm font-medium">Keterangan Kerugian</label>

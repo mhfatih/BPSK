@@ -1,4 +1,10 @@
 import React, { useEffect, useState } from "react";
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+} from "../api/userServices";
 
 export default function ManajemenPage() {
   const [users, setUsers] = useState([]);
@@ -19,19 +25,12 @@ export default function ManajemenPage() {
   const limit = 5;
   const totalPages = Math.ceil(filtered.length / limit);
 
-  const API_URL = "http://localhost:3000";
-
-  // === GET Semua User ===
+  // === Ambil semua user ===
   useEffect(() => {
     const fetchUsers = async () => {
-      setLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/users`, {
-          method: "GET",
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Gagal mengambil data user");
-        const data = await res.json();
+        setLoading(true);
+        const data = await getUsers();
         setUsers(data);
         setFiltered(data);
       } catch (err) {
@@ -44,7 +43,7 @@ export default function ManajemenPage() {
     fetchUsers();
   }, [refresh]);
 
-  // === SEARCH USER ===
+  // === Pencarian ===
   useEffect(() => {
     const filteredData = users.filter(
       (u) =>
@@ -55,75 +54,55 @@ export default function ManajemenPage() {
     setPage(1);
   }, [search, users]);
 
-  // === Handle input form ===
+  // === Handle form input ===
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // === CREATE User ===
+  // === Buat user baru ===
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_URL}/api/users`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal membuat user");
-
+      setLoading(true);
+      await createUser(form);
       alert("User berhasil dibuat!");
       setForm({ email: "", nama_lengkap: "", password: "", role: "user" });
-      setRefresh(!refresh);
+      setRefresh((r) => !r);
     } catch (err) {
-      alert(err.message);
+      alert(err.message || "Gagal membuat user");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // === DELETE User ===
+  // === Hapus user ===
   const handleDelete = async (id) => {
-    if (!confirm("Yakin ingin menghapus user ini?")) return;
+    if (!window.confirm("Yakin ingin menghapus user ini?")) return;
     try {
-      const res = await fetch(`${API_URL}/api/users/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal menghapus user");
-
+      setLoading(true);
+      await deleteUser(id);
       alert("User berhasil dihapus!");
-      setRefresh(!refresh);
+      setRefresh((r) => !r);
     } catch (err) {
-      alert(err.message);
+      alert(err.message || "Gagal menghapus user");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // === UPDATE User ===
+  // === Update user ===
   const handleEdit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_URL}/api/users/${editUser.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          email: editUser.email,
-          password: editUser.password,
-          nama_lengkap: editUser.nama_lengkap,
-          role: editUser.role,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal update user");
-
+      setLoading(true);
+      await updateUser(editUser.id, editUser);
       alert("User berhasil diperbarui!");
       setEditUser(null);
-      setRefresh(!refresh);
+      setRefresh((r) => !r);
     } catch (err) {
-      alert(err.message);
+      alert(err.message || "Gagal memperbarui user");
+    } finally {
+      setLoading(false);
     }
   };
 

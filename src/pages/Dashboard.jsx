@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { getProfile } from '../api/ProfileServices';
+import { logout } from '../api/authService';
 
 // import logo from '../logo.png';
 
@@ -53,27 +54,17 @@ export default function Dashboard() {
 
   const [open, setOpen] = useState(true)
 
-  // Fungsi logout
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      const data = await logout(); // pakai service
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
   
-      const data = await res.json();
-  
-      if (res.ok) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        alert(data.message || "Logout berhasil!");
-        navigate("/login");
-      } else {
-        alert("Gagal logout, coba lagi.");
-      }
+      alert(data.message || "Logout berhasil!");
+      navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
-      alert("Terjadi kesalahan koneksi.");
+      alert(error.message || "Gagal logout, coba lagi.");
     }
   };
 

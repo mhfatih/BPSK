@@ -12,7 +12,7 @@ export default function PelakuUsaha() {
     alamat: "",
     kode_pos: "",
     no_hp: "",
-    faksimile: "",
+    email: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -61,18 +61,7 @@ export default function PelakuUsaha() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Nama Pemilik</label>
-            <input
-              type="text"
-              name="nama_pemilik"
-              value={form.nama_pemilik}
-              onChange={handleChange}
-              required
-              className="w-full border rounded-md p-2"
-            />
-          </div>
-
+          
           <div>
             <label className="block text-sm font-medium">Perusahaan / Nama Usaha</label>
             <input
@@ -86,12 +75,24 @@ export default function PelakuUsaha() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium">Nama Pemilik</label>
+            <input
+              type="text"
+              name="nama_pemilik"
+              value={form.nama_pemilik}
+              onChange={handleChange}
+              required
+              className="w-full border rounded-md p-2"
+            />
+          </div>
+
+          <div>
               <label className="block text-sm font-medium">Kota / Kabupaten</label>
               <select
                   name="kota"
                   value={form.kota}
                   onChange={handleChange}
-              className="w-full border border rounded-md p-2 "
+              className="w-full border rounded-md p-2 "
               required
                 >
                 <option value="">Pilih Kota/Kabupaten</option>
@@ -142,11 +143,11 @@ export default function PelakuUsaha() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Faksimile (Opsional)</label>
+            <label className="block text-sm font-medium">Email (Opsional)</label>
             <input
-              type="text"
-              name="faksimile"
-              value={form.faksimile}
+              type="email"
+              name="email"
+              value={form.email}
               onChange={handleChange}
               className="w-full border rounded-md p-2"
             />

@@ -34,10 +34,10 @@ const data = [
 ];
 
 const latestReports = [
-  { id: 1, nama: "User A", judul: "Sengketa Pembelian Motor", status: "Proses" },
-  { id: 2, nama: "User B", judul: "Layanan Garansi HP", status: "Ditolak" },
-  { id: 3, nama: "User C", judul: "Produk Rusak", status: "Selesai" },
-  { id: 4, nama: "User D", judul: "Kesalahan Transaksi Online", status: "Proses" },
+  { id: 1, nama: "User A", judul: "Industri dan Pertambangan", status: "Proses" },
+  { id: 2, nama: "User B", judul: "Pertanian dan Kehutanan", status: "Ditolak" },
+  { id: 3, nama: "User C", judul: "Jasa", status: "Selesai" },
+  { id: 4, nama: "User D", judul: "Iklan", status: "Proses" },
 ];
 
 export default function DashboardPage() {

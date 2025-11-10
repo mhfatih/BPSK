@@ -81,3 +81,29 @@ export const verifyKasus = async (id, body) => {
     body,
   });
 };
+
+// 🔹 Ambil semua sidang berdasarkan kasus_id
+export const getSidangByKasusId = async (id) => {
+  return apiClient(`/kasus/${id}/sidang`, {
+    method: "GET",
+    credentials: "include",
+  });
+};
+
+// 🔹 Buat sidang baru
+export const createSidang = async (id, body) => {
+  return apiClient(`/kasus/${id}/sidang`, {
+    method: "POST",
+    credentials: "include",
+    body,
+  });
+};
+
+// 🔹 Update sidang berdasarkan id sidang
+export const updateSidangById = async (id, body) => {
+  return apiClient(`/kasus/${id}/sidang`, {
+    method: "PUT",
+    credentials: "include",
+    body,
+  });
+};

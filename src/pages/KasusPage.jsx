@@ -5,6 +5,7 @@ import { MdOutlineDashboard } from "react-icons/md";
 import StatusBadge from "../assets/StatusBadge";
 import { apiClient } from "../api/apiClient";
 import { formatDate } from "../assets/FormatDate";
+import { getAllKasus } from "../api/kasusServices";
 
 const statusOptions = ["Draf", "Diproses", "Ditolak", "Diterima", "Selesai"];
 const statuses = ["Semua", ...statusOptions];
@@ -43,7 +44,7 @@ export default function KasusPage() {
   
     const fetchKasus = async () => {
       try {
-        const kasusList = await apiClient("/kasus", { credentials: "include" });
+        const kasusList = await getAllKasus();
   
         const detailedKasus = kasusList.map((item) => ({
           id: item.id,
@@ -108,30 +109,6 @@ export default function KasusPage() {
     startIndex + itemsPerPage
   );
 
-  // Update status
-  // const handleUpdateStatus = async (id, newStatus) => {
-  //   try {
-  //     const res = await fetch(`http://localhost:3000/api/kasus/${id}/update-status`, {
-  //       method: "POST",
-  //       credentials: "include",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ status: newStatus }),
-  //     });
-  //     const data = await res.json();
-  //     if (res.ok) {
-  //       alert(data.message);
-  //       setKasus((prev) =>
-  //         prev.map((k) => (k.id === id ? { ...k, status: newStatus } : k))
-  //       );
-  //     } else {
-  //       alert(data.message || "Gagal update status");
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     alert("Terjadi kesalahan server");
-  //   }
-  // };
-
   return (
     <div className="p-4 bg-white shadow-md rounded-lg">
       <h2 className="text-xl font-semibold mb-4">Daftar Kasus</h2>
@@ -167,7 +144,7 @@ export default function KasusPage() {
               <th className="px-4 py-2 border">Nomor Pendaftaran</th>
               <th className="px-4 py-2 border">Pengadu</th>
               <th className="px-4 py-2 border">Pelaku Usaha</th>
-              <th className="px-4 py-2 border">Tanggal Kejadian</th>
+              <th className="px-4 py-2 border">Tanggal Pelaporan</th>
               <th className="px-4 py-2 border">Status</th>
               <th className="px-4 py-2 border">Aksi</th>
             </tr>
@@ -199,35 +176,29 @@ export default function KasusPage() {
                       <Eye size={16}  />
                     </Link>
 
-                    {/* Tombol Edit Draft */}
+                    {/* Tombol Jadwal Sidang */}
                     {currentUser && role && (
-                    (
-                      (
-                        (["user", "admin"].includes(role) &&
-                          item.status?.toLowerCase() === "draf" &&
-                          item.user_id?.toString() === currentUser.id?.toString()
-                        ) ||
-                        (role === "superadmin" && item.status?.toLowerCase() === "draf")
-                      ) && (
+                      ["admin", "superadmin"].includes(role) &&
+                      item.status?.toLowerCase() === "diterima" && (
                         <Link
-                          to={`/dashboard/kasus/edit/${item.id}`}
+                          
+                          to={`/dashboard/kasus/jadwal/${item.id}`}
                           className="flex items-center justify-center p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded"
                         >
                           <SquarePen size={16} />
                         </Link>
                       )
-                    )
-                  )}
+                    )}
 
                     {/* Verifikasi untuk admin/superadmin */}
-                    {(role === "admin" || role === "superadmin") && item.status === "Pending" && (
+                    {/* {(role === "admin" || role === "superadmin") && item.status === "Diterima" && (
                       <button
                         onClick={() => handleUpdateStatus(item.id, "Diterima")}
                         className="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded"
                       >
                         <ShieldCheck size={20}/>
                       </button>
-                    )}
+                    )} */}
 
                   </td>
                 </tr>

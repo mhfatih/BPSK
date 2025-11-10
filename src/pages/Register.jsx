@@ -14,37 +14,36 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
-      const res = await fetch("http://localhost:3000/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        alert("Registrasi berhasil!");
-
-        // ✅ Jika backend mengirim token JWT
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-        }
-
-        navigate("/login"); // atau navigate("/dashboard") kalau auto-login
-      } else {
-        alert(data.message || "Registrasi gagal");
+      const data = await register(
+        form.nama_lengkap,
+        form.email,
+        form.password,
+        form.confirm_password
+      );
+  
+      if (data?.token) {
+        // ✅ Simpan token jika dikirim backend
+        localStorage.setItem("token", data.token);
       }
+  
+      alert("Registrasi berhasil!");
+      navigate("/login");
     } catch (err) {
-      console.error("Error:", err);
-      alert("Terjadi kesalahan koneksi ke server.");
+      console.error("Error saat registrasi:", err);
+  
+      // 🧠 Menampilkan pesan error dari API
+      if (err?.message) {
+        alert(err.message);
+      } else if (err?.response?.data?.message) {
+        alert(err.response.data.message);
+      } else {
+        alert("Registrasi gagal, coba lagi nanti.");
+      }
     } finally {
       setLoading(false);
     }
