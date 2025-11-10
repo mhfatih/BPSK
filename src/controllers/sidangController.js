@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
+const { sendEmail } = require('../utils/mailer');
 
 /**
  * Get semua sidang (admin/superadmin)
@@ -98,11 +99,10 @@ const getSidangById = async (req, res) => {
 };
 
 /**
- * Create sidang baru (hanya jika status kasus = 'Diproses')
+ * Create sidang baru
  */
 const createSidang = async (req, res) => {
   const { id } = req.params; // id kasus
-  const { tanggalSidang, jamSidang, metodePenyelesaian, hasilSidang } = req.body;
 
   try {
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
@@ -131,15 +131,16 @@ const createSidang = async (req, res) => {
 
     const sidangId = uuidv4();
 
+    // ✅ Kosongan (tanpa tanggal, jam, metode, hasil)
     await db.query(
       `INSERT INTO kasus_sidang 
-      (id, kasus_id, sidang_ke, tanggal_sidang, jam_sidang, metode_penyelesaian, hasil_sidang, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [sidangId, id, sidangKe, tanggalSidang, jamSidang, metodePenyelesaian, hasilSidang || null]
+      (id, kasus_id, sidang_ke, created_at)
+      VALUES (?, ?, ?, NOW())`,
+      [sidangId, id, sidangKe]
     );
 
     res.status(201).json({
-      message: `Sidang ke-${sidangKe} berhasil dibuat`,
+      message: `Sidang ke-${sidangKe} berhasil dibuat (kosongan)`,
       id: sidangId,
       kasus_id: id,
       sidang_ke: sidangKe,
@@ -151,11 +152,76 @@ const createSidang = async (req, res) => {
 };
 
 /**
- * Update sidang berdasarkan id
+ * Update jadwal sidang
  */
-const updateSidangById = async (req, res) => {
+const updateJadwalSidang = async (req, res) => {
   const { id } = req.params; // id sidang
-  const { tanggalSidang, jamSidang, metodePenyelesaian, hasilSidang } = req.body;
+  const { tanggalSidang, jamSidang } = req.body;
+
+  try {
+    // 🔹 Cek data sidang
+    const [sidangRows] = await db.query('SELECT * FROM kasus_sidang WHERE id = ?', [id]);
+    if (sidangRows.length === 0)
+      return res.status(404).json({ message: 'Data sidang tidak ditemukan' });
+
+    const kasusId = sidangRows[0].kasus_id;
+
+    // 🔹 Ambil data kasus (termasuk nama & email pengadu)
+    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [kasusId]);
+    if (rowsKasus.length === 0)
+      return res.status(404).json({ message: 'Data kasus tidak ditemukan' });
+
+    const kasus = rowsKasus[0];
+
+    // 🔹 Ambil data admin yang sedang login
+    const [rowsUser] = await db.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    const user = rowsUser[0];
+
+    // 🔹 Validasi role
+    if (!['admin', 'superadmin'].includes(req.user.role))
+      return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa mengubah jadwal sidang' });
+
+    if (req.user.role === 'admin' && kasus.wilayah !== user.wilayah)
+      return res.status(403).json({ message: 'Anda tidak memiliki akses ke wilayah kasus ini' });
+
+    // 🔹 Update jadwal sidang
+    await db.query(
+      `UPDATE kasus_sidang 
+       SET tanggal_sidang = ?, jam_sidang = ?
+       WHERE id = ?`,
+      [tanggalSidang, jamSidang, id]
+    );
+
+    // 🔹 Kirim email ke pengadu (kalau ada email)
+    if (kasus.pengadu_email) {
+      const subject = '📅 Jadwal Sidang Anda Telah Diperbarui';
+      const html = `
+        <p>Halo <b>${kasus.pengadu_nama}</b>,</p>
+        <p>Jadwal sidang untuk pengaduan Anda telah diperbarui oleh pihak admin.</p>
+        <p><b>Tanggal Sidang:</b> ${tanggalSidang}<br>
+        <b>Jam Sidang:</b> ${jamSidang}</p>
+        <p>Silakan hadir sesuai jadwal atau hubungi petugas BPSK untuk informasi lebih lanjut.</p>
+        <br>
+        <p>Hormat kami,<br>
+        <b>Layanan Pengaduan Konsumen</b></p>
+      `;
+
+      await sendEmail(kasus.pengadu_email, subject, html);
+    }
+
+    res.json({ message: 'Jadwal sidang berhasil diperbarui dan email notifikasi dikirim', id });
+  } catch (err) {
+    console.error('Error updateJadwalSidang:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
+};
+
+/**
+ * Update hasil sidang (metode & hasil)
+ */
+const updateHasilSidang = async (req, res) => {
+  const { id } = req.params; // id sidang
+  const { metodePenyelesaian, hasilSidang } = req.body;
 
   try {
     const [sidangRows] = await db.query('SELECT * FROM kasus_sidang WHERE id = ?', [id]);
@@ -170,21 +236,21 @@ const updateSidangById = async (req, res) => {
     const user = rowsUser[0];
 
     if (!['admin', 'superadmin'].includes(req.user.role))
-      return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa update sidang' });
+      return res.status(403).json({ message: 'Hanya admin/superadmin yang bisa mengubah hasil sidang' });
 
     if (req.user.role === 'admin' && kasus.wilayah !== user.wilayah)
       return res.status(403).json({ message: 'Anda tidak memiliki akses ke wilayah kasus ini' });
 
     await db.query(
       `UPDATE kasus_sidang 
-       SET tanggal_sidang = ?, jam_sidang = ?, metode_penyelesaian = ?, hasil_sidang = ?
+       SET metode_penyelesaian = ?, hasil_sidang = ?
        WHERE id = ?`,
-      [tanggalSidang, jamSidang, metodePenyelesaian, hasilSidang, id]
+      [metodePenyelesaian, hasilSidang, id]
     );
 
-    res.json({ message: 'Data sidang berhasil diperbarui', id });
+    res.json({ message: 'Hasil sidang berhasil diperbarui', id });
   } catch (err) {
-    console.error('Error updateSidangById:', err);
+    console.error('Error updateHasilSidang:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
@@ -231,6 +297,7 @@ module.exports = {
   getAllSidang,
   getSidangByKasusId,
   getSidangById,
-  updateSidangById,
+  updateJadwalSidang,
+  updateHasilSidang,
   deleteSidang,
 };

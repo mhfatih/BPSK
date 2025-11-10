@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const authController = require('../controllers/authController');
+const profileController = require('../controllers/profileController');
 const userController = require('../controllers/userController');
 const kasusController = require('../controllers/kasusController');
 const dataDiriController = require('../controllers/dataDiriController');
@@ -12,7 +13,6 @@ const sidangController = require('../controllers/sidangController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleCheck = require('../middlewares/roleMiddleware');
-const upload = require('../middlewares/upload');
 
 // ==================== AUTH ====================
 router.get("/check-token", authMiddleware, (req, res) => {
@@ -21,9 +21,9 @@ router.get("/check-token", authMiddleware, (req, res) => {
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
-router.get('/profile', authMiddleware, userController.getProfile);
-router.put('/profile', authMiddleware, upload.Profile.single('foto_identitas'), userController.updateProfile);
-router.put('/change-password', authMiddleware, userController.changePassword);
+router.get('/profile', authMiddleware, profileController.getProfile);
+router.put('/profile', authMiddleware, profileController.updateProfile);
+router.put('/change-password', authMiddleware, profileController.changePassword);
 
 // ==================== KASUS ====================
 router.post('/kasus/kasus-add', authMiddleware, kasusController.createKasus);
@@ -36,7 +36,7 @@ router.put('/kasus/:id/selesai', authMiddleware, kasusController.selesaiKasus);
 
 // ==================== DATA-DIRI ====================
 router.get('/kasus/:id/data-diri', authMiddleware, dataDiriController.getDataDiri);
-router.put('/kasus/:id/data-diri', authMiddleware, upload.KasusDataDiri.single('foto_identitas'), dataDiriController.updateDataDiri);
+router.put('/kasus/:id/data-diri', authMiddleware, dataDiriController.updateDataDiri);
 
 // ==================== PELAKU-USAHA ====================
 router.get('/kasus/:id/pelaku-usaha', authMiddleware, pelakuUsahaController.getPelakuUsahaByKasus);
@@ -47,7 +47,7 @@ router.delete('/pelaku-usaha/:id', authMiddleware, pelakuUsahaController.deleteP
 
 // ==================== TENTANG-PENGADUAN ====================
 router.get('/kasus/:id/tentang-pengaduan', authMiddleware, tentangPengaduanController.getTentangPengaduan);
-router.put('/kasus/:id/tentang-pengaduan', authMiddleware, upload.KasusPengaduanBukti.single('foto_bukti'), tentangPengaduanController.updateTentangPengaduan);
+router.put('/kasus/:id/tentang-pengaduan', authMiddleware, tentangPengaduanController.updateTentangPengaduan);
 
 // ==================== KRONOLOGIS ====================
 router.get('/kasus/:id/kronologis', authMiddleware, kronologisController.getKronologis);
@@ -58,7 +58,8 @@ router.get('/sidang', authMiddleware, sidangController.getAllSidang);
 router.get('/kasus/:id/sidang', authMiddleware, sidangController.getSidangByKasusId);
 router.get('/sidang/:id', authMiddleware, sidangController.getSidangById);
 router.post('/kasus/:id/sidang', authMiddleware, sidangController.createSidang);
-router.put('/sidang/:id', authMiddleware, sidangController.updateSidangById);
+router.put('/sidang/:id/jadwal', authMiddleware, sidangController.updateJadwalSidang);
+router.put('/sidang/:id/hasil', authMiddleware, sidangController.updateHasilSidang);
 router.delete('/sidang/:id', authMiddleware, sidangController.deleteSidang);
 
 // superadmin

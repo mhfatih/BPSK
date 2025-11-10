@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
+const { uploader, deleteOldFile } = require('../utils/uploader');
 
 /**
  * GET data diri (dari tabel kasus)
@@ -37,103 +38,90 @@ const getDataDiri = async (req, res) => {
   }
 };
 
-/**
- * UPDATE data diri
- */
 const updateDataDiri = async (req, res) => {
   const { id } = req.params;
-  const {
-    nama,
-    umur,
-    jenis_kelamin,
-    kota,
-    alamat,
-    email,
-    no_hp,
-    kode_pos,
-    identitas,
-  } = req.body;
+  const upload = uploader(`kasus/${id}`, 'foto_identitas', {
+    maxSize: 3 * 1024 * 1024, // 3 MB
+    allowedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
+  }).single('pengadu_foto_identitas');
 
-  try {
-    // 🔍 Cek apakah kasus ada
-    const [rows_kasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
-    if (rows_kasus.length === 0)
-      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
-
-    const kasus_data = rows_kasus[0];
-    if (kasus_data.created_by !== req.user.id && req.user.role === 'user') {
-      return res.status(403).json({ message: 'Tidak boleh mengedit kasus orang lain' });
+  upload(req, res, async (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'Ukuran file terlalu besar (maksimal 3MB)' });
+      }
+      if (err.message === 'Jenis file tidak diizinkan') {
+        return res.status(400).json({ message: 'Jenis file tidak diizinkan (hanya JPG, PNG, PDF)' });
+      }
+      console.error('Upload error:', err);
+      return res.status(500).json({ message: 'Terjadi kesalahan saat mengunggah file' });
     }
 
-    // 🧩 Validasi input wajib
-    if (
-      !nama || !umur || !jenis_kelamin || !kota ||
-      !alamat || !email || !no_hp || !kode_pos || !identitas
-    ) {
-      return res.status(400).json({ message: 'Semua field data diri wajib diisi' });
+    const {
+      pengadu_nama,
+      pengadu_umur,
+      pengadu_jenis_kelamin,
+      pengadu_kota,
+      pengadu_alamat,
+      pengadu_email,
+      pengadu_no_hp,
+      pengadu_kode_pos,
+      pengadu_identitas,
+    } = req.body;
+
+    try {
+      // 🔍 Cek apakah kasus ada
+      const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
+      if (rowsKasus.length === 0)
+        return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+
+      const kasus = rowsKasus[0];
+
+      // 🚫 Cegah edit milik orang lain
+      if (kasus.created_by !== req.user.id)
+        return res.status(403).json({ message: 'Tidak boleh mengedit data diri orang lain' });
+
+      // 📦 Siapkan data update
+      const updateData = {
+        pengadu_nama: pengadu_nama || null,
+        pengadu_umur: pengadu_umur || null,
+        pengadu_jenis_kelamin: pengadu_jenis_kelamin || null,
+        pengadu_kota: pengadu_kota || null,
+        pengadu_alamat: pengadu_alamat || null,
+        pengadu_email: pengadu_email || null,
+        pengadu_no_hp: pengadu_no_hp || null,
+        pengadu_kode_pos: pengadu_kode_pos || null,
+        pengadu_identitas: pengadu_identitas || null,
+      };
+
+      // 🗺️ Tentukan wilayah berdasarkan kota
+      const wkp1Cities = ['Kota Tangerang', 'Kota Tangerang Selatan', 'Kabupaten Tangerang'];
+      if (pengadu_kota && wkp1Cities.includes(pengadu_kota)) {
+        updateData.wilayah = 'WKP1';
+      } else {
+        updateData.wilayah = 'WKP2';
+      }
+
+      // 📸 Tangani upload foto identitas
+      if (req.file) {
+        deleteOldFile(kasus.pengadu_foto_identitas);
+        updateData.pengadu_foto_identitas = req.file.path
+          .replace(/\\/g, '/')
+          .replace(/^.*uploads/, '/uploads');
+      }
+
+      await db.query('UPDATE kasus SET ? WHERE id = ?', [updateData, id]);
+
+      res.json({
+        message: 'Data diri berhasil diperbarui',
+        kasus_id: id,
+        data: updateData,
+      });
+    } catch (err) {
+      console.error('Error updateDataDiri:', err);
+      res.status(500).json({ message: 'Terjadi kesalahan server' });
     }
-
-    // 📂 Folder penyimpanan file
-    const targetFolder = path.join(__dirname, '..', 'uploads', req.user.id, 'kasus', id);
-    if (!fs.existsSync(targetFolder)) fs.mkdirSync(targetFolder, { recursive: true });
-
-    let foto_identitas_path = kasus_data.pengadu_foto_identitas || null;
-
-    // 📸 Simpan foto baru (kalau ada)
-    if (req.file) {
-      const ext = path.extname(req.file.originalname);
-      const destFilename = `identitas${ext}`;
-      const destPath = path.join(targetFolder, destFilename);
-      fs.renameSync(req.file.path, destPath);
-      foto_identitas_path = '/' + path.relative(path.join(__dirname, '..'), destPath).replace(/\\/g, '/');
-    }
-
-    // 💾 Update data ke tabel kasus
-    await db.query(
-      `UPDATE kasus SET
-        pengadu_nama = ?,
-        pengadu_umur = ?,
-        pengadu_jenis_kelamin = ?,
-        pengadu_kota = ?,
-        pengadu_alamat = ?,
-        pengadu_email = ?,
-        pengadu_no_hp = ?,
-        pengadu_kode_pos = ?,
-        pengadu_identitas = ?,
-        pengadu_foto_identitas = ?
-      WHERE id = ?`,
-      [
-        nama,
-        parseInt(umur, 10),
-        jenis_kelamin,
-        kota,
-        alamat,
-        email,
-        no_hp,
-        kode_pos,
-        identitas,
-        foto_identitas_path,
-        id,
-      ]
-    );
-
-    // 🧭 Tentukan wilayah berdasarkan kota
-    let wilayah = null;
-    const wkp1 = ['Kota Tangerang', 'Kota Tangerang Selatan', 'Kabupaten Tangerang'];
-    wilayah = wkp1.includes(kota) ? 'WKP1' : 'WKP2';
-
-    await db.query('UPDATE kasus SET wilayah = ? WHERE id = ?', [wilayah, id]);
-
-    res.json({
-      message: 'Data diri berhasil disimpan',
-      kasus_id: id,
-      wilayah,
-      foto_identitas: foto_identitas_path,
-    });
-  } catch (err) {
-    console.error('Error updateDataDiri:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
-  }
+  });
 };
 
 module.exports = {

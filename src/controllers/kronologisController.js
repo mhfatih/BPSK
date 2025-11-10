@@ -8,9 +8,9 @@ const getKronologis = async (req, res) => {
   const { id } = req.params;
   try {
     const [rowsKasus] = await db.query(
-      `SELECT kronologis, jenis_tuntutan 
-       FROM kasus 
-       WHERE id = ?`,
+      `SELECT kronologis, jenis_tuntutan, created_by
+      FROM kasus
+      WHERE id = ?`,
       [id]
     );
 

@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { sendEmail } = require('../utils/mailer');
+const { uploader, deleteOldFile } = require('../utils/uploader');
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
@@ -22,6 +23,7 @@ const getAllKasus = async (req, res) => {
     let baseQuery = `
       SELECT 
         k.id,
+        k.no_registrasi,
         k.status,
         k.wilayah,
         k.pengadu_nama,
@@ -493,76 +495,98 @@ const prosesKasus = async (req, res) => {
 };
 
 /**
- * Selesaikan kasus oleh admin/superadmin
+ *  Selesaikan kasus oleh admin/superadmin
  */
 const selesaiKasus = async (req, res) => {
   const { id } = req.params;
-  const { jumlah_kerugian } = req.body;
 
-  try {
-    // 🔍 Cek apakah kasus ada
-    const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
-    if (rowsKasus.length === 0)
-      return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+  // 📂 Konfigurasi upload file sidang
+  const upload = uploader(`kasus/${id}`, 'file_sidang', {
+    maxSize: 5 * 1024 * 1024, // Maks 5MB
+    allowedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
+  }).single('file_sidang');
 
-    const kasus = rowsKasus[0];
-
-    // 🚫 Hanya admin/superadmin yang bisa menyelesaikan kasus
-    if (!['admin', 'superadmin'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa menyelesaikan kasus' });
+  upload(req, res, async (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'Ukuran file terlalu besar (maksimal 5MB)' });
+      }
+      if (err.message === 'Jenis file tidak diizinkan') {
+        return res.status(400).json({ message: 'Jenis file tidak diizinkan (hanya PDF, JPG, PNG)' });
+      }
+      console.error('Upload error:', err);
+      return res.status(500).json({ message: 'Terjadi kesalahan saat mengunggah file sidang' });
     }
 
-    // 🚫 Hanya bisa diselesaikan kalau status-nya "Diproses"
-    if (kasus.status !== 'Diproses') {
-      return res.status(400).json({
-        message: 'Kasus hanya dapat diselesaikan jika status-nya adalah Diproses',
+    // ✅ Sekarang req.body sudah bisa diakses
+    const { jumlah_kerugian } = req.body;
+
+    try {
+      const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
+      if (rowsKasus.length === 0)
+        return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+
+      const kasus = rowsKasus[0];
+
+      if (!['admin', 'superadmin'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa menyelesaikan kasus' });
+      }
+
+      if (kasus.status !== 'Diproses') {
+        return res.status(400).json({ message: 'Kasus hanya dapat diselesaikan jika status-nya adalah Diproses' });
+      }
+
+      if (jumlah_kerugian === undefined || jumlah_kerugian === null || jumlah_kerugian === '') {
+        return res.status(400).json({ message: 'Jumlah kerugian wajib diisi' });
+      }
+
+      const updateData = {
+        status: 'Selesai',
+        jumlah_kerugian,
+        finished_at: new Date(),
+        finished_by: req.user.id,
+      };
+
+      if (req.file) {
+        if (kasus.file_sidang) deleteOldFile(kasus.file_sidang);
+        updateData.file_sidang = req.file.path.replace(/\\/g, '/').replace(/^.*uploads/, '/uploads');
+      }
+
+      await db.query('UPDATE kasus SET ? WHERE id = ?', [updateData, id]);
+
+      if (kasus.pengadu_email) {
+        await sendEmail(
+          kasus.pengadu_email,
+          'Kasus Anda Telah Selesai',
+          `
+          <h3>Halo ${kasus.pengadu_nama},</h3>
+          <p>Kasus Anda dengan ID <b>${id}</b> telah selesai diproses oleh tim BPSK.</p>
+          <p>Status akhir: <b style="color:green;">SELESAI</b></p>
+          <p><b>Jumlah Kerugian:</b> Rp ${Number(jumlah_kerugian).toLocaleString('id-ID')}</p>
+          ${
+            updateData.file_sidang
+              ? `<p>📎 File hasil sidang telah diunggah ke sistem dan dapat dilihat di halaman kasus Anda.</p>`
+              : ''
+          }
+          <p>Terima kasih atas partisipasi Anda dalam menyelesaikan pengaduan ini.</p>
+          <hr/>
+          <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+          `
+        );
+      }
+
+      res.json({
+        message: 'Kasus berhasil diselesaikan',
+        kasus_id: id,
+        status: 'Selesai',
+        jumlah_kerugian,
+        file_sidang: updateData.file_sidang || kasus.file_sidang || null,
       });
+    } catch (err) {
+      console.error('Error selesaiKasus:', err);
+      res.status(500).json({ message: 'Terjadi kesalahan server' });
     }
-
-    // 🚨 Validasi jumlah kerugian
-    if (jumlah_kerugian === undefined || jumlah_kerugian === null || jumlah_kerugian === '') {
-      return res.status(400).json({ message: 'Jumlah kerugian wajib diisi' });
-    }
-
-    // 🔁 Ubah status jadi "Selesai"
-    await db.query(
-      `UPDATE kasus 
-       SET status = 'Selesai',
-           jumlah_kerugian = ?,
-           finished_at = NOW(),
-           finished_by = ?
-       WHERE id = ?`,
-      [jumlah_kerugian, req.user.id, id]
-    );
-
-    // 📧 Kirim email notifikasi ke pelapor langsung dari tabel kasus
-    if (kasus.pengadu_email) {
-      await sendEmail(
-        kasus.pengadu_email,
-        'Kasus Anda Telah Selesai',
-        `
-        <h3>Halo ${kasus.pengadu_nama},</h3>
-        <p>Kasus Anda dengan ID <b>${id}</b> telah selesai diproses oleh tim BPSK.</p>
-        <p>Status akhir: <b style="color:green;">SELESAI</b></p>
-        <p><b>Jumlah Kerugian:</b> Rp ${Number(jumlah_kerugian).toLocaleString('id-ID')}</p>
-        <p>Terima kasih atas partisipasi Anda dalam menyelesaikan pengaduan ini.</p>
-        <hr/>
-        <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
-        `
-      );
-    }
-
-    // ✅ Respons sukses
-    res.json({
-      message: 'Kasus berhasil diselesaikan',
-      kasus_id: id,
-      status: 'Selesai',
-      jumlah_kerugian,
-    });
-  } catch (err) {
-    console.error('Error selesaiKasus:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
-  }
+  });
 };
 
 module.exports = {

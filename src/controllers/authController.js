@@ -5,9 +5,9 @@ const SECRET_KEY = 'secret123';
 
 // REGISTER
 const register = async (req, res) => {
-  const { email, nama_lengkap, password, confirm_password } = req.body;
+  const { email, nama, password, confirm_password } = req.body;
 
-  if (!email || !nama_lengkap || !password || !confirm_password)
+  if (!email || !nama || !password || !confirm_password)
     return res.status(400).json({ message: 'Semua field wajib diisi' });
 
   if (password !== confirm_password)
@@ -26,9 +26,9 @@ const register = async (req, res) => {
     `, [userId, email, password]);
 
     await db.query(`
-      INSERT INTO profiles (user_id, nama_lengkap)
+      INSERT INTO profiles (user_id, nama)
       VALUES (?, ?)
-    `, [userId, nama_lengkap]);
+    `, [userId, nama]);
 
     res.status(201).json({ message: 'Registrasi berhasil', user_id: userId });
   } catch (err) {
