@@ -236,7 +236,7 @@ const KasusList = () => {
                   </td>
                   <td className="py-2 px-3 text-center">
                     <button
-                      onClick={() => navigate(`/kasus/${item.id}`)}
+                      onClick={() => navigate(`/pengaduan/${item.id}/view`)}
                       className="text-blue-600 hover:text-blue-800 transition"
                     >
                       <Info className="w-5 h-5 mx-auto" />

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Outlet } from "react-router-dom";
-// import { getKasusById, submitKasus, verifyKasus } from "../api/kasusServices";
+import { apiClient } from "../api/apiClient";
 
 import jsPDF from "jspdf";
 import logo from "../assets/LogoBanten.png";
@@ -14,10 +14,10 @@ export default function ViewPengaduan() {
   const [submitting, setSubmitting] = useState(false);
   const [verifikasiStatus, setVerifikasiStatus] = useState("");
   const [alasanPenolakan, setAlasanPenolakan] = useState("");
-  
-    // Ambil user dari localStorage
+
+  // Ambil user dari localStorage
   const userData = localStorage.getItem("user");
-  const currentUser = userData ? JSON.parse(userData) : null; 
+  const currentUser = userData ? JSON.parse(userData) : null;
 
   // 🔹 Tambahkan ref untuk menangkap area PDF
   const pdfRef = useRef();
@@ -25,7 +25,7 @@ export default function ViewPengaduan() {
   useEffect(() => {
     const fetchKasus = async () => {
       try {
-        const data = await getKasusById(id);
+        const data = await apiClient(`/kasus/${id}`);
         console.log("Data kasus dari API:", data);
 
         // 🧩 Normalisasi key agar konsisten
@@ -58,7 +58,9 @@ export default function ViewPengaduan() {
 
     setSubmitting(true);
     try {
-      const res = await submitKasus(id);
+      const res = await apiClient(`/kasus/${id}/submit`, {
+        method: "PUT",
+      });
       alert(res.message || "Kasus berhasil disubmit!");
       setKasus((prev) => ({ ...prev, status: res.status || "Diproses" }));
     } catch (err) {
@@ -73,7 +75,7 @@ export default function ViewPengaduan() {
   const handleDownloadPDF = () => {
     try {
       const pdf = new jsPDF("p", "mm", "a4");
-  
+
       const img = new Image();
       img.src = logo;
       pdf.addImage(img, "PNG", 12, 15, 25, 20); // x, y, width, height
@@ -83,26 +85,26 @@ export default function ViewPengaduan() {
       pdf.setFontSize(14);
       pdf.text("BADAN PENYELESAIAN SENGKETA KONSUMEN (BPSK)", 105, 20, { align: "center" });
       pdf.text("PROVINSI BANTEN WILAYAH KERJA PROVINSI I", 105, 27, { align: "center" });
-      
+
       pdf.setFont("times", "italic");
       pdf.setFontSize(10);
       pdf.text("Ruko Permata Cisadane, Jl. Teuku Umar Bojong Jaya, Karawaci Kota Tangerang Banten 15115", 105, 33, { align: "center" });
-  
+
       // 🔹 Garis pembatas bawah kop surat
       pdf.setDrawColor(0);
       pdf.setLineWidth(0.6);
       pdf.line(15, 37, 195, 37);
-  
+
       // 🔹 Judul Dokumen
       pdf.setFontSize(13);
       pdf.setFont("times", "bold");
       pdf.text("LAPORAN PENGADUAN KASUS KONSUMEN", 105, 50, { align: "center" });
-  
+
       // 🔹 Isi Dokumen
       pdf.setFont("times", "normal");
       pdf.setFontSize(11);
       let y = 65;
-  
+
       pdf.text(`Nomor Kasus   : ${kasus?.id || "-"}`, 20, y);
       y += 8;
       pdf.text(`Nama Pelapor  : ${kasus?.pelapor || "-"}`, 20, y);
@@ -115,7 +117,7 @@ export default function ViewPengaduan() {
       y += 8;
       pdf.text(`Jenis Kerugian : ${kasus?.jenis_kerugian || "-"}`, 20, y);
       y += 10;
-  
+
       // 🔹 Paragraf penjelasan
       const keterangan = kasus?.keterangan_kerugian || "Tidak ada keterangan tambahan.";
       const splitText = pdf.splitTextToSize(keterangan, 170);
@@ -123,13 +125,13 @@ export default function ViewPengaduan() {
       y += 7;
       pdf.text(splitText, 25, y);
       y += splitText.length * 6 + 10;
-  
+
       // 🔹 Tanda tangan
       pdf.text("Banten, " + new Date().toLocaleDateString("id-ID"), 140, y);
       y += 25;
       pdf.text("(....................................)", 140, y);
       pdf.text("Petugas Verifikator", 145, y + 7);
-  
+
       // 🔹 Simpan PDF
       pdf.save(`Pengaduan_${kasus?.id || "data"}.pdf`);
     } catch (err) {
@@ -174,12 +176,12 @@ export default function ViewPengaduan() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       {/* 🔽 Tombol Download PDF */}
-          <button
-            onClick={handleDownloadPDF}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
-          >
-            ⬇️ Download PDF
-          </button>
+      <button
+        onClick={handleDownloadPDF}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
+      >
+        ⬇️ Download PDF
+      </button>
       <div className="max-w-5xl mx-auto" ref={pdfRef}>
         <div className="bg-white shadow-md rounded-2xl p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-700 mb-2">
@@ -189,18 +191,17 @@ export default function ViewPengaduan() {
             ID Kasus: <span className="font-mono">{kasus?.id}</span>
           </p>
           <span
-            className={`inline-block mt-3 px-3 py-1 text-xs rounded-full font-medium ${
-              kasus.status === "Draf"
-                ? "bg-gray-200 text-gray-700"
-                : kasus.status === "Diproses"
+            className={`inline-block mt-3 px-3 py-1 text-xs rounded-full font-medium ${kasus.status === "Draf"
+              ? "bg-gray-200 text-gray-700"
+              : kasus.status === "Diproses"
                 ? "bg-yellow-100 text-yellow-700"
                 : kasus.status === "Diterima"
-                ? "bg-green-100 text-green-700"
-                : kasus.status === "Selesai"
-                ? "bg-blue-100 text-blue-700"                      
-                : "bg-red-100 text-red-700"
-                
-            }`}
+                  ? "bg-green-100 text-green-700"
+                  : kasus.status === "Selesai"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-red-100 text-red-700"
+
+              }`}
           >
             Status: {kasus?.status?.toUpperCase()}
           </span>
@@ -223,12 +224,12 @@ export default function ViewPengaduan() {
                 {renderEditButton(`/dashboard/pengaduan/${id}/data-diri`)}
               </div>
               <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
-                <p><b>Nama:</b> {kasus.data_diri.nama_lengkap}</p>
-                <p><b>Umur:</b> {kasus.data_diri.umur}</p>
-                <p><b>Jenis Kelamin:</b> {kasus.data_diri.jenis_kelamin}</p>
-                <p><b>Email:</b> {kasus.data_diri.email}</p>
-                <p><b>No HP:</b> {kasus.data_diri.no_hp}</p>
-                <p className="col-span-2"><b>Alamat:</b> {kasus.data_diri.alamat}</p>
+                <p><b>Nama:</b> {kasus.data_diri.pengadu_nama}</p>
+                <p><b>Umur:</b> {kasus.data_diri.pengadu_umur}</p>
+                <p><b>Jenis Kelamin:</b> {kasus.data_diri.pengadu_jenis_kelamin}</p>
+                <p><b>Email:</b> {kasus.data_diri.pengadu_email}</p>
+                <p><b>No HP:</b> {kasus.data_diri.pengadu_no_hp}</p>
+                <p className="col-span-2"><b>Alamat:</b> {kasus.data_diri.pengadu_alamat}</p>
               </div>
               {renderImage(kasus.data_diri?.foto_identitas, "Foto Identitas")}
             </section>
@@ -308,92 +309,93 @@ export default function ViewPengaduan() {
             )}
 
             {/* ✅ Section Verifikasi Kasus (Hanya untuk admin/superadmin) */}
-                     
+
             {["admin", "superadmin"].includes(currentUser?.role) &&
-             ["Diproses", "Diterima"].includes(kasus?.status) && (
-            <section className="bg-white/80 backdrop-blur-sm shadow-lg rounded-2xl p-6 border border-gray-100 mb-6 transition-all">
-                <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                    <span className="text-blue-600">🧾</span> Verifikasi Kasus
-                </h2>
-                <span className="text-sm text-gray-500">
-                    Role: <b className="capitalize">{currentUser?.role}</b>
-                </span>
-                </div>
+              ["Diproses", "Diterima"].includes(kasus?.status) && (
+                <section className="bg-white/80 backdrop-blur-sm shadow-lg rounded-2xl p-6 border border-gray-100 mb-6 transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                      <span className="text-blue-600">🧾</span> Verifikasi Kasus
+                    </h2>
+                    <span className="text-sm text-gray-500">
+                      Role: <b className="capitalize">{currentUser?.role}</b>
+                    </span>
+                  </div>
 
-                <div className="flex flex-col gap-4">
-                {/* Dropdown Status */}
-                <div>
-                    <label className="block text-gray-700 font-medium mb-1">Pilih Status Verifikasi</label>
-                    <select
-                    className="border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-100 rounded-lg p-3 w-full transition-all outline-none"
-                    value={verifikasiStatus}
-                    onChange={(e) => setVerifikasiStatus(e.target.value)}
-                    >
-                    <option value="">-- Pilih Status --</option>
-                    <option value="Diterima">✅ Diterima</option>
-                    <option value="Ditolak">❌ Ditolak</option>
-                    {/* <option value="Selesai">🏁 Selesai</option> */}
-                    </select>
-                </div>
-
-                {/* Alasan Penolakan */}
-                {verifikasiStatus === "Ditolak" && (
+                  <div className="flex flex-col gap-4">
+                    {/* Dropdown Status */}
                     <div>
-                    <label className="block text-gray-700 font-medium mb-1">Alasan Penolakan</label>
-                    <textarea
-                        className="w-full border border-gray-300 focus:border-red-500 focus:ring focus:ring-red-100 rounded-lg p-3 resize-none outline-none transition-all"
-                        rows="3"
-                        placeholder="Tuliskan alasan penolakan di sini..."
-                        value={alasanPenolakan}
-                        onChange={(e) => setAlasanPenolakan(e.target.value)}
-                    />
+                      <label className="block text-gray-700 font-medium mb-1">Pilih Status Verifikasi</label>
+                      <select
+                        className="border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-100 rounded-lg p-3 w-full transition-all outline-none"
+                        value={verifikasiStatus}
+                        onChange={(e) => setVerifikasiStatus(e.target.value)}
+                      >
+                        <option value="">-- Pilih Status --</option>
+                        <option value="Diterima">✅ Diterima</option>
+                        <option value="Ditolak">❌ Ditolak</option>
+                        {/* <option value="Selesai">🏁 Selesai</option> */}
+                      </select>
                     </div>
-                )}
 
-                {/* Tombol Aksi */}
-                <div className="flex justify-end">
-                    <button
-                    onClick={async () => {
-                        if (!verifikasiStatus) {
-                        alert("Silakan pilih status verifikasi terlebih dahulu.");
-                        return;
-                        }
+                    {/* Alasan Penolakan */}
+                    {verifikasiStatus === "Ditolak" && (
+                      <div>
+                        <label className="block text-gray-700 font-medium mb-1">Alasan Penolakan</label>
+                        <textarea
+                          className="w-full border border-gray-300 focus:border-red-500 focus:ring focus:ring-red-100 rounded-lg p-3 resize-none outline-none transition-all"
+                          rows="3"
+                          placeholder="Tuliskan alasan penolakan di sini..."
+                          value={alasanPenolakan}
+                          onChange={(e) => setAlasanPenolakan(e.target.value)}
+                        />
+                      </div>
+                    )}
 
-                        try {
-                        const res = await verifyKasus(id, {
-                            status: verifikasiStatus,
-                            alasanPenolakan:
-                            verifikasiStatus === "Ditolak" ? alasanPenolakan : null,
-                        });
+                    {/* Tombol Aksi */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={async () => {
+                          if (!verifikasiStatus) {
+                            alert("Silakan pilih status verifikasi terlebih dahulu.");
+                            return;
+                          }
 
-                        alert(res.message || "Verifikasi berhasil!");
-                        setKasus((prev) => ({
-                            ...prev,
-                            status: res.status || verifikasiStatus,
-                            alasanPenolakan : res.alasanPenolakan || alasanPenolakan,
-                        }));
-                        } catch (err) {
-                        console.error("Gagal verifikasi kasus:", err);
-                        alert(err.message || "Gagal memverifikasi kasus");
-                        }
-                    }}
-                    className={`px-6 py-3 rounded-lg font-medium text-white shadow-md transition-all 
-                        ${
-                        verifikasiStatus === "Ditolak"
+                          try {
+                            const res = await await apiClient(`/kasus/${id}/verify`, {
+                              method: "PUT",
+                              body: {
+                                status: verifikasiStatus,
+                                alasanPenolakan: verifikasiStatus === "Ditolak" ? alasanPenolakan : null
+                              }
+                            });
+
+                            alert(res.message || "Verifikasi berhasil!");
+                            setKasus((prev) => ({
+                              ...prev,
+                              status: res.status || verifikasiStatus,
+                              alasanPenolakan: res.alasanPenolakan || alasanPenolakan,
+                            }));
+                          } catch (err) {
+                            console.error("Gagal verifikasi kasus:", err);
+                            alert(err.message || "Gagal memverifikasi kasus");
+                          }
+                        }}
+                        className={`px-6 py-3 rounded-lg font-medium text-white shadow-md transition-all 
+                        ${verifikasiStatus === "Ditolak"
                             ? "bg-red-600 hover:bg-red-700"
                             : verifikasiStatus === "Diterima"
-                            ? "bg-green-600 hover:bg-green-700"
-                            : "bg-blue-600 hover:bg-blue-700"
-                        }`}
-                    >
-                    Kirim Verifikasi
-                    </button>
-                </div>
-                </div>
-            </section>
-            )}
-          
+                              ? "bg-green-600 hover:bg-green-700"
+                              : "bg-blue-600 hover:bg-blue-700"
+                          }`}
+                      >
+                        Kirim Verifikasi
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              )}
+
           </div>
         </div>
 

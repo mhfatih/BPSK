@@ -90,7 +90,7 @@ if (!kasus) return <p>Kasus tidak ditemukan.</p>;
         <div>
           <p><strong>No Registrasi:</strong> {kasus.nomorRegistrasi}</p>
           <p><strong>Tanggal:</strong> {kasus.tanggal}</p>
-          <p><strong>Nama:</strong> {kasus.data_diri?.nama_lengkap}</p>
+          <p><strong>Nama:</strong> {kasus.data_diri?.nama}</p>
           <p><strong>Email:</strong> {kasus.data_diri?.email}</p>
           <p><strong>Telepon:</strong> {kasus.data_diri?.no_hp}</p>
           <p><strong>Kota:</strong> {kasus.data_diri?.kota}</p>
