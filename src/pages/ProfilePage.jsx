@@ -1,86 +1,89 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
-import { apiUploadClient } from "../api/apiUploadClient";
+
 import { formatDate } from "../assets/FormatDate";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null); // preview foto
-  const [currentUser, setCurrentUser] = useState(null);
-  const [role, setRole] = useState(""); // role bisa dari session / cookie
-  const token = localStorage.getItem("token");
+  // const [currentUser, setCurrentUser] = useState(null);
+  // const [role, setRole] = useState(""); // role bisa dari session / cookie
+  // const token = localStorage.getItem("token");
 
   // 🔹 Ambil profil dari backend
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const data = await apiClient("/profile", {
-          method: "GET",
-          credentials: "include",
-        });
+        const data = await apiClient("/profile", { method: "GET" });
+        console.log("Response dari API:", data);
+
+        // ✅ API langsung kirim objek user, bukan { user: {...} }
         setProfile(data);
-        const user = data.user || data;
-        setCurrentUser(user);
-        setRole(user.role);
       } catch (err) {
         console.error("Gagal ambil profil:", err);
         alert(err.message || "Gagal memuat profil");
-        if (err.message.includes("Token") || err.message.includes("Unauthorized")) {
-          navigate("/login"); // arahkan user ke halaman login
+        if (
+          err.message.includes("Token") ||
+          err.message.includes("Unauthorized")
+        ) {
+          navigate("/login");
         }
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [navigate]);
 
-  // Handle perubahan form
+  
+  // Handle input change
   const handleChange = (e) => {
-    setProfile({
-      ...profile,
+    const { name, value } = e.target;
+    setProfile((prev) => ({
+      ...prev,
       profile: {
-        ...profile.profile,
-        [e.target.name]: e.target.value,
+        ...prev.profile,
+        [name]: value,
       },
-    });
+    }));
   };
 
-  // Handle upload foto
+  // Handle file upload
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfile({
-        ...profile,
+      setProfile((prev) => ({
+        ...prev,
         profile: {
-          ...profile.profile,
+          ...prev.profile,
           foto_identitas: file,
         },
-      });
+      }));
       setPreview(URL.createObjectURL(file));
     }
   };
 
-  // Simpan perubahan profil
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-  
+
     try {
       const formData = new FormData();
       Object.entries(profile.profile).forEach(([key, value]) => {
         if (value) formData.append(key, value);
       });
-  
-      // ✅ panggil apiUploadClient langsung, bukan .put()
-      const res = await apiUploadClient("/profile", {
+
+      const res = await apiClient("/profile", {
         method: "PUT",
-        formData,
+        body: formData, // apiClient otomatis mendeteksi FormData
       });
-  
+
       alert(res.message || "Profil berhasil diperbarui!");
-      setProfile(res.user || res.data?.user || profile); // fallback aman
+      setProfile(res.user || res.data?.user || profile);
       setEditMode(false);
       setPreview(null);
     } catch (err) {
@@ -90,7 +93,7 @@ export default function ProfilePage() {
       setLoading(false);
     }
   };
-  
+
 
   if (!profile) {
     return <p className="text-center mt-10">Memuat data profil...</p>;
@@ -141,7 +144,7 @@ export default function ProfilePage() {
             <input
               type="text"
               name="nama_lengkap"
-              value={profile.profile.nama_lengkap || ""}
+              value={profile.profile.nama || ""}
               onChange={handleChange}
               className="w-full border rounded p-2"
               required
@@ -186,16 +189,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            {/* <div>
-              <label className="block text-sm font-medium">Kota</label>
-              <input
-                type="text"
-                name="kota"
-                value={profile.profile.kota || ""}
-                onChange={handleChange}
-                className="w-full border rounded p-2"
-              />
-            </div> */}
+            
             <div>
               <label className="block text-sm font-medium">Kota / Kabupaten</label>
               <select

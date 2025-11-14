@@ -5,7 +5,6 @@ import { MdOutlineDashboard } from "react-icons/md";
 import StatusBadge from "../assets/StatusBadge";
 import { apiClient } from "../api/apiClient";
 import { formatDate } from "../assets/FormatDate";
-import { getAllKasus } from "../api/kasusServices";
 
 const statusOptions = ["Draf", "Diproses", "Ditolak", "Diterima", "Selesai"];
 const statuses = ["Semua", ...statusOptions];

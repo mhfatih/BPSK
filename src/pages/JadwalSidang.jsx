@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
-  getSidangByKasusId,
-  createSidang,
-  updateSidangById,
-} from "../api/kasusServices";
+  apiClient
+} from "../api/apiClient";
 
 export default function JadwalSidang() {
   const { id } = useParams(); // id kasus
@@ -29,7 +27,7 @@ export default function JadwalSidang() {
   // 🔹 Ambil semua data sidang berdasarkan kasus
   const fetchSidang = async () => {
     try {
-      const res = await getSidangByKasusId(id);
+      const res = await apiClient(`/kasus/${id}/sidang`, { method: "GET" });
       setSidangList(res);
     } catch (err) {
       console.error("Gagal mengambil data sidang:", err);
@@ -76,11 +74,29 @@ export default function JadwalSidang() {
 
     try {
       if (editingSidang) {
-        await updateSidangById(editingSidang.id, formData);
+        // Update sidang
+      try {
+        await apiClient(`/sidang/${editingSidang.id}`, {
+          method: "PUT",
+          body: formData,
+        });
         alert("Sidang berhasil diperbarui");
+      } catch (err) {
+        console.error(err);
+        alert("Gagal memperbarui sidang: " + err.message);
+      }
       } else {
-        await createSidang(id, formData);
-        alert("Sidang berhasil ditambahkan");
+        // Create sidang baru
+        try {
+          await apiClient(`/kasus/${id}/sidang`, {
+            method: "POST",
+            body: formData,
+          });
+          alert("Sidang berhasil ditambahkan");
+        } catch (err) {
+          console.error(err);
+          alert("Gagal menambahkan sidang: " + err.message);
+        }
       }
 
       setShowForm(false);

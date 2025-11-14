@@ -1,239 +1,116 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { login } from "../api/authService";
-import { getProfile } from "../api/ProfileServices";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import React, { useState } from "react";
 import { apiClient } from "../api/apiClient";
+import logo from "../assets/LogoBanten.png"; // ganti dengan path logo kamu
+import bgImage from "../assets/LogoBanten.png"; // ganti dengan path gambar background
 
-export default function Login() {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    konfpass: "",
-    role:"user", // default role (user/admin tergantung sistem)
-    captcha: "",
-  });
-  const { executeRecaptcha } = useGoogleReCaptcha();
-  const navigate = useNavigate();
+const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-  
-    if (!executeRecaptcha) {
-      alert("Captcha belum siap, coba lagi.");
-      setLoading(false);
-      return;
-    }
-  
+
     try {
-      const token = await executeRecaptcha("login_form");
-      const data = await login(form.email, form.password, form.role, token);
+      const data = await apiClient("/login", {
+        method: "POST",
+        body: { email, password },
+      });
 
-      console.log("Respon dari API login:", data);
-  
-      if (!data || data.error || data.status === "error") {
-        alert(data.message || "Login gagal. Periksa kembali email dan password Anda.");
-        return;
-      }
-  
-      // simpan sementara dulu
       localStorage.setItem("token", data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: data.id,
-          role: data.role,
-          token: data.token,
-        })
-      );
-      
-      // 🔄 Ambil profil lengkap agar ada nama_lengkap
-      try {
-        const profileRes = await getProfile();
-        console.log("Profil pengguna:", profileRes);
+      localStorage.setItem("user", JSON.stringify({ id: data.id, role: data.role }));
 
-        if (profileRes) {
-          const storedUser = JSON.parse(localStorage.getItem("user"));
-          const updatedUser = {
-            ...storedUser,
-            nama_lengkap: profileRes.nama_lengkap || "Pengguna",
-            profile: profileRes, // simpan semua data profil kalau mau
-          };
-
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-        }
-      } catch (profileErr) {
-        console.warn("Gagal mengambil profil:", profileErr);
-      }
-
-      // ⏳ Pastikan tersimpan dulu
-      await new Promise((resolve) => setTimeout(resolve, 200));
-  
-      navigate("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Login error:", err);
-      if (err.message === "Failed to fetch" || err.name === "TypeError") {
-        alert("Tidak dapat terhubung ke server. Periksa koneksi internet Anda.");
-      } else if (err.response?.status === 401) {
-        alert("Sesi Anda telah berakhir. Silakan login kembali.");
-        navigate("/login");
-      } else {
-        alert(err.message || "Terjadi kesalahan saat login. Coba lagi nanti.");
-      }
+      setError(err.message || "Gagal login");
     } finally {
       setLoading(false);
     }
   };
-  
-  
-
-
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  
-  //   if (!executeRecaptcha) {
-  //     alert("Captcha belum siap, coba lagi.");
-  //     setLoading(false);
-  //     return;
-  //   }
-  
-  //   try {
-  //     const token = await executeRecaptcha("login_form");
-  
-  //     const payload = {
-  //       email: form.email,
-  //       password: form.password,
-  //       konfpassword: form.konfpass,
-  //       role: form.role,
-  //       recaptchaToken: token,
-  //     };
-  
-  //     const res = await fetch("http://localhost:3000/api/login", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(payload),
-  //       credentials: "include", // 🟢 penting untuk cookie
-  //     });
-  
-  //     const data = await res.json();
-  
-  //     if (res.ok) {
-  //       alert("Login berhasil!");
-  //       localStorage.setItem("token", data.token); // simpan token JWT misalnya
-  //       localStorage.setItem("user", JSON.stringify(data.user)); // simpan nama_lengkap
-  //       console.log("User after login:", data.user)
-  //       navigate("/dashboard");
-        
-  //     } else {
-  //       alert(data.message || "Login gagal!");
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     alert("Terjadi kesalahan koneksi.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-  
-    
-  
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
-      {/* Box login */}
-          <div className="bg-white text-gray-800 shadow-2xl rounded-lg p-6 w-full max-w-md border-t-4 border-[#1E88E5]">
-        {/* Header */}
-        <h2 className="text-xl font-bold text-center mb-1 text-[#1E88E5]">
-          E-Lapor
-        </h2>
-        <p className="text-sm text-center text-gray-600 mb-6">
-          Sistem Pengaduan Sengketa Konsumen - Login
-        </p>
+    <div className="flex h-screen">
+      {/* Bagian Kiri */}
+      <div
+        className="hidden md:flex w-1/2 bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), url(${bgImage})`,
+        }}
+      ></div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
-          {/* Email */}
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#1E88E5]"
-                      required
-          />
+      {/* Bagian Kanan */}
+      <div className="flex w-full md:w-1/2 items-center justify-center p-8 bg-white">
+        <div className="w-full max-w-md">
+          <div className="flex flex-col items-center mb-6">
+            <img src={logo} alt="Logo" className="w-20 h-20 mb-2" />
+            <h2 className="text-2xl font-bold text-blue-900 text-center">
+              Selamat datang di E-BPSK Banten
+            </h2>
+            <p className="text-gray-600 text-sm text-center">
+              Silahkan masukan akun anda untuk login
+            </p>
+          </div>
 
-          {/* Password */}
-          <input
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#1E88E5]"
-            required
-                  />
-                  
-            {/* Password */}
-          {/* <input
-            type="password"
-            placeholder="Konfirmasi Password"
-            value={form.konfpass}
-            onChange={(e) => setForm({ ...form, konfpass: e.target.value })}
-                      className="w-full mb-4 p-3 rounded-md text-black border focus:ring-2 focus:ring-[#1E88E5]"
-                      required
-          /> */}
+          <form onSubmit={handleLogin}>
+            {error && (
+              <div className="bg-red-100 text-red-600 p-2 rounded mb-3 text-sm">
+                {error}
+              </div>
+            )}
 
-          {/* 👇 Role hidden, tetap dikirim ke API */}
-          <input type="hidden" value={form.role} readOnly />
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Alamat Email"
+                required
+              />
+            </div>
 
-          {/* Captcha
-          <ReCAPTCHA
-            sitekey="6LcudNUrAAAAAJ1LjiIKcWK-ixsSP4ZVZCTX4Pd1" // ganti dengan site key dari Google reCAPTCHA
-            onChange={handleCaptcha}
-            className="mb-4"
-          /> */}
-            
-        
+            <div className="mb-2">
+              <label className="block text-gray-700 text-sm mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Kata Sandi"
+                required
+              />
+            </div>
 
-          {/* Tombol Login */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full bg-[#1E88E5] hover:bg-[#1565C0] text-white py-2 rounded-md font-medium transition ${
-              loading ? "opacity-60 cursor-not-allowed" : ""
-            }`}
-          >
-            {loading ? "Memproses..." : "Login"}
-          </button>
-        </form>
+            <div className="text-right mb-4">
+              <a href="/forgot-password" className="text-blue-700 text-sm hover:underline">
+                Lupa password?
+              </a>
+            </div>
 
-        {/* Link tambahan */}
-        <div className="mt-5 text-sm text-gray-600">
-          <p className="text-sm text-center mt-4">
-            Belum punya akun?{" "}
-            <Link to="/register" className="text-[#43A047] font-medium hover:underline">
-                Daftar
-            </Link>
-        </p>
-          {/* <p className="mb-2">
-            Belum dapat link aktivasi?{" "}
-            <button className="bg-yellow-400 text-black px-2 py-1 rounded text-xs font-medium hover:bg-yellow-500">
-              Kirim Ulang Aktivasi
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg transition font-medium shadow"
+            >
+              {loading ? "Memproses..." : "Masuk"}
             </button>
-          </p> */}
-          {/* <p>
-            Lupa password?{" "}
-            <button className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600">
-              Ganti Password
-            </button>
-          </p> */}
+          </form>
+
+          <p className="text-center text-sm mt-4 text-gray-600">
+            Tidak mempunyai akun?{" "}
+            <a href="/register" className="text-blue-700 hover:underline font-semibold">
+              daftar akun
+            </a>
+          </p>
         </div>
       </div>
     </div>
   );
-}
+};
 
-// Bungkus dengan provider
+export default Login;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getKasusById, updatePengaduan } from "../api/kasusServices";
+// import { getKasusById, updatePengaduan } from "../api/kasusServices";
 
 export default function TentangPengaduan() {
   const { id } = useParams();

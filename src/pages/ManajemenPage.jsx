@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  getUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-} from "../api/userServices";
+import { apiClient } from "../api/apiClient";
 
 export default function ManajemenPage() {
   const [users, setUsers] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [form, setForm] = useState({
-    nama_lengkap: "",
+    nama: "",
     email: "",
     password: "",
     role: "user",
@@ -22,17 +17,21 @@ export default function ManajemenPage() {
 
   // Pagination state
   const [page, setPage] = useState(1);
-  const limit = 5;
-  const totalPages = Math.ceil(filtered.length / limit);
+  const limit = 10;
+  const totalPages = Math.ceil((filtered?.length || 0) / limit);
 
   // === Ambil semua user ===
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const data = await getUsers();
-        setUsers(data);
-        setFiltered(data);
+        const res = await apiClient("/users", { method: "GET" });
+        console.log("Response dari API:", res);
+
+        // ✅ Backend kirim array langsung, bukan { users: [...] }
+        const userData = Array.isArray(res) ? res : [];
+        setUsers(userData);
+        setFiltered(userData);
       } catch (err) {
         console.error(err);
         alert("Gagal memuat data user");
@@ -43,16 +42,21 @@ export default function ManajemenPage() {
     fetchUsers();
   }, [refresh]);
 
+
   // === Pencarian ===
   useEffect(() => {
-    const filteredData = users.filter(
-      (u) =>
-        u.email.toLowerCase().includes(search.toLowerCase()) ||
-        (u.nama_lengkap || "").toLowerCase().includes(search.toLowerCase())
-    );
-    setFiltered(filteredData);
-    setPage(1);
-  }, [search, users]);
+  if (!Array.isArray(users)) return;
+
+  const filteredData = users.filter((u) =>
+    (u?.email || "").toLowerCase().includes(search.toLowerCase()) ||
+    (u?.nama || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  setFiltered(filteredData);
+  setPage(1);
+}, [search, users]);
+
+
 
   // === Handle form input ===
   const handleChange = (e) => {
@@ -62,52 +66,68 @@ export default function ManajemenPage() {
   // === Buat user baru ===
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!form.email || !form.nama || !form.password)
+      return alert("Semua field wajib diisi!");
+
     try {
       setLoading(true);
-      await createUser(form);
+      await apiClient("/users", { method: "POST", body: form });
       alert("User berhasil dibuat!");
-      setForm({ email: "", nama_lengkap: "", password: "", role: "user" });
+      setForm({ email: "", nama: "", password: "", role: "user" });
       setRefresh((r) => !r);
     } catch (err) {
-      alert(err.message || "Gagal membuat user");
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal membuat user");
     } finally {
       setLoading(false);
     }
   };
 
   // === Hapus user ===
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, role) => {
+    if (role === "superadmin") return alert("Superadmin tidak bisa dihapus!");
     if (!window.confirm("Yakin ingin menghapus user ini?")) return;
     try {
       setLoading(true);
-      await deleteUser(id);
+      await apiClient(`/users/${id}`, { method: "DELETE" });
       alert("User berhasil dihapus!");
       setRefresh((r) => !r);
     } catch (err) {
-      alert(err.message || "Gagal menghapus user");
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal menghapus user");
     } finally {
       setLoading(false);
     }
   };
 
   // === Update user ===
-  const handleEdit = async (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await updateUser(editUser.id, editUser);
+
+      // Hapus password jika kosong agar tidak overwrite
+      const dataToSend = { ...editUser };
+      if (!dataToSend.password) delete dataToSend.password;
+
+      await apiClient(`/users/${editUser.id}`, {
+        method: "PUT",
+        body: dataToSend, 
+      });
       alert("User berhasil diperbarui!");
       setEditUser(null);
       setRefresh((r) => !r);
     } catch (err) {
-      alert(err.message || "Gagal memperbarui user");
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal memperbarui user");
     } finally {
       setLoading(false);
     }
   };
 
   // === Pagination Data ===
-  const paginatedUsers = filtered.slice((page - 1) * limit, page * limit);
+  const paginatedUsers = (filtered || []).slice((page - 1) * limit, page * limit);
+
 
   if (loading) return <p className="text-center mt-6">Memuat data...</p>;
 
@@ -133,10 +153,10 @@ export default function ManajemenPage() {
           />
           <input
             type="text"
-            name="nama_lengkap"
+            name="nama"
             placeholder="Nama Lengkap"
             className="border p-2 rounded"
-            value={form.nama_lengkap}
+            value={form.nama}
             onChange={handleChange}
             required
           />
@@ -162,9 +182,10 @@ export default function ManajemenPage() {
         </div>
         <button
           type="submit"
+          disabled={loading}
           className="mt-4 bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition"
         >
-          Tambah User
+          {loading ? "Menyimpan..." : "Tambah User"}
         </button>
       </form>
 
@@ -178,7 +199,7 @@ export default function ManajemenPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <span className="text-gray-600 text-sm">
-          Total: {filtered.length} user
+          Total: {filtered?.length || 0} user
         </span>
       </div>
 
@@ -198,7 +219,7 @@ export default function ManajemenPage() {
               paginatedUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50">
                   <td className="border p-3">{u.email}</td>
-                  <td className="border p-3">{u.nama_lengkap || "-"}</td>
+                  <td className="border p-3">{u.nama || "-"}</td>
                   <td className="border p-3 capitalize">{u.role}</td>
                   <td className="border p-3 text-center">
                     <button
@@ -208,8 +229,13 @@ export default function ManajemenPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(u.id)}
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                      onClick={() => handleDelete(u.id, u.role)}
+                      className={`px-3 py-1 rounded ${
+                        u.role === "superadmin"
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-red-600 hover:bg-red-700 text-white"
+                      }`}
+                      disabled={u.role === "superadmin"}
                     >
                       Hapus
                     </button>
@@ -264,22 +290,19 @@ export default function ManajemenPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h3 className="font-semibold mb-3 text-gray-700">Edit User</h3>
-            <form onSubmit={handleEdit} className="flex flex-col gap-3">
+            <form onSubmit={handleEditSubmit} className="flex flex-col gap-3">
               <input
                 type="text"
                 value={editUser.email || ""}
-                onChange={(e) =>
-                  setEditUser({ ...editUser, email: e.target.value })
-                }
-                className="border p-2 rounded"
+                className="border p-2 rounded bg-gray-100 cursor-not-allowed"
                 placeholder="Email"
                 disabled
               />
               <input
                 type="text"
-                value={editUser.nama_lengkap || ""}
+                value={editUser.nama || ""}
                 onChange={(e) =>
-                  setEditUser({ ...editUser, nama_lengkap: e.target.value })
+                  setEditUser({ ...editUser, nama: e.target.value })
                 }
                 className="border p-2 rounded"
                 placeholder="Nama Lengkap"
@@ -314,9 +337,10 @@ export default function ManajemenPage() {
                 </button>
                 <button
                   type="submit"
+                  disabled={loading}
                   className="px-4 py-1 bg-green-600 rounded text-white hover:bg-green-700"
                 >
-                  Simpan
+                  {loading ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>
             </form>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
-import { getProfile } from '../api/ProfileServices';
-import { logout } from '../api/authService';
+import { apiClient } from '../api/apiClient';
+
 
 // import logo from '../logo.png';
 
@@ -24,24 +24,24 @@ import { CgProfile } from "react-icons/cg";
 const menuItems = {
   superadmin: [
     { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
-    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/dashboard/kasus" },
-    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/dashboard/pengaduan" },
-    { icons: <RiAdminLine size={30} />, label: "Manajemen", path: "/dashboard/manajemen" },
-    { icons: <CgProfile size={30} />, label: "Profile", path: "/dashboard/profile" },
+    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
+    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
+    { icons: <RiAdminLine size={30} />, label: "Manajemen", path: "/manajemen" },
+    { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
   ],
 
   admin: [
     { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
-    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/dashboard/kasus" },
-    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/dashboard/pengaduan" },
-    { icons: <CgProfile size={30} />, label: "Profile", path: "/dashboard/profile" },
+    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
+    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
+    { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
   ],
 
   user: [
     { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
-    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/dashboard/kasus" },
-    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/dashboard/pengaduan" },
-    { icons: <CgProfile size={30} />, label: "Profile", path: "/dashboard/profile" },
+    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
+    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
+    { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
   ],
 };
 
@@ -55,51 +55,66 @@ export default function Dashboard() {
   const [open, setOpen] = useState(true)
 
   const handleLogout = async () => {
-    try {
-      const data = await logout(); // pakai service
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-  
-      alert(data.message || "Logout berhasil!");
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      alert(error.message || "Gagal logout, coba lagi.");
-    }
-  };
+  try {
+    // Panggil endpoint logout pakai apiClient
+    const response = await apiClient("/logout", { method: "POST" });
+
+    // Bersihkan semua data auth di localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    alert(response.message || "Logout berhasil!");
+    navigate("/login");
+  } catch (error) {
+    console.error("Logout error:", error);
+    alert(error?.response?.data?.message || "Gagal logout, coba lagi.");
+  }
+};
+
 
    // ✅ Ambil user dari localStorage atau API
-   useEffect(() => {
-    const loadUser = async () => {
-      const stored = localStorage.getItem("user");
+      useEffect(() => {
+      const loadUser = async () => {
+        const stored = localStorage.getItem("user");
 
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setUser(parsed);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setUser(parsed);
 
-          // atur menu sesuai role
-          const role = parsed.role || "user";
-          setMenus(menuItems[role] || menuItems.user);
+            // atur menu sesuai role
+            const role = parsed.role || "user";
+            setMenus(menuItems[role] || menuItems.user);
 
-          // Jika nama_lengkap belum ada, ambil dari API
-          if (!parsed.nama_lengkap) {
-            const profileRes = await getProfile();
-            setUser({ ...parsed, nama_lengkap: profileRes.nama_lengkap });
-            // localStorage.setItem("user", JSON.stringify(updatedUser));
-            // setUser(updatedUser);
+            // Jika data user belum lengkap, ambil dari API
+            if (!parsed.nama) {
+              const profileRes = await apiClient("/profile", { method: "GET" });
+              console.log("Profile", profileRes);
+
+              const updatedUser = {
+                ...parsed,
+                nama: profileRes?.profile?.nama || parsed.nama,
+                email: profileRes?.email || parsed.email,
+                role: profileRes?.role || parsed.role,
+              };
+
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+              setUser(updatedUser);
+            }
+          } catch (err) {
+            console.error("Gagal memuat user:", err);
+            localStorage.removeItem("user");
+            navigate("/login");
           }
-        } catch (err) {
-          console.error("Gagal parse data user:", err);
+        } else {
+          // Kalau tidak ada user di localStorage, arahkan ke login
+          navigate("/login");
         }
-      } else {
-        // Kalau tidak ada user di localStorage, paksa ke login
-        navigate("/login");
-      }
-    };
+      };
 
-    loadUser();
-  }, [navigate]);
+      loadUser();
+    }, [navigate]);
+
 
     return (
     <div className='flex h-screen'>
@@ -165,7 +180,7 @@ export default function Dashboard() {
             className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded-md transition"
           >
             <span className="text-sm text-gray-600">
-            {user?.profile?.profile?.nama_lengkap || "Pengguna"}
+            {user?.profileRes?.profile?.nama || "Pengguna"}
           </span>
             <FaUserCircle size={28} className="text-gray-600" />
           </button>
@@ -173,11 +188,8 @@ export default function Dashboard() {
               {showDropdown && (
                 <div className="absolute right-0 mt-2 bg-white border rounded-md shadow-lg w-40">
                   <button
-                    onClick={() => {
-                      localStorage.removeItem("token");
-                      localStorage.removeItem("user");
-                      window.location.href = "/login";
-                    }}
+                    onClick={handleLogout
+                    }
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                   >
                     Logout

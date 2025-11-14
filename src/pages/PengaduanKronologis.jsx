@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Outlet } from "react-router-dom";
-import { getKasusById, updateKronologis } from "../api/kasusServices";
+// import { getKasusById, updateKronologis } from "../api/kasusServices";
 
 export default function KronologisPengaduan() {
   const { id } = useParams();

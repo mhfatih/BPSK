@@ -1,10 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import ProtectedRoute from "./component/ProtectedRoute";
+import ProtectedRoute from "../src/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard"; // layout wrapper
 import DashboardPage from "./pages/DashboardPage";
 import KasusPage from "./pages/KasusPage";
+import KasusList from "./pages/KasusList"
 import KasusDetail from "./pages/KasusDetail";
 import PengaduanPage from "./pages/PengaduanPage";
 import ManajemenPage from "./pages/ManajemenPage";
@@ -18,54 +19,51 @@ import TentangPengaduan from "./pages/TentangPengaduan";
 import KronologisPengaduan from "./pages/PengaduanKronologis";
 import JadwalSidang from "./pages/JadwalSidang";
 
-
 function App() {
   return (
     <Routes>
-  {/* Halaman publik */}
-  <Route path="/" element={<Navigate to="/login" />} />
-  <Route path="/login" element={<Login />} />
-  <Route path="/register" element={<Register />} />
+      {/* Halaman publik */}
+      <Route path="/" element={<Navigate to="/login" />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-  {/* Proteksi untuk semua user login */}
-  <Route
-    path="/dashboard"
-    element={
-      <ProtectedRoute allowedRoles={["user", "admin", "superadmin"]}>
-        <Dashboard />
-      </ProtectedRoute>
-    }
-  >
-    <Route index element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-    <Route path="profile" element={<ProtectedRoute> <ProfilePage /> </ProtectedRoute>} />    
-    <Route path="kasus" element={<ProtectedRoute> <KasusPage /> </ProtectedRoute>} />
-    {/* <Route path="/pengaduan/tambah" element={<TambahPengaduan />} />     */}
-    <Route path="kasus/:id" element={<ProtectedRoute><KasusDetail /> </ProtectedRoute> } />
-    <Route path="pengaduan/:id/view" element={<ViewPengaduan />} />    
-    <Route path="pengaduan" element={<TambahPengaduan />} />
-    <Route path="kasus/jadwal/:id" element={<JadwalSidang />} />
-    <Route path="pengaduan/:id/data-diri" element={<PengaduanDataDiri />} />
-    <Route path="pengaduan/:id/pelaku-usaha" element={<PelakuUsaha />} />
-    <Route path="pengaduan/:id/tentang-pengaduan" element={<TentangPengaduan />} />
-    <Route path="pengaduan/:id/kronologis-pengaduan" element={<KronologisPengaduan />} />    
+      {/* Layout wrapper untuk semua halaman login */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={["user", "admin", "superadmin"]}>
+            <Dashboard /> {/* layout: sidebar + topbar */}
+          </ProtectedRoute>
+        }
+      >
+        {/* Halaman default setelah login */}
+        <Route path="dashboard" element={<DashboardPage />} />
 
-        
-    
+        {/* Halaman user */}
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="kasus" element={<KasusList />} />
+        <Route path="kasus/:id" element={<KasusDetail />} />
+        <Route path="pengaduan" element={<TambahPengaduan />} />
+        <Route path="pengaduan/:id/view" element={<ViewPengaduan />} />
+        <Route path="kasus/jadwal/:id" element={<JadwalSidang />} />
+        <Route path="pengaduan/:id/data-diri" element={<PengaduanDataDiri />} />
+        <Route path="pengaduan/:id/pelaku-usaha" element={<PelakuUsaha />} />
+        <Route path="pengaduan/:id/tentang-pengaduan" element={<TentangPengaduan />} />
+        <Route path="pengaduan/:id/kronologis-pengaduan" element={<KronologisPengaduan />} />
 
-    {/* Hanya superadmin */}
-    <Route
-      path="manajemen"
-      element={
-        <ProtectedRoute allowedRoles={["superadmin"]}>
-          <ManajemenPage />
-        </ProtectedRoute>
-      }
-    />
-  </Route>
+        {/* Hanya superadmin */}
+        <Route
+          path="manajemen"
+          element={
+            <ProtectedRoute allowedRoles={["superadmin"]}>
+              <ManajemenPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
 
-  {/* Jika akses ditolak */}
-  <Route path="/unauthorized" element={<h1>Akses Ditolak 🚫</h1>} />
-</Routes>
+      {/* Jika akses ditolak */}
+      <Route path="/unauthorized" element={<h1>Akses Ditolak 🚫</h1>} />
+    </Routes>
   );
 }
 

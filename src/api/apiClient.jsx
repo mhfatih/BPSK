@@ -1,41 +1,46 @@
-// src/api/apiClient.js
 const API_BASE_URL = "http://localhost:3000/api";
 
 /**
- * Helper untuk request API JSON (non-file)
- * @param {string} endpoint - endpoint API (misal "/login")
- * @param {object} options - opsi seperti method, body, headers, credentials
+ * Helper universal untuk request API
+ * Bisa digunakan untuk:
+ * - Request JSON biasa
+ * - Upload file menggunakan FormData
+ *
+ * @param {string} endpoint - contoh: "/upload" atau "/login"
+ * @param {object} options - opsi fetch seperti method, body, headers, credentials
  */
-
 export const apiClient = async (endpoint, options = {}) => {
   const token = localStorage.getItem("token");
 
   const config = {
     method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}), // otomatis kirim token
-    },
     credentials: options.credentials || "include",
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   };
 
+  // 🔍 Deteksi otomatis apakah body berupa FormData atau JSON
   if (options.body) {
-    config.body = JSON.stringify(options.body);
+    if (options.body instanceof FormData) {
+      config.body = options.body; // langsung pakai FormData
+    } else {
+      config.headers["Content-Type"] = "application/json";
+      config.body = JSON.stringify(options.body);
+    }
   }
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-    // 🔒 Deteksi token invalid atau expired
+    // 🔒 Token invalid atau expired
     if (response.status === 401 || response.status === 403) {
       console.warn("⚠️ Token tidak valid, expired, atau tidak diizinkan");
 
-      // Bersihkan localStorage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      // Redirect otomatis ke halaman login
       if (typeof window !== "undefined") {
         window.location.href = "/login";
       }
@@ -43,6 +48,7 @@ export const apiClient = async (endpoint, options = {}) => {
       throw new Error("Sesi login berakhir. Silakan login kembali.");
     }
 
+    // Parsing JSON kalau bisa
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {

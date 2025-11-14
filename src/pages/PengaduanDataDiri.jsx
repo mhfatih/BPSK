@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiClient } from "../api/apiClient";
 
 export default function PengaduanDataDiri() {
   const { id } = useParams();
@@ -23,8 +24,7 @@ export default function PengaduanDataDiri() {
    useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/kasus/${id}/data-diri`, {
-          credentials: "include",
+        const res = await apiClient(`/kasus/${id}/data-diri`, {method: "GET"
         });
         const data = await res.json();
         if (res.ok && data) {
@@ -64,9 +64,8 @@ export default function PengaduanDataDiri() {
         }
       });
 
-      const res = await fetch(`http://localhost:3000/api/kasus/${id}/data-diri`, {
+      const res = await apiClient(`/kasus/${id}/data-diri`, {
         method: "PUT",
-        credentials: "include",
         body: formData,
       });
 
@@ -74,7 +73,7 @@ export default function PengaduanDataDiri() {
 
       if (res.ok) {
         alert("Data diri berhasil disimpan!");
-        navigate(`/dashboard/pengaduan/${id}/pelaku-usaha`);
+        navigate(`/pengaduan/${id}/pelaku-usaha`);
       } else {
         alert(data.message || "Gagal menyimpan data diri");
       }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getKasusById, updatePelakuUsaha } from "../api/kasusServices";
+import { apiClient } from "../api/apiClient";
+// import { getKasusById, updatePelakuUsaha } from "../api/kasusServices";
 
 export default function PelakuUsaha() {
   const { id } = useParams();
@@ -20,7 +21,7 @@ export default function PelakuUsaha() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getKasusById(id);
+        const data = await apiClient(id, {method: "GET"});
         if (data?.pelaku_usaha) setForm({ ...data.pelaku_usaha });
       } catch (err) {
         console.error("Gagal ambil data pelaku usaha:", err);

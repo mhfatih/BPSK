@@ -8,9 +8,7 @@ import "./index.css";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-    <GoogleReCaptchaProvider reCaptchaKey="6LdAfdUrAAAAAC_KH-xOeg71a-BDwFlnQ8QtSAai">
-        <App />
-    </GoogleReCaptchaProvider>    
+        <App /> 
     </BrowserRouter>
   </React.StrictMode>
 );
