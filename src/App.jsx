@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "../src/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard"; // layout wrapper
+import Navbar from "./components/Navbar"; // layout wrapper
 import DashboardPage from "./pages/DashboardPage";
 import KasusPage from "./pages/KasusPage";
 import KasusList from "./pages/KasusList"
@@ -28,13 +28,7 @@ function App() {
       <Route path="/register" element={<Register />} />
 
       {/* Layout wrapper untuk semua halaman login */}
-      <Route
-        element={
-          <ProtectedRoute allowedRoles={["user", "admin", "superadmin"]}>
-            <Dashboard /> {/* layout: sidebar + topbar */}
-          </ProtectedRoute>
-        }
-      >
+      <Route element={<ProtectedRoute allowedRoles={["user", "admin", "superadmin"]}><Navbar /></ProtectedRoute>}>
         {/* Halaman default setelah login */}
         <Route path="dashboard" element={<DashboardPage />} />
 
