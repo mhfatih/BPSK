@@ -7,31 +7,30 @@ export default function PengaduanDataDiri() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    nama_lengkap: "",
-    umur: "",
-    jenis_kelamin: "",
-    kota: "",
-    alamat: "",
-    email: "",
-    no_hp: "",
-    kode_pos: "",
-    identitas: "",
-    foto_identitas: null,
+    pengadu_nama: "",
+    pengadu_umur: "",
+    pengadu_jenis_kelamin: "",
+    pengadu_kota: "",
+    pengadu_alamat: "",
+    pengadu_email: "",
+    pengadu_no_hp: "",
+    pengadu_kode_pos: "",
+    pengadu_identitas: "",
+    pengadu_foto_identitas: null,
   });
   const [loading, setLoading] = useState(false);
 
-   // 📥 Ambil data lama dari backend
-   useEffect(() => {
+  // 📥 Ambil data lama dari backend
+  useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await apiClient(`/kasus/${id}/data-diri`, {method: "GET"
-        });
-        const data = await res.json();
-        if (res.ok && data) {
+        const data = await apiClient(`/kasus/${id}/data-diri`, { method: "GET" });
+
+        if (data) {
           setForm((prev) => ({
             ...prev,
             ...data,
-            foto_identitas: null, // reset file agar tidak error
+            pengadu_foto_identitas: null,
           }));
         }
       } catch (err) {
@@ -53,37 +52,36 @@ export default function PengaduanDataDiri() {
 
   // Submit data diri
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== "") {
-          formData.append(key, value);
-        }
-      });
-
-      const res = await apiClient(`/kasus/${id}/data-diri`, {
-        method: "PUT",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        alert("Data diri berhasil disimpan!");
-        navigate(`/pengaduan/${id}/pelaku-usaha`);
-      } else {
-        alert(data.message || "Gagal menyimpan data diri");
+  try {
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) => {
+      if (value !== null && value !== "") {
+        formData.append(key, value);
       }
-    } catch (err) {
-      console.error("Error submit data diri:", err);
-      alert("Terjadi kesalahan server!");
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+
+    // ⬅ API Client sudah mengembalikan JSON langsung
+    const data = await apiClient(`/kasus/${id}/data-diri`, {
+      method: "PUT",
+      body: formData,
+    });
+    console.log("Response dari backend:", data);
+
+    // ⬅ Tidak perlu res.ok, karena apiClient akan throw error kalau gagal
+    alert(data.message || "Data diri berhasil disimpan!");
+    navigate(`/pengaduan/${id}/pelaku-usaha`);
+
+  } catch (err) {
+    console.error("Error submit data diri:", err);
+    alert(err.message || "Terjadi kesalahan server!");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
 
   // Tampilan UI
@@ -101,11 +99,11 @@ export default function PengaduanDataDiri() {
               <label className="block text-sm font-medium">Nama Lengkap</label>
               <input
                 type="text"
-                name="nama_lengkap"
-                value={form.nama_lengkap}
+                name="pengadu_nama"
+                value={form.pengadu_nama}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               />
             </div>
 
@@ -113,22 +111,22 @@ export default function PengaduanDataDiri() {
               <label className="block text-sm font-medium">Umur</label>
               <input
                 type="number"
-                name="umur"
-                value={form.umur}
+                name="pengadu_umur"
+                value={form.pengadu_umur}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium">Jenis Kelamin</label>
               <select
-                name="jenis_kelamin"
-                value={form.jenis_kelamin}
+                name="pengadu_jenis_kelamin"
+                value={form.pengadu_jenis_kelamin}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               >
                 <option value="">-- Pilih --</option>
                 <option value="laki-laki">Laki-laki</option>
@@ -139,31 +137,31 @@ export default function PengaduanDataDiri() {
             <div>
               <label className="block text-sm font-medium">Kota / Kabupaten</label>
               <select
-                  name="kota"
-                  value={form.kota}
-                  onChange={handleChange}
-                  className="w-full border border rounded-md p-2 "
-                >
+                name="pengadu_kota"
+                value={form.pengadu_kota}
+                onChange={handleChange}
+                className="w-full border border rounded-md p-2 "
+              >
                 <option value="">Pilih Kota/Kabupaten</option>
                 <option value="Kota Tangerang">Kota Tangerang</option>
                 <option value="Kota Tangerang Selatan">Kota Tangerang Selatan</option>
                 <option value="Kabupaten Tangerang">Kabupaten Tangerang</option>
                 <option value="Kabupaten Serang">Kabupaten Serang</option>
-                <option value="Kota Serang">Kota Serang</option>  
+                <option value="Kota Serang">Kota Serang</option>
                 <option value="Kota Cilegon">Kota Cilegon</option>
-                <option value="Kabupaten Pandeglang">Kabupaten Pandeglang</option>  
-                <option value="Kabupaten Lebak">Kabupaten Lebak</option>  
-                </select>             
+                <option value="Kabupaten Pandeglang">Kabupaten Pandeglang</option>
+                <option value="Kabupaten Lebak">Kabupaten Lebak</option>
+              </select>
             </div>
 
             <div className="col-span-2">
               <label className="block text-sm font-medium">Alamat</label>
               <textarea
-                name="alamat"
-                value={form.alamat}
+                name="pengadu_alamat"
+                value={form.pengadu_alamat}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               ></textarea>
             </div>
 
@@ -171,11 +169,11 @@ export default function PengaduanDataDiri() {
               <label className="block text-sm font-medium">Email</label>
               <input
                 type="email"
-                name="email"
-                value={form.email}
+                name="pengadu_email"
+                value={form.pengadu_email}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               />
             </div>
 
@@ -183,11 +181,11 @@ export default function PengaduanDataDiri() {
               <label className="block text-sm font-medium">Nomor HP</label>
               <input
                 type="text"
-                name="no_hp"
-                value={form.no_hp}
+                name="pengadu_no_hp"
+                value={form.pengadu_no_hp}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               />
             </div>
 
@@ -195,11 +193,11 @@ export default function PengaduanDataDiri() {
               <label className="block text-sm font-medium">Kode Pos</label>
               <input
                 type="text"
-                name="kode_pos"
-                value={form.kode_pos}
+                name="pengadu_kode_pos"
+                value={form.pengadu_kode_pos}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               />
             </div>
 
@@ -207,11 +205,11 @@ export default function PengaduanDataDiri() {
               <label className="block text-sm font-medium">Nomor Identitas</label>
               <input
                 type="text"
-                name="identitas"
-                value={form.identitas}
+                name="pengadu_identitas"
+                value={form.pengadu_identitas}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-                
+
               />
             </div>
 
@@ -221,7 +219,7 @@ export default function PengaduanDataDiri() {
               </label>
               <input
                 type="file"
-                name="foto_identitas"
+                name="pengadu_foto_identitas"
                 accept="image/*"
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
@@ -232,7 +230,7 @@ export default function PengaduanDataDiri() {
           <div className="flex justify-between mt-6">
             <button
               type="button"
-              onClick={() => navigate("/dashboard/pengaduan")}
+              onClick={() => navigate("/pengaduan")}
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
             >
               ← Kembali

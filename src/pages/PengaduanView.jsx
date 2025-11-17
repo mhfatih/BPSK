@@ -217,73 +217,98 @@ export default function ViewPengaduan() {
 
         <div className="space-y-6">
           {/* Data Diri */}
-          {kasus?.data_diri && (
+          {kasus && (
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">👤 Data Diri</h2>
-                {renderEditButton(`/dashboard/pengaduan/${id}/data-diri`)}
+                {renderEditButton(`/pengaduan/${id}/data-diri`)}
               </div>
               <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
-                <p><b>Nama:</b> {kasus.data_diri.pengadu_nama}</p>
-                <p><b>Umur:</b> {kasus.data_diri.pengadu_umur}</p>
-                <p><b>Jenis Kelamin:</b> {kasus.data_diri.pengadu_jenis_kelamin}</p>
-                <p><b>Email:</b> {kasus.data_diri.pengadu_email}</p>
-                <p><b>No HP:</b> {kasus.data_diri.pengadu_no_hp}</p>
-                <p className="col-span-2"><b>Alamat:</b> {kasus.data_diri.pengadu_alamat}</p>
+                <p><b>Nama:</b> {kasus.pengadu_nama}</p>
+                <p><b>Umur:</b> {kasus.pengadu_umur}</p>
+                <p><b>Jenis Kelamin:</b> {kasus.pengadu_jenis_kelamin}</p>
+                <p><b>Email:</b> {kasus.pengadu_email}</p>
+                <p><b>No HP:</b> {kasus.pengadu_no_hp}</p>
+                <p className="col-span-2"><b>Alamat:</b> {kasus.pengadu_alamat}</p>
               </div>
-              {renderImage(kasus.data_diri?.foto_identitas, "Foto Identitas")}
+              {renderImage(kasus.foto_identitas, "Foto Identitas")}
             </section>
           )}
 
           {/* Pelaku Usaha */}
-          {kasus?.pelaku_usaha && (
+          {Array.isArray(kasus?.pelaku_usaha) && kasus.pelaku_usaha.length > 0 ? (
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">🏢 Pelaku Usaha</h2>
-                {renderEditButton(`/dashboard/pengaduan/${id}/pelaku-usaha`)}
+                {renderEditButton(`/pengaduan/${id}/pelaku-usaha`)}
               </div>
-              <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
-                <p><b>Nama Pemilik:</b> {kasus.pelaku_usaha.nama_pemilik}</p>
-                <p><b>Perusahaan:</b> {kasus.pelaku_usaha.perusahaan}</p>
-                <p><b>Kota:</b> {kasus.pelaku_usaha.kota}</p>
-                <p><b>No HP:</b> {kasus.pelaku_usaha.no_hp}</p>
-                <p className="col-span-2"><b>Alamat:</b> {kasus.pelaku_usaha.alamat}</p>
+
+              <div className="space-y-4">
+                {kasus.pelaku_usaha.map((pu, index) => (
+                  <div
+                    key={pu.id || index}
+                    className="border rounded-lg p-4 bg-gray-50"
+                  >
+                    <h3 className="font-semibold text-gray-800 mb-2">
+                      Pelaku Usaha #{index + 1}
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
+                      <p><b>Nama Pemilik:</b> {pu.nama_pemilik || "-"}</p>
+                      <p><b>Perusahaan:</b> {pu.perusahaan || "-"}</p>
+                      <p><b>Kota:</b> {pu.kota || "-"}</p>
+                      <p><b>No HP:</b> {pu.no_hp || "-"}</p>
+                      <p className="col-span-2"><b>Alamat:</b> {pu.alamat || "-"}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
+            </section>
+          ) : (
+            <section className="bg-white rounded-xl shadow p-6">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-semibold text-gray-700">🏢 Pelaku Usaha</h2>
+                {renderEditButton(`/pengaduan/${id}/pelaku-usaha`)}
+              </div>
+
+              <p className="text-gray-500 italic">Belum ada pelaku usaha.</p>
             </section>
           )}
 
+
+
           {/* Tentang Pengaduan */}
-          {kasus?.pengaduan && (
+          {kasus && (
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">📢 Tentang Pengaduan</h2>
-                {renderEditButton(`/dashboard/pengaduan/${id}/tentang-pengaduan`)}
+                {renderEditButton(`/pengaduan/${id}/tentang-pengaduan`)}
               </div>
               <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
-                <p><b>Jenis Pengaduan:</b> {kasus.pengaduan.jenis_pengaduan}</p>
-                <p><b>Tanggal:</b> {formatDate(kasus.pengaduan.tanggal_kejadian)}</p>
-                <p><b>Lokasi:</b> {kasus.pengaduan.lokasi_kejadian}</p>
-                <p><b>Jenis Kerugian:</b> {kasus.pengaduan.jenis_kerugian}</p>
-                <p className="col-span-2"><b>Keterangan:</b> {kasus.pengaduan.keterangan_kerugian}</p>
+                <p><b>Jenis Pengaduan:</b> {kasus.jenis_pengaduan}</p>
+                <p><b>Tanggal:</b> {formatDate(kasus.tanggal_kejadian)}</p>
+                <p><b>Lokasi:</b> {kasus.lokasi_kejadian}</p>
+                <p><b>Jenis Kerugian:</b> {kasus.jenis_kerugian}</p>
+                <p className="col-span-2"><b>Keterangan:</b> {kasus.keterangan_kerugian}</p>
               </div>
-              {renderImage(kasus.pengaduan?.foto_bukti, "Foto Bukti")}
+              {renderImage(kasus.foto_bukti, "Foto Bukti")}
             </section>
           )}
 
           {/* Kronologis */}
-          {kasus?.kronologis && (
+          {kasus && (
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">🕓 Kronologis</h2>
-                {renderEditButton(`/dashboard/pengaduan/${id}/kronologis-pengaduan`)}
+                {renderEditButton(`/pengaduan/${id}/kronologis-pengaduan`)}
               </div>
               <p className="text-gray-700 text-sm whitespace-pre-line mb-2">
-                {kasus.kronologis.kronologis}
+                {kasus.kronologis}
               </p>
               <p className="text-sm text-gray-700">
-                <b>Jenis Tuntutan:</b> {kasus.kronologis.jenis_tuntutan}
+                <b>Jenis Tuntutan:</b> {kasus.jenis_tuntutan}
               </p>
-              {renderImage(kasus.kronologis?.file_bukti, "Bukti Kronologis")}
+              {renderImage(kasus.file_bukti, "Bukti Kronologis")}
             </section>
           )}
         </div>
@@ -291,7 +316,7 @@ export default function ViewPengaduan() {
         {/* Tombol Navigasi */}
         <div className="flex justify-between items-center mt-8">
           <button
-            onClick={() => navigate(`/dashboard/pengaduan/${id}/kronologis-pengaduan`)}
+            onClick={() => navigate(`/pengaduan/${id}/kronologis-pengaduan`)}
             className="px-5 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition"
           >
             ← Kembali

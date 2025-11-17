@@ -46,7 +46,7 @@ const menuItems = {
 };
 
 
-export default function Dashboard() {
+export default function Navbar() {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -89,7 +89,7 @@ export default function Dashboard() {
             // Jika data user belum lengkap, ambil dari API
             if (!parsed.nama) {
               const profileRes = await apiClient("/profile", { method: "GET" });
-              console.log("Profile", profileRes);
+              console.log(profileRes);
 
               const updatedUser = {
                 ...parsed,

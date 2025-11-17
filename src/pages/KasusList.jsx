@@ -20,7 +20,7 @@ const KasusList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 9;
 
   const navigate = useNavigate();
 
@@ -146,7 +146,7 @@ const KasusList = () => {
                 <th className="py-2 px-3 text-left whitespace-nowrap">No. Registrasi</th>
                 <th className="py-2 px-3 text-left">Nama Pengadu</th>
                 <th className="py-2 px-3 text-left">Jenis Pengaduan</th>
-                <th className="py-2 px-3 text-left whitespace-nowrap">Jumlah Kerugian</th>
+                {/* <th className="py-2 px-3 text-left whitespace-nowrap">Jumlah Kerugian</th> */}
                 <th className="py-2 px-3 text-left">Wilayah</th>
                 {/* <th className="py-2 px-3 text-left">Hasil Sidang</th> */}
                 <th className="py-2 px-3 text-left">Perusahaan</th>
@@ -164,11 +164,11 @@ const KasusList = () => {
                   <td className="py-2 px-3">{item.no_registrasi || "-"}</td>
                   <td className="py-2 px-3">{item.pengadu_nama || "-"}</td>
                   <td className="py-2 px-3">{item.jenis_pengaduan || "-"}</td>
-                  <td className="py-2 px-3">
+                  {/* <td className="py-2 px-3">
                     {item.jumlah_kerugian
                       ? `Rp ${item.jumlah_kerugian.toLocaleString("id-ID")}`
                       : "-"}
-                  </td>
+                  </td> */}
                   <td className="py-2 px-3">{item.wilayah || "-"}</td>
                   {/* <td className="py-2 px-3">
                     {item.hasil_sidang
@@ -190,9 +190,10 @@ const KasusList = () => {
                       : "-"}
                   </td> */}
                   <td className="py-2 px-3">
-                    {item.verified_at
-                      ? new Date(item.verified_at).toLocaleDateString("id-ID")
-                      : "-"}
+                    <div className="flex flex-col">
+                      <span className="font-medium"> {item.verified_at ? new Date(item.verified_at).toLocaleDateString("id-ID") : "-"} </span>
+                      <span className="text-gray-500 text-xs"> {item.verified_by_name || "-"}</span>
+                    </div>
                   </td>
                   {/* <td className="py-2 px-3">
                     {item.processed_at
@@ -200,9 +201,10 @@ const KasusList = () => {
                       : "-"}
                   </td> */}
                   <td className="py-2 px-3">
-                    {item.finished_at
-                      ? new Date(item.finished_at).toLocaleDateString("id-ID")
-                      : "-"}
+                    <div className="flex flex-col">
+                      <span className="font-medium"> {item.finished_at ? new Date(item.finished_at).toLocaleDateString("id-ID") : "-"} </span>
+                      <span className="text-gray-500 text-xs"> {item.finished_by_name || "-"} </span>
+                    </div>
                   </td>
                   <td className="py-2 px-3 font-medium">
                     <div className="flex items-center gap-2">
@@ -224,14 +226,14 @@ const KasusList = () => {
                       {item.status === "Selesai" && (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       )}
-                      <span className={ 
-                        item.status === "Draf" ? "text-gray-600" : 
-                        item.status === "Diverifikasi" ? "text-yellow-600" : 
-                        item.status === "Ditolak" ? "text-red-600" : 
-                        item.status === "Diterima" ? "text-blue-600" : 
-                        item.status === "Diproses" ? "text-yellow-600" : 
-                        item.status === "Selesai" ? "text-green-600" : "text-gray-700" }>{item.status || "-"}</span>
-                      
+                      <span className={
+                        item.status === "Draf" ? "text-gray-600" :
+                          item.status === "Diverifikasi" ? "text-yellow-600" :
+                            item.status === "Ditolak" ? "text-red-600" :
+                              item.status === "Diterima" ? "text-blue-600" :
+                                item.status === "Diproses" ? "text-yellow-600" :
+                                  item.status === "Selesai" ? "text-green-600" : "text-gray-700"}>{item.status || "-"}</span>
+
                     </div>
                   </td>
                   <td className="py-2 px-3 text-center">
