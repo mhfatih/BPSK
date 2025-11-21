@@ -538,6 +538,26 @@ const prosesKasus = async (req, res) => {
       [req.user.id, id]
     );
 
+    // Setelah update status berhasil:
+    // 🔎 Cek jumlah sidang yang sudah ada (harusnya 0 untuk pertama kali)
+    const [existingSidang] = await db.query(
+      'SELECT COUNT(*) AS count FROM kasus_sidang WHERE kasus_id = ?',
+      [id]
+    );
+
+    const sidangKe = existingSidang[0].count + 1; // harusnya 1
+
+    // Generate ID sidang
+    const sidangId = uuidv4();
+
+    // 🆕 Buat sidang default (kosongan)
+    await db.query(
+      `INSERT INTO kasus_sidang 
+   (id, kasus_id, sidang_ke, created_at)
+   VALUES (?, ?, ?, NOW())`,
+      [sidangId, id, sidangKe]
+    );
+
     // 📧 Kirim email notifikasi ke pelapor
     if (kasus.pengadu_email) {
       await sendEmail(
@@ -635,10 +655,9 @@ const selesaiKasus = async (req, res) => {
           <p>Kasus Anda dengan ID <b>${id}</b> telah selesai diproses oleh tim BPSK.</p>
           <p>Status akhir: <b style="color:green;">SELESAI</b></p>
           <p><b>Jumlah Kerugian:</b> Rp ${Number(jumlah_kerugian).toLocaleString('id-ID')}</p>
-          ${
-            updateData.file_sidang
-              ? `<p>📎 File hasil sidang telah diunggah ke sistem dan dapat dilihat di halaman kasus Anda.</p>`
-              : ''
+          ${updateData.file_sidang
+            ? `<p>📎 File hasil sidang telah diunggah ke sistem dan dapat dilihat di halaman kasus Anda.</p>`
+            : ''
           }
           <p>Terima kasih atas partisipasi Anda dalam menyelesaikan pengaduan ini.</p>
           <hr/>
