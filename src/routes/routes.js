@@ -21,11 +21,16 @@ router.get("/check-token", authMiddleware, (req, res) => {
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
+router.post('/verify-otp', authController.verifyOTP);
+router.post('/resend-otp', authController.resendOTP);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password/:token', authController.resetPassword);
+router.put('/change-password', authMiddleware, authController.changePassword);
 router.get('/profile', authMiddleware, profileController.getProfile);
 router.put('/profile', authMiddleware, profileController.updateProfile);
-router.put('/change-password', authMiddleware, profileController.changePassword);
 
 // ==================== KASUS ====================
+router.get('/dashboard', authMiddleware, kasusController.getDashboard);
 router.post('/kasus/kasus-add', authMiddleware, kasusController.createKasus);
 router.get('/kasus', authMiddleware, kasusController.getAllKasus);
 router.get('/kasus/:id', authMiddleware, kasusController.getKasusById);

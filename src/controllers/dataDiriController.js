@@ -19,16 +19,16 @@ const getDataDiri = async (req, res) => {
       return res.status(403).json({ message: 'Tidak boleh melihat data orang lain' });
 
     const dataDiri = {
-      nama: rowsKasus[0].pengadu_nama,
-      umur: rowsKasus[0].pengadu_umur,
-      jenis_kelamin: rowsKasus[0].pengadu_jenis_kelamin,
-      kota: rowsKasus[0].pengadu_kota,
-      alamat: rowsKasus[0].pengadu_alamat,
-      email: rowsKasus[0].pengadu_email,
-      no_hp: rowsKasus[0].pengadu_no_hp,
-      kode_pos: rowsKasus[0].pengadu_kode_pos,
-      identitas: rowsKasus[0].pengadu_identitas,
-      foto_identitas: rowsKasus[0].pengadu_foto_identitas,
+      pengadu_nama: rowsKasus[0].pengadu_nama,
+      pengadu_umur: rowsKasus[0].pengadu_umur,
+      pengadu_jenis_kelamin: rowsKasus[0].pengadu_jenis_kelamin,
+      pengadu_kota: rowsKasus[0].pengadu_kota,
+      pengadu_alamat: rowsKasus[0].pengadu_alamat,
+      pengadu_email: rowsKasus[0].pengadu_email,
+      pengadu_no_hp: rowsKasus[0].pengadu_no_hp,
+      pengadu_kode_pos: rowsKasus[0].pengadu_kode_pos,
+      pengadu_identitas: rowsKasus[0].pengadu_identitas,
+      pengadu_foto_identitas: rowsKasus[0].pengadu_foto_identitas,
     };
 
     res.json(dataDiri);

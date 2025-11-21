@@ -124,31 +124,7 @@ const updateProfile = async (req, res) => {
   });
 };
 
-// CHANGE PASSWORD (user login sendiri)
-const changePassword = async (req, res) => {
-  const userId = req.user.id;
-  const { old_password, new_password, confirm_password } = req.body;
-
-  try {
-    const [rows] = await db.query('SELECT password FROM users WHERE id = ?', [userId]);
-    if (rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
-
-    const user = rows[0];
-    if (user.password !== old_password)
-      return res.status(400).json({ message: 'Password lama salah' });
-    if (new_password !== confirm_password)
-      return res.status(400).json({ message: 'Password baru dan konfirmasi tidak sama' });
-
-    await db.query('UPDATE users SET password = ? WHERE id = ?', [new_password, userId]);
-    res.json({ message: 'Password berhasil diubah' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
-  }
-};
-
 module.exports = {
   getProfile,
-  updateProfile,
-  changePassword
+  updateProfile
 };

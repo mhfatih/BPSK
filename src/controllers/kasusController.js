@@ -6,6 +6,78 @@ const fs = require('fs');
 const db = require('../db');
 
 /**
+ * Get Dashboard
+ */
+const getDashboard = async (req, res) => {
+  try {
+    // 🔹 Total kasus
+    const [[totalKasus]] = await db.query(`SELECT COUNT(*) AS total_kasus FROM kasus`);
+
+    // 🔹 Jumlah kasus per status
+    const [statusStats] = await db.query(`
+      SELECT status, COUNT(*) AS jumlah
+      FROM kasus
+      GROUP BY status
+    `);
+
+    // 🔹 Jumlah kasus per wilayah
+    const [wilayahStats] = await db.query(`
+      SELECT wilayah, COUNT(*) AS jumlah
+      FROM kasus
+      GROUP BY wilayah
+    `);
+
+    // 🔹 Jumlah kasus per jenis pengaduan
+    const [jenisStats] = await db.query(`
+      SELECT jenis_pengaduan, COUNT(*) AS jumlah
+      FROM kasus
+      GROUP BY jenis_pengaduan
+    `);
+
+    // 🔹 Total dan rata-rata kerugian
+    const [[kerugianStats]] = await db.query(`
+      SELECT 
+        SUM(jumlah_kerugian) AS total_kerugian,
+        AVG(jumlah_kerugian) AS rata_kerugian
+      FROM kasus
+      WHERE jumlah_kerugian IS NOT NULL
+    `);
+
+    // 🔹 Jumlah sidang per bulan
+    const [sidangStats] = await db.query(`
+      SELECT 
+        DATE_FORMAT(tanggal_sidang, '%Y-%m') AS bulan,
+        COUNT(*) AS jumlah
+      FROM kasus_sidang
+      GROUP BY DATE_FORMAT(tanggal_sidang, '%Y-%m')
+      ORDER BY bulan DESC
+      LIMIT 12
+    `);
+
+    // 🔹 Jumlah perusahaan yang pernah terlibat kasus
+    const [[perusahaanStats]] = await db.query(`
+      SELECT COUNT(DISTINCT perusahaan) AS total_perusahaan
+      FROM kasus_pelaku_usaha
+      WHERE perusahaan IS NOT NULL AND perusahaan <> ''
+    `);
+
+    // ✅ Gabungkan hasil
+    res.json({
+      total_kasus: totalKasus.total_kasus,
+      status: statusStats,
+      wilayah: wilayahStats,
+      jenis_pengaduan: jenisStats,
+      kerugian: kerugianStats,
+      sidang_per_bulan: sidangStats,
+      total_perusahaan: perusahaanStats.total_perusahaan
+    });
+  } catch (err) {
+    console.error('Error getDashboard:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
+};
+
+/**
  * Get semua kasus
  */
 const getAllKasus = async (req, res) => {
@@ -590,6 +662,7 @@ const selesaiKasus = async (req, res) => {
 };
 
 module.exports = {
+  getDashboard,
   getAllKasus,
   getKasusById,
   createKasus,

@@ -3,6 +3,8 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const cors = require('cors');
+const cron = require('node-cron');
+const deleteUnverifiedUsers = require('./cron/deleteUnverifiedUsers');
 const app = express();
 const PORT = 3000;
 
@@ -12,6 +14,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
+
+cron.schedule('0 0 * * *', () => {
+  deleteUnverifiedUsers();
+});
 
 // Middleware
 app.use(express.json());
