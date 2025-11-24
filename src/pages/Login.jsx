@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { apiClient } from "../api/apiClient";
 import logo from "../assets/LogoBanten.png"; // ganti dengan path logo kamu
-import bgImage from "../assets/LogoBanten.png"; // ganti dengan path gambar background
+import bgImage from "../assets/background.jpg"; // ganti dengan path gambar background
 
 const Login = () => {
   const [email, setEmail] = useState("");

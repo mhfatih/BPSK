@@ -47,7 +47,7 @@ export default function KronologisPengaduan() {
       });
 
       alert("✅ Kronologis berhasil disimpan!");
-      navigate(`/dashboard/pengaduan/${id}/view`);
+      navigate(`/pengaduan/${id}/view`);
     } catch (err) {
       console.error("🔥 ERROR UPDATE KRONOLOGIS:", err);
       alert(err.message || "Gagal menyimpan kronologis");
@@ -103,7 +103,7 @@ export default function KronologisPengaduan() {
             <button
               type="button"
               onClick={() =>
-                navigate(`/dashboard/pengaduan/${id}/tentang-pengaduan`)
+                navigate(`/pengaduan/${id}/tentang-pengaduan`)
               }
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
             >

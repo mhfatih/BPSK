@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
+import StatusBadge from "../components/StatusBadge";
 import {
   FileText,
   CheckCircle,
@@ -133,12 +134,14 @@ const KasusList = () => {
         </div>
       </div>
 
+      
       {/* 🔹 Tabel Kasus */}
       <div className="overflow-x-auto border rounded-lg">
         {currentItems.length === 0 ? (
           <p className="text-gray-600 text-center py-6">
             Tidak ada hasil yang cocok.
           </p>
+          
         ) : (
           <table className="w-full border-collapse text-sm">
             <thead className="bg-blue-700 text-white">

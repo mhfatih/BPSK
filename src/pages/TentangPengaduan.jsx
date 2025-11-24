@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiClient } from "../api/apiClient";
 // import { getKasusById, updatePengaduan } from "../api/kasusServices";
 
 export default function TentangPengaduan() {
@@ -24,20 +25,29 @@ export default function TentangPengaduan() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getKasusById(id);
-        if (data?.pengaduan) {
+        // 🔹 Ambil data dari endpoint baru
+        const res = await apiClient(`/kasus/${id}/tentang-pengaduan`, {
+          method: "GET",
+        });
+  
+        // Format respon bisa beda-beda.
+        const data = res?.data || res?.pengaduan || res;
+  
+        if (data) {
           setForm((prev) => ({
             ...prev,
-            ...data.pengaduan,
-            foto_bukti: null, // jangan timpa file dengan string URL
+            ...data,
+            foto_bukti: null, // jangan timpa file dengan path string
           }));
         }
       } catch (err) {
         console.error("Gagal ambil data pengaduan:", err);
       }
     };
+  
     fetchData();
   }, [id]);
+  
 
   // 🔹 Handle perubahan input
   const handleChange = (e) => {
@@ -53,25 +63,35 @@ export default function TentangPengaduan() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
       const formData = new FormData();
+  
+      // isi formData dengan semua input yang tidak null
       Object.keys(form).forEach((key) => {
         if (form[key] !== null && form[key] !== "")
           formData.append(key, form[key]);
       });
-
-      await updatePengaduan(id, formData);
-
-      alert("Data pengaduan berhasil disimpan!");
-      navigate(`/dashboard/pengaduan/${id}/kronologis-pengaduan`);
+  
+      // 🔹 Kirim ke endpoint backend dengan apiClient
+      const res = await apiClient(`/kasus/${id}/tentang-pengaduan`, {
+        method: "PUT",
+        body: formData,            // <-- wajib
+        headers: {
+          // ❗ JANGAN tambahkan Content-Type multipart, biarkan browser yang generate
+        }
+      });
+  
+      alert(res.message || "Data pengaduan berhasil disimpan!");
+      navigate(`/pengaduan/${id}/kronologis-pengaduan`);
     } catch (err) {
       console.error("Error submit pengaduan:", err);
-      alert(err.message || "Terjadi kesalahan server!");
+      alert(err.response?.data?.message || err.message || "Terjadi kesalahan server!");
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -318,7 +338,7 @@ export default function TentangPengaduan() {
           <div className="flex justify-between mt-6">
             <button
               type="button"
-              onClick={() => navigate(`/dashboard/pengaduan/${id}/pelaku-usaha`)}
+              onClick={() => navigate(`/pengaduan/${id}/pelaku-usaha`)}
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
             >
               ← Kembali

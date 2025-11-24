@@ -3,6 +3,8 @@ import ProtectedRoute from "../src/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Navbar from "./components/Navbar"; // layout wrapper
+import DashboardLayout from "./components/DashboardLayout";
+// import DashboardPage from "./pages/PageDashboard";
 import DashboardPage from "./pages/DashboardPage";
 import KasusPage from "./pages/KasusPage";
 import KasusList from "./pages/KasusList"
@@ -18,6 +20,7 @@ import PelakuUsaha from "./pages/PengaduanPelakuUsaha";
 import TentangPengaduan from "./pages/TentangPengaduan";
 import KronologisPengaduan from "./pages/PengaduanKronologis";
 import JadwalSidang from "./pages/JadwalSidang";
+
 
 function App() {
   return (
