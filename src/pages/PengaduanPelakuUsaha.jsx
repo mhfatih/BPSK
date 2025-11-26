@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
+import KasusNavbar from "../components/KasusNavbar";
 
 export default function PelakuUsaha() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  
 
   const emptyPelaku = {
     nama_pemilik: "",
@@ -170,7 +171,7 @@ export default function PelakuUsaha() {
       }
 
       alert("Data pelaku usaha berhasil disimpan!");
-      navigate(`/pengaduan/${id}/tentang-pengaduan`);
+      
 
     } catch (err) {
       console.error(err);
@@ -187,7 +188,8 @@ export default function PelakuUsaha() {
   // RENDER UI TAB ala GOOGLE SHEET
   // =========================================================
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <>
+      <KasusNavbar />
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-3xl mx-auto">
         <h1 className="text-2xl font-semibold mb-4">Langkah 2: Pelaku Usaha</h1>
 
@@ -320,14 +322,14 @@ export default function PelakuUsaha() {
           </div>
 
           {/* FOOTER BUTTONS */}
-          <div className="flex justify-between pt-4">
-            <button
+          <div className="flex justify-center pt-4">
+            {/* <button
               type="button"
               onClick={() => navigate(`/pengaduan/${id}/data-diri`)}
               className="bg-gray-300 px-4 py-2 rounded-md hover:bg-gray-400"
             >
               ← Kembali
-            </button>
+            </button> */}
 
             <button
               type="button"
@@ -338,16 +340,16 @@ export default function PelakuUsaha() {
               {loading ? "Menyimpan..." : "Simpan Pelaku Ini"}
             </button>
 
-            <button
+            {/* <button
               type="button"
               onClick={() => navigate(`/pengaduan/${id}/tentang-pengaduan`)}
               className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
             >
               Lanjut →
-            </button>
+            </button> */}
           </div>
         </form>
       </div>
-    </div>
+    </>
   );
 }

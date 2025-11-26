@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import {
-  apiClient
-} from "../api/apiClient";
+import { apiClient } from "../api/apiClient";
+import KasusNavbar from "../components/KasusNavbar";
 
 export default function JadwalSidang() {
   const { id } = useParams(); // id kasus
@@ -29,6 +28,7 @@ export default function JadwalSidang() {
     try {
       const res = await apiClient(`/kasus/${id}/sidang`, { method: "GET" });
       setSidangList(res);
+      console.log("Isi Sidang :", res);
     } catch (err) {
       console.error("Gagal mengambil data sidang:", err);
       alert("Gagal memuat data sidang.");
@@ -108,9 +108,8 @@ export default function JadwalSidang() {
   };
 
   return (
-    <div className="p-6 relative">
-      <h1 className="text-2xl font-bold mb-4">Jadwal Sidang Kasus #{id}</h1>
-
+    <>
+      <KasusNavbar />
       {/* Tombol tambah */}
       {["admin", "superadmin"].includes(currentUser?.role) && (
         <button
@@ -241,6 +240,6 @@ export default function JadwalSidang() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

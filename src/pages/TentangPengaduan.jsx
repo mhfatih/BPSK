@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
+import KasusNavbar from "../components/KasusNavbar";
 // import { getKasusById, updatePengaduan } from "../api/kasusServices";
 
 export default function TentangPengaduan() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [form, setForm] = useState({
     jenis_pengaduan: "",
     tanggal_kejadian: "",
@@ -83,7 +84,7 @@ export default function TentangPengaduan() {
       });
   
       alert(res.message || "Data pengaduan berhasil disimpan!");
-      navigate(`/pengaduan/${id}/kronologis-pengaduan`);
+      
     } catch (err) {
       console.error("Error submit pengaduan:", err);
       alert(err.response?.data?.message || err.message || "Terjadi kesalahan server!");
@@ -94,7 +95,8 @@ export default function TentangPengaduan() {
   
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <>
+      <KasusNavbar />
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-3xl mx-auto">
         <h1 className="text-2xl font-semibold text-gray-700 mb-4">
           Langkah 3: Tentang Pengaduan
@@ -335,25 +337,25 @@ export default function TentangPengaduan() {
           </div>
 
           {/* Tombol Navigasi */}
-          <div className="flex justify-between mt-6">
-            <button
+          <div className="flex justify-end mt-6">
+            {/* <button
               type="button"
               onClick={() => navigate(`/pengaduan/${id}/pelaku-usaha`)}
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
             >
               ← Kembali
-            </button>
+            </button> */}
 
             <button
               type="submit"
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md"
             >
-              {loading ? "Menyimpan..." : "Lanjut ke Kronologis →"}
+              {loading ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </>
   );
 }

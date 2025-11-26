@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
-import StatusBadge from "../components/StatusBadge";
 import {
   FileText,
   CheckCircle,
@@ -11,6 +10,7 @@ import {
   ClipboardCheck,
   Info,
 } from "lucide-react";
+import Popup from "../components/Popup";
 
 const KasusList = () => {
   const [kasus, setKasus] = useState([]);
@@ -25,7 +25,10 @@ const KasusList = () => {
 
   const navigate = useNavigate();
 
-  // Ambil data dari API
+  // 🔹 Popup konfirmasi
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+
+  // 🔹 Ambil data dari API
   useEffect(() => {
     const fetchKasus = async () => {
       try {
@@ -43,7 +46,7 @@ const KasusList = () => {
     fetchKasus();
   }, []);
 
-  // Filter dan search
+  // 🔹 Filter + Search
   useEffect(() => {
     let hasil = kasus;
 
@@ -88,17 +91,32 @@ const KasusList = () => {
       </div>
     );
 
+  // Pagination
   const totalPages = Math.ceil(filteredKasus.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentItems = filteredKasus.slice(startIndex, endIndex);
 
+  // 🔹 Buat kasus (setelah klik YES di popup)
+  const handleCreateKasus = async () => {
+    try {
+      const res = await apiClient("/kasus/kasus-add", { method: "POST" });
+      if (res?.kasus_id) {
+        navigate(`/kasus/${res.kasus_id}/data-diri`);
+      }
+    } catch (err) {
+      console.error("Gagal membuat kasus:", err);
+      alert("Gagal membuat kasus baru");
+    } finally {
+      setShowConfirmPopup(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 bg-white shadow-md rounded-xl w-full h-full">
-      {/* 🔹 Header dan Filter */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl font-semibold text-blue-900">Daftar Kasus</h2>
+      <h2 className="text-2xl font-semibold text-gray-900">Daftar Kasus</h2>
 
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4 mt-4">
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <input
             type="text"
@@ -132,30 +150,34 @@ const KasusList = () => {
             <option value="WKP2">WKP2</option>
           </select>
         </div>
+
+        {/* 🔹 Tombol Tambah Kasus */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowConfirmPopup(true)}
+            className="bg-blue-700 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-800 transition"
+          >
+            + Tambah Kasus
+          </button>
+        </div>
       </div>
 
-      
       {/* 🔹 Tabel Kasus */}
       <div className="overflow-x-auto border rounded-lg">
         {currentItems.length === 0 ? (
           <p className="text-gray-600 text-center py-6">
             Tidak ada hasil yang cocok.
           </p>
-          
         ) : (
           <table className="w-full border-collapse text-sm">
-            <thead className="bg-blue-700 text-white">
+            <thead className="bg-gray-800 text-white">
               <tr>
                 <th className="py-2 px-3 text-left whitespace-nowrap">No. Registrasi</th>
                 <th className="py-2 px-3 text-left">Nama Pengadu</th>
                 <th className="py-2 px-3 text-left">Jenis Pengaduan</th>
-                {/* <th className="py-2 px-3 text-left whitespace-nowrap">Jumlah Kerugian</th> */}
                 <th className="py-2 px-3 text-left">Wilayah</th>
-                {/* <th className="py-2 px-3 text-left">Hasil Sidang</th> */}
                 <th className="py-2 px-3 text-left">Perusahaan</th>
-                {/* <th className="py-2 px-3 text-left">Dibuat</th> */}
                 <th className="py-2 px-3 text-left">Diverifikasi</th>
-                {/* <th className="py-2 px-3 text-left">Diproses</th> */}
                 <th className="py-2 px-3 text-left">Diselesaikan</th>
                 <th className="py-2 px-3 text-left">Status</th>
                 <th className="py-2 px-3 text-center">Aksi</th>
@@ -167,19 +189,7 @@ const KasusList = () => {
                   <td className="py-2 px-3">{item.no_registrasi || "-"}</td>
                   <td className="py-2 px-3">{item.pengadu_nama || "-"}</td>
                   <td className="py-2 px-3">{item.jenis_pengaduan || "-"}</td>
-                  {/* <td className="py-2 px-3">
-                    {item.jumlah_kerugian
-                      ? `Rp ${item.jumlah_kerugian.toLocaleString("id-ID")}`
-                      : "-"}
-                  </td> */}
                   <td className="py-2 px-3">{item.wilayah || "-"}</td>
-                  {/* <td className="py-2 px-3">
-                    {item.hasil_sidang
-                      ? item.hasil_sidang.length > 20
-                        ? item.hasil_sidang.slice(0, 20) + "..."
-                        : item.hasil_sidang
-                      : "-"}
-                  </td> */}
                   <td className="py-2 px-3">
                     {item.perusahaan_list?.length
                       ? item.perusahaan_list.join(", ").length > 20
@@ -187,26 +197,28 @@ const KasusList = () => {
                         : item.perusahaan_list.join(", ")
                       : "-"}
                   </td>
-                  {/* <td className="py-2 px-3">
-                    {item.created_at
-                      ? new Date(item.created_at).toLocaleDateString("id-ID")
-                      : "-"}
-                  </td> */}
                   <td className="py-2 px-3">
                     <div className="flex flex-col">
-                      <span className="font-medium"> {item.verified_at ? new Date(item.verified_at).toLocaleDateString("id-ID") : "-"} </span>
-                      <span className="text-gray-500 text-xs"> {item.verified_by_name || "-"}</span>
+                      <span className="font-medium">
+                        {item.verified_at
+                          ? new Date(item.verified_at).toLocaleDateString("id-ID")
+                          : "-"}
+                      </span>
+                      <span className="text-gray-500 text-xs">
+                        {item.verified_by_name || "-"}
+                      </span>
                     </div>
                   </td>
-                  {/* <td className="py-2 px-3">
-                    {item.processed_at
-                      ? new Date(item.processed_at).toLocaleDateString("id-ID")
-                      : "-"}
-                  </td> */}
                   <td className="py-2 px-3">
                     <div className="flex flex-col">
-                      <span className="font-medium"> {item.finished_at ? new Date(item.finished_at).toLocaleDateString("id-ID") : "-"} </span>
-                      <span className="text-gray-500 text-xs"> {item.finished_by_name || "-"} </span>
+                      <span className="font-medium">
+                        {item.finished_at
+                          ? new Date(item.finished_at).toLocaleDateString("id-ID")
+                          : "-"}
+                      </span>
+                      <span className="text-gray-500 text-xs">
+                        {item.finished_by_name || "-"}
+                      </span>
                     </div>
                   </td>
                   <td className="py-2 px-3 font-medium">
@@ -229,19 +241,30 @@ const KasusList = () => {
                       {item.status === "Selesai" && (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       )}
-                      <span className={
-                        item.status === "Draf" ? "text-gray-600" :
-                          item.status === "Diverifikasi" ? "text-yellow-600" :
-                            item.status === "Ditolak" ? "text-red-600" :
-                              item.status === "Diterima" ? "text-blue-600" :
-                                item.status === "Diproses" ? "text-yellow-600" :
-                                  item.status === "Selesai" ? "text-green-600" : "text-gray-700"}>{item.status || "-"}</span>
-
+                      <span
+                        className={
+                          item.status === "Draf"
+                            ? "text-gray-600"
+                            : item.status === "Diverifikasi"
+                            ? "text-yellow-600"
+                            : item.status === "Ditolak"
+                            ? "text-red-600"
+                            : item.status === "Diterima"
+                            ? "text-blue-600"
+                            : item.status === "Diproses"
+                            ? "text-yellow-600"
+                            : item.status === "Selesai"
+                            ? "text-green-600"
+                            : "text-gray-700"
+                        }
+                      >
+                        {item.status || "-"}
+                      </span>
                     </div>
                   </td>
                   <td className="py-2 px-3 text-center">
                     <button
-                      onClick={() => navigate(`/pengaduan/${item.id}/view`)}
+                      onClick={() => navigate(`/kasus/${item.id}/view`)}
                       className="text-blue-600 hover:text-blue-800 transition"
                     >
                       <Info className="w-5 h-5 mx-auto" />
@@ -276,6 +299,18 @@ const KasusList = () => {
           </button>
         </div>
       )}
+
+      {/* 🔹 Popup Konfirmasi Tambah Kasus */}
+      <Popup
+        show={showConfirmPopup}
+        title="Buat Kasus Baru"
+        message="Apakah Anda yakin ingin membuat kasus baru?"
+        mode="confirm"
+        confirmText="Ya, Buat"
+        cancelText="Tidak"
+        onConfirm={handleCreateKasus}
+        onCancel={() => setShowConfirmPopup(false)}
+      />
     </div>
   );
 };

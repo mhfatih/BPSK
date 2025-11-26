@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Outlet } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
+import KasusNavbar from "../components/KasusNavbar";
 
 import jsPDF from "jspdf";
 import logo from "../assets/LogoBanten.png";
@@ -18,9 +19,6 @@ export default function ViewPengaduan() {
   const [nomorDepan, setNomorDepan] = useState("");
 
   const wilayah = kasus?.wilayah;
-  
-
-
 
   // Ambil user dari localStorage
   const userData = localStorage.getItem("user");
@@ -87,15 +85,15 @@ export default function ViewPengaduan() {
   };
 
   const bulanKeRomawi = (bulan) => {
-    const mapping = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+    const mapping = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
     return mapping[bulan];
   };
-  
+
   const getDefaultNomorRegistrasi = (nomorDepan, wilayah) => {
     const now = new Date();
     const romawi = bulanKeRomawi(now.getMonth());
     const tahun = now.getFullYear();
-  
+
     return `${nomorDepan}/Reg/BPSK${wilayah}.BTN/${romawi}/${tahun}`;
   };
 
@@ -107,38 +105,38 @@ export default function ViewPengaduan() {
       const pdf = new jsPDF("p", "mm", "a4");
       const img = new Image();
       img.src = logo;
-  
+
       const checkPageBreak = () => {
         if (y > 270) {
           pdf.addPage();
           y = 20;
         }
       };
-  
+
       pdf.addImage(img, "PNG", 12, 15, 25, 20);
       pdf.addImage(img, "PNG", 175, 15, 25, 20);
-  
+
       pdf.setFont("times", "bold");
       pdf.setFontSize(14);
       pdf.text("BADAN PENYELESAIAN SENGKETA KONSUMEN (BPSK)", 105, 20, { align: "center" });
       pdf.text("PROVINSI BANTEN WILAYAH KERJA PROVINSI I", 105, 27, { align: "center" });
-  
+
       pdf.setFont("times", "italic");
       pdf.setFontSize(10);
       pdf.text("Ruko Permata Cisadane, Jl. Teuku Umar Bojong Jaya, Karawaci Kota Tangerang Banten 15115", 105, 33, { align: "center" });
-  
+
       pdf.setDrawColor(0);
       pdf.setLineWidth(0.6);
       pdf.line(15, 37, 195, 37);
-  
+
       pdf.setFontSize(13);
       pdf.setFont("times", "bold");
       pdf.text("LAPORAN PENGADUAN KASUS KONSUMEN", 105, 50, { align: "center" });
-  
+
       pdf.setFont("times", "normal");
       pdf.setFontSize(11);
       let y = 65;
-  
+
       // 🔸 Data Diri Pelapor
       pdf.text("DATA DIRI PELAPOR:", 20, y); y += 7;
       [
@@ -152,7 +150,7 @@ export default function ViewPengaduan() {
         pdf.text(line, 25, y); y += 6; checkPageBreak();
       });
       y += 4;
-  
+
       // 🔸 Data Pelaku Usaha
       const pelakuList = kasus?.pelaku_usaha || [];
       if (pelakuList.length > 0) {
@@ -174,7 +172,7 @@ export default function ViewPengaduan() {
       } else {
         pdf.text("Tidak ada data pelaku usaha.", 25, y); y += 8; checkPageBreak();
       }
-  
+
       // 🔸 Tentang Pengaduan
       pdf.text("TENTANG PENGADUAN:", 20, y); y += 7; checkPageBreak();
       [
@@ -185,19 +183,19 @@ export default function ViewPengaduan() {
       ].forEach(line => {
         pdf.text(line, 25, y); y += 6; checkPageBreak();
       });
-  
+
       const keteranganText = pdf.splitTextToSize(kasus?.keterangan_kerugian || "Tidak ada keterangan.", 170);
       pdf.text("Keterangan:", 25, y); y += 6; checkPageBreak();
       pdf.text(keteranganText, 30, y); y += keteranganText.length * 6 + 4; checkPageBreak();
-  
+
       // 🔸 Kronologis
       const kronoText = pdf.splitTextToSize(kasus?.kronologis || "Tidak ada kronologi.", 170);
       pdf.text("KRONOLOGIS:", 20, y); y += 7; checkPageBreak();
       pdf.text(kronoText, 25, y); y += kronoText.length * 6 + 4; checkPageBreak();
-  
+
       // 🔸 Jenis Tuntutan
       pdf.text(`Jenis Tuntutan    : ${kasus?.jenis_tuntutan || "-"}`, 25, y); y += 10; checkPageBreak();
-  
+
       // 🔸 Bukti
       pdf.text("BUKTI PENDUKUNG:", 20, y); y += 7; checkPageBreak();
       [
@@ -208,12 +206,12 @@ export default function ViewPengaduan() {
         pdf.text(line, 25, y); y += 6; checkPageBreak();
       });
       y += 4;
-  
+
       // 🔸 Hasil Musyawarah
       const hasilText = pdf.splitTextToSize(kasus?.hasil_musyawarah || "Belum ada hasil musyawarah.", 170);
       pdf.text("HASIL MUSYAWARAH:", 20, y); y += 7; checkPageBreak();
       pdf.text(hasilText, 25, y); y += hasilText.length * 6 + 4; checkPageBreak();
-  
+
       // 🔸 Status Proses
       pdf.text("STATUS PENANGANAN:", 20, y); y += 7; checkPageBreak();
       [
@@ -225,21 +223,21 @@ export default function ViewPengaduan() {
         pdf.text(line, 25, y); y += 6; checkPageBreak();
       });
       y += 10;
-  
+
       // 🔸 Tanda tangan
       pdf.text("Banten, " + new Date().toLocaleDateString("id-ID"), 140, y); y += 25; checkPageBreak();
       pdf.text("(....................................)", 140, y);
       pdf.text("Petugas Verifikator", 145, y + 7);
-  
+
       pdf.save(`Pengaduan_${kasus?.no_registrasi || "data"}.pdf`);
     } catch (err) {
       console.error("Gagal membuat PDF:", err);
       alert("Terjadi kesalahan saat membuat PDF");
     }
   };
-  
-  
-  
+
+
+
 
   if (loading)
     return (
@@ -275,14 +273,10 @@ export default function ViewPengaduan() {
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <>
+      <KasusNavbar />
       {/* 🔽 Tombol Download PDF */}
-      <button
-        onClick={handleDownloadPDF}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
-      >
-        ⬇️ Download PDF
-      </button>
+
       <div className="max-w-5xl mx-auto" ref={pdfRef}>
         <div className="bg-white shadow-md rounded-2xl p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-700 mb-2">
@@ -322,7 +316,7 @@ export default function ViewPengaduan() {
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">👤 Data Diri</h2>
-                {renderEditButton(`/pengaduan/${id}/data-diri`)}
+                {renderEditButton(`/kasus/${id}/data-diri`)}
               </div>
               <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
                 <p><b>Nama:</b> {kasus.pengadu_nama}</p>
@@ -416,7 +410,7 @@ export default function ViewPengaduan() {
         </div>
 
         {/* Checkbox Konfirmasi Submit */}
-        
+
         {["Draf", "Ditolak"].includes(kasus.status) && (
           <div className="flex items-start gap-3 bg-yellow-50 border border-yellow-300 p-3 rounded-lg mt-5">
             <input
@@ -432,16 +426,23 @@ export default function ViewPengaduan() {
             </label>
           </div>
         )}
-        
+
 
 
         {/* Tombol Navigasi */}
         <div className="flex justify-between items-center mt-8">
-          <button
+          {/* <button
             onClick={() => navigate(`/pengaduan/${id}/kronologis-pengaduan`)}
             className="px-5 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition"
           >
             ← Kembali
+          </button> */}
+
+          <button
+            onClick={handleDownloadPDF}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
+          >
+            ⬇️ Download PDF
           </button>
 
           <div className="flex space-x-3">
@@ -568,10 +569,9 @@ export default function ViewPengaduan() {
                         }}
                         className={`
                           px-6 py-3 rounded-lg font-medium text-white shadow-md transition-all
-                          ${
-                            verifikasiStatus === "Ditolak"
-                              ? "bg-red-600 hover:bg-red-700"
-                              : verifikasiStatus === "Diterima"
+                          ${verifikasiStatus === "Ditolak"
+                            ? "bg-red-600 hover:bg-red-700"
+                            : verifikasiStatus === "Diterima"
                               ? "bg-green-600 hover:bg-green-700"
                               : "bg-blue-600 hover:bg-blue-700"
                           }
@@ -591,6 +591,6 @@ export default function ViewPengaduan() {
 
         <Outlet />
       </div>
-    </div>
+    </>
   );
 }

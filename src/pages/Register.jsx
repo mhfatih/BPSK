@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { apiClient } from "../api/apiClient";
 import logo from "../assets/LogoBanten.png";
 import bgImage from "../assets/LogoBanten.png";
+import Popup from "../components/Popup";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -144,30 +145,14 @@ const Register = () => {
       </div>
 
       {/* Pop-up Sukses */}
-      {showSuccessPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-80 text-center">
-            <img
-              src={logo}
-              alt="Logo Banten"
-              className="w-16 h-16 mx-auto mb-3"
-            />
-
-            <h3 className="text-2xl font-bold text-blue-900 text-center mb-2">
-              Registrasi Berhasil
-            </h3>
-            <p className="text-gray-500 mb-4 mt-2 text-center">
-              Akun Anda berhasil dibuat! Silakan login untuk melanjutkan.
-            </p>
-            <button
-              onClick={() => (window.location.href = "/login")}
-              className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg transition font-medium shadow"
-            >
-              Ke Halaman Login
-            </button>
-          </div>
-        </div>
-      )}
+      <Popup
+        show={showSuccessPopup}
+        title="Registrasi Berhasil"
+        message="Akun Anda berhasil dibuat! Silakan login untuk melanjutkan."
+        confirmText="Ke Halaman Login"
+        onClose={() => (window.location.href = "/login")}
+        logo={logo}
+      />
     </div>
   );
 };

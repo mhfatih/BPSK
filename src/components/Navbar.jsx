@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { apiClient } from '../api/apiClient';
-
-
-// import logo from '../logo.png';
+import logo from '../assets/LogoBanten.png';
 
 
 // icons
@@ -25,7 +23,7 @@ const menuItems = {
   superadmin: [
     { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
     { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
-    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
+    // { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
     { icons: <RiAdminLine size={30} />, label: "Manajemen", path: "/manajemen" },
     { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
   ],
@@ -33,14 +31,14 @@ const menuItems = {
   admin: [
     { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
     { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
-    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
+    // { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
     { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
   ],
 
   user: [
     { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
     { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
-    { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
+    // { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
     { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
   ],
 };
@@ -55,76 +53,87 @@ export default function Dashboard() {
   const [open, setOpen] = useState(true)
 
   const handleLogout = async () => {
-  try {
-    // Panggil endpoint logout pakai apiClient
-    const response = await apiClient("/logout", { method: "POST" });
+    try {
+      await apiClient("/logout", { method: "POST" });
 
-    // Bersihkan semua data auth di localStorage
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+      // Hapus auth data
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
 
-    alert(response.message || "Logout berhasil!");
-    navigate("/login");
-  } catch (error) {
-    console.error("Logout error:", error);
-    alert(error?.response?.data?.message || "Gagal logout, coba lagi.");
-  }
-};
+      // Langsung arahkan ke login
+      navigate("/login");
 
+    } catch (error) {
+      console.error("Logout error:", error);
 
-   // ✅ Ambil user dari localStorage atau API
-      useEffect(() => {
-      const loadUser = async () => {
-        const stored = localStorage.getItem("user");
+      // Kalau error pun tetap paksa logout
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
 
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            setUser(parsed);
+      navigate("/login");
+    }
+  };
 
-            // atur menu sesuai role
-            const role = parsed.role || "user";
-            setMenus(menuItems[role] || menuItems.user);
+  // ✅ Ambil user dari localStorage atau API
+  useEffect(() => {
+    const loadUser = async () => {
+      const stored = localStorage.getItem("user");
 
-            // Jika data user belum lengkap, ambil dari API
-            if (!parsed.nama) {
-              const profileRes = await apiClient("/profile", { method: "GET" });
-              console.log("Profile", profileRes);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setUser(parsed);
 
-              const updatedUser = {
-                ...parsed,
-                nama: profileRes?.profile?.nama || parsed.nama,
-                email: profileRes?.email || parsed.email,
-                role: profileRes?.role || parsed.role,
-              };
+          // atur menu sesuai role
+          const role = parsed.role || "user";
+          setMenus(menuItems[role] || menuItems.user);
 
-              localStorage.setItem("user", JSON.stringify(updatedUser));
-              setUser(updatedUser);
-            }
-          } catch (err) {
-            console.error("Gagal memuat user:", err);
-            localStorage.removeItem("user");
-            navigate("/login");
+          // Jika data user belum lengkap, ambil dari API
+          if (!parsed.nama) {
+            const profileRes = await apiClient("/profile", { method: "GET" });
+            console.log("Profile", profileRes);
+
+            const updatedUser = {
+              ...parsed,
+              nama: profileRes?.profile?.nama || parsed.nama,
+              email: profileRes?.email || parsed.email,
+              role: profileRes?.role || parsed.role,
+            };
+
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            setUser(updatedUser);
           }
-        } else {
-          // Kalau tidak ada user di localStorage, arahkan ke login
+        } catch (err) {
+          console.error("Gagal memuat user:", err);
+          localStorage.removeItem("user");
           navigate("/login");
         }
-      };
+      } else {
+        // Kalau tidak ada user di localStorage, arahkan ke login
+        navigate("/login");
+      }
+    };
 
-      loadUser();
-    }, [navigate]);
+    loadUser();
+  }, [navigate]);
 
 
-    return (
-      <div className="flex flex-col h-screen">
+  return (
+    <div className="flex flex-col h-screen">
 
       {/* 🔵 HEADER DI ATAS */}
       <header className="bg-gray-50 shadow-md h-16 flex items-center justify-between px-6 py-6">
-        <h1 className="text-lg font-semibold text-gray-700">
-          Aplikasi E-BPSK
-        </h1>
-  
+        <div className="flex items-center gap-3">
+          <img
+            src={logo}
+            alt="Logo"
+            className="w-10 h-10 object-contain"
+          />
+          <h1 className="text-lg font-semibold text-gray-700">
+            E-BPSK Banten
+          </h1>
+        </div>
+
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
@@ -135,7 +144,7 @@ export default function Dashboard() {
             </span>
             <FaUserCircle size={28} className="text-gray-600" />
           </button>
-  
+
           {showDropdown && (
             <div className="absolute right-0 mt-2 bg-white border rounded-md shadow-lg w-40">
               <button
@@ -148,13 +157,13 @@ export default function Dashboard() {
           )}
         </div>
       </header>
-  
+
       {/* 🔵 NAV & CONTENT BERADA DI BAWAH HEADER */}
       <div className="flex flex-1">
-  
+
         {/* SIDEBAR */}
         <nav
-          className={`shadow-md p-2 flex flex-col duration-500 bg-blue-600 text-white 
+          className={`shadow-md p-2 flex flex-col duration-500 bg-gray-800 text-white 
           ${open ? "w-60" : "w-16"}`}
         >
           <div className="px-3 py-2 h-20 flex justify-between items-center">
@@ -164,7 +173,7 @@ export default function Dashboard() {
               onClick={() => setOpen(!open)}
             />
           </div>
-  
+
           <ul className="flex-1">
             {menus.map((item, i) => (
               <li key={i}>
@@ -173,12 +182,12 @@ export default function Dashboard() {
                   end={item.path === "/dashboard"}
                   className={({ isActive }) =>
                     `group relative flex items-center gap-2 px-3 py-2 mb-1 rounded-md 
-                    ${isActive ? "bg-blue-800" : "hover:bg-blue-700"}`
+                    ${isActive ? "bg-gray-900" : "hover:bg-gray-900"}`
                   }
                 >
                   <div>{item.icons}</div>
                   {open && <p>{item.label}</p>}
-  
+
                   {!open && (
                     <span className="absolute left-full ml-2 px-2 py-1 rounded bg-black text-white text-xs opacity-0 group-hover:opacity-100">
                       {item.label}
@@ -189,13 +198,13 @@ export default function Dashboard() {
             ))}
           </ul>
         </nav>
-  
+
         {/* CONTENT */}
         <main className="flex-1 bg-gray-100 p-6 overflow-auto">
           <Outlet />
         </main>
       </div>
     </div>
-      
+
   )
 }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Outlet } from "react-router-dom";
+import { useParams, Outlet } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
+import KasusNavbar from "../components/KasusNavbar";
 
 export default function KronologisPengaduan() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  
   const [form, setForm] = useState({
     kronologis: "",
     jenis_tuntutan: "",
@@ -47,7 +48,7 @@ export default function KronologisPengaduan() {
       });
 
       alert("✅ Kronologis berhasil disimpan!");
-      navigate(`/pengaduan/${id}/view`);
+      
     } catch (err) {
       console.error("🔥 ERROR UPDATE KRONOLOGIS:", err);
       alert(err.message || "Gagal menyimpan kronologis");
@@ -59,6 +60,7 @@ export default function KronologisPengaduan() {
 
   return (
     <>
+    <KasusNavbar />
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-3xl mx-auto">
         <h1 className="text-2xl font-semibold text-gray-700 mb-4">
           Langkah 4: Kronologis Pengaduan
@@ -99,8 +101,8 @@ export default function KronologisPengaduan() {
             </select>
           </div>
 
-          <div className="flex justify-between mt-6">
-            <button
+          <div className="flex justify-end mt-6">
+            {/* <button
               type="button"
               onClick={() =>
                 navigate(`/pengaduan/${id}/tentang-pengaduan`)
@@ -108,14 +110,14 @@ export default function KronologisPengaduan() {
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
             >
               ← Kembali
-            </button>
+            </button> */}
 
             <button
               type="submit"
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md"
             >
-              {loading ? "Menyimpan..." : "Selesai & Simpan"}
+              {loading ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>
