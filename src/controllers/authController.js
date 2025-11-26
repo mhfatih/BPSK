@@ -118,6 +118,12 @@ const login = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: 'Email atau password salah' });
 
+    if (user.is_verified === 0) {
+      return res.status(403).json({
+        message: 'Akun belum diverifikasi. Silakan cek email untuk verifikasi.'
+      });
+    }
+
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, wilayah: user.wilayah },
       SECRET_KEY,
