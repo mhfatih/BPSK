@@ -5,6 +5,7 @@ const pool = mysql.createPool({
   user: 'root',
   password: '!!BP5k@123&^%',
   database: 'bpsk_db',
+  dateStrings: true,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

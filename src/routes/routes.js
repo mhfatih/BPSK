@@ -34,6 +34,7 @@ router.get('/dashboard', authMiddleware, kasusController.getDashboard);
 router.post('/kasus/kasus-add', authMiddleware, kasusController.createKasus);
 router.get('/kasus', authMiddleware, kasusController.getAllKasus);
 router.get('/kasus/:id', authMiddleware, kasusController.getKasusById);
+router.get('/kasus/:id/status', authMiddleware, kasusController.getKasusStatus);
 router.put('/kasus/:id/submit', authMiddleware, kasusController.submitKasus);
 router.put('/kasus/:id/verify', authMiddleware, kasusController.verifyKasus);
 router.put('/kasus/:id/proses', authMiddleware, kasusController.prosesKasus);

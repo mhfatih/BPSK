@@ -89,7 +89,6 @@ const register = async (req, res) => {
         existing.length > 0
           ? "Akun belum terverifikasi. OTP baru dikirim ulang."
           : "Registrasi berhasil. Silakan cek email untuk OTP.",
-      user_id: userId
     });
 
   } catch (err) {

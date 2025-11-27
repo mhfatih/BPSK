@@ -243,6 +243,35 @@ const getKasusById = async (req, res) => {
 };
 
 /**
+ * Get status kasus saja
+ */
+const getKasusStatus = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [rows] = await db.query(
+      `SELECT id, status, created_by FROM kasus WHERE id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0)
+      return res.status(404).json({ message: "Kasus tidak ditemukan" });
+
+    const kasus = rows[0];
+
+    // 👮 Jika user biasa, hanya boleh melihat status kasusnya sendiri
+    if (req.user.role === "user" && kasus.created_by !== req.user.id)
+      return res.status(403).json({ message: "Tidak boleh mengakses kasus orang lain" });
+
+    res.json({ id: kasus.id, status: kasus.status });
+
+  } catch (err) {
+    console.error("Error getKasusStatus:", err);
+    res.status(500).json({ message: "Terjadi kesalahan server" });
+  }
+};
+
+/**
  * Buat kasus kosong
  */
 const createKasus = async (req, res) => {
@@ -684,6 +713,7 @@ module.exports = {
   getDashboard,
   getAllKasus,
   getKasusById,
+  getKasusStatus,
   createKasus,
   submitKasus,
   verifyKasus,
