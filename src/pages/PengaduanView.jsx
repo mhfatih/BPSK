@@ -268,7 +268,7 @@ export default function ViewPengaduan() {
       {/* 🔽 Tombol Download PDF */}
 
       <div className="max-w-5xl mx-auto" ref={pdfRef}>
-        <div className="bg-white shadow-md rounded-2xl p-6 mb-6">
+        <div className="bg-white rounded-xl shadow p-6 max-w-3xl mx-auto mb-6">
           <h1 className="text-3xl font-bold text-gray-700 mb-2">
             📄 Detail Pengaduan
           </h1>
@@ -303,7 +303,7 @@ export default function ViewPengaduan() {
         <div className="space-y-6">
           {/* Data Diri */}
           {kasus && (
-            <section className="bg-white rounded-xl shadow p-6">
+            <section className="bg-white rounded-xl shadow p-6 max-w-3xl mx-auto mb-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">👤 Data Diri</h2>
               </div>
@@ -322,7 +322,7 @@ export default function ViewPengaduan() {
 
           {/* Pelaku Usaha */}
           {Array.isArray(kasus?.pelaku_usaha) && kasus.pelaku_usaha.length > 0 ? (
-            <section className="bg-white rounded-xl shadow p-6">
+            <section className="bg-white rounded-xl shadow p-6 max-w-3xl mx-auto mb-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">🏢 Pelaku Usaha</h2>
               </div>
@@ -338,7 +338,7 @@ export default function ViewPengaduan() {
                     </h3>
 
                     <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
-                      <p><b>Nama Pemilik:</b> {pu.nama_pemilik || "-"}</p>
+                      <p><b>Nama Pemilik:</b> {pu.pemilik || "-"}</p>
                       <p><b>Perusahaan:</b> {pu.perusahaan || "-"}</p>
                       <p><b>Kota:</b> {pu.kota || "-"}</p>
                       <p><b>No HP:</b> {pu.no_hp || "-"}</p>
@@ -360,7 +360,7 @@ export default function ViewPengaduan() {
 
           {/* Tentang Pengaduan */}
           {kasus && (
-            <section className="bg-white rounded-xl shadow p-6">
+            <section className="bg-white rounded-xl shadow p-6 max-w-3xl mx-auto mb-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">📢 Tentang Pengaduan</h2>
               </div>
@@ -377,7 +377,7 @@ export default function ViewPengaduan() {
 
           {/* Kronologis */}
           {kasus && (
-            <section className="bg-white rounded-xl shadow p-6">
+            <section className="bg-white rounded-xl shadow p-6 max-w-3xl mx-auto mb-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">🕓 Kronologis</h2>
               </div>

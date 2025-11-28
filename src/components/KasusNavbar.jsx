@@ -36,7 +36,7 @@ export default function KasusNavbar() {
   const filteredMenu = menu.filter(item => item.showIf.includes(status));
 
   return (
-    <div className="w-full bg-white shadow-md rounded-xl border border-gray-200 px-4 py-4 mb-6">
+    <div className="bg-white shadow-md rounded-xl border border-gray-200 px-4 py-4 mb-6 max-w-3xl mx-auto">
       <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex justify-center md:justify-center gap-8 min-w-max px-2">
 
