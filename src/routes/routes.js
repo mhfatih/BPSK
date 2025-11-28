@@ -39,6 +39,7 @@ router.put('/kasus/:id/submit', authMiddleware, kasusController.submitKasus);
 router.put('/kasus/:id/verify', authMiddleware, kasusController.verifyKasus);
 router.put('/kasus/:id/proses', authMiddleware, kasusController.prosesKasus);
 router.put('/kasus/:id/selesai', authMiddleware, kasusController.selesaiKasus);
+router.put('/kasus/:id/selesai-temp', authMiddleware, kasusController.selesaiKasusTemp);
 
 // ==================== DATA-DIRI ====================
 router.get('/kasus/:id/data-diri', authMiddleware, dataDiriController.getDataDiri);

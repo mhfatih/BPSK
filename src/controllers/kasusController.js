@@ -174,9 +174,9 @@ const getKasusById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // 🧩 Subquery ambil hasil sidang terakhir
+    // 🧩 Subquery ambil hasil sidang terakhir + metode penyelesaian
     const subquerySidangTerakhir = `
-      SELECT s1.kasus_id, s1.hasil_sidang
+      SELECT s1.kasus_id, s1.hasil_sidang, s1.metode_penyelesaian
       FROM kasus_sidang s1
       INNER JOIN (
         SELECT kasus_id, MAX(sidang_ke) AS sidang_terakhir
@@ -190,6 +190,7 @@ const getKasusById = async (req, res) => {
       SELECT 
         k.*, 
         s.hasil_sidang,
+        s.metode_penyelesaian,
         pc.nama AS created_by_name,
         pv.nama AS verified_by_name,
         pp.nama AS processed_by_name,
@@ -709,6 +710,113 @@ const selesaiKasus = async (req, res) => {
   });
 };
 
+/**
+ *  Selesaikan kasus oleh admin/superadmin
+ */
+const selesaiKasusTemp = async (req, res) => {
+  const { id } = req.params;
+
+  const upload = uploader(`kasus/${id}`, 'file_sidang', {
+    maxSize: 5 * 1024 * 1024,
+    allowedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
+  }).single('file_sidang');
+
+  upload(req, res, async (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'Ukuran file terlalu besar (maksimal 5MB)' });
+      }
+      if (err.message === 'Jenis file tidak diizinkan') {
+        return res.status(400).json({ message: 'Jenis file tidak diizinkan (hanya PDF, JPG, PNG)' });
+      }
+      console.error('Upload error:', err);
+      return res.status(500).json({ message: 'Terjadi kesalahan saat mengunggah file sidang' });
+    }
+
+    const { jumlah_kerugian, metode_penyelesaian, hasil_sidang } = req.body;
+
+    try {
+      // --- VALIDASI KASUS ---
+      const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
+      if (rowsKasus.length === 0)
+        return res.status(404).json({ message: 'Kasus tidak ditemukan' });
+
+      const kasus = rowsKasus[0];
+
+      if (!['admin', 'superadmin'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa menyelesaikan kasus' });
+      }
+
+      if (kasus.status !== 'Diproses') {
+        return res.status(400).json({ message: 'Kasus hanya dapat diselesaikan jika status-nya adalah Diproses' });
+      }
+
+      if (!jumlah_kerugian) {
+        return res.status(400).json({ message: 'Jumlah kerugian wajib diisi' });
+      }
+
+      if (!metode_penyelesaian || !hasil_sidang) {
+        return res.status(400).json({
+          message: 'metode_penyelesaian dan hasil_sidang wajib diisi'
+        });
+      }
+
+      // --- CARI SIDANG TERAKHIR ---
+      const [sidangRows] = await db.query(
+        'SELECT * FROM kasus_sidang WHERE kasus_id = ? ORDER BY sidang_ke DESC LIMIT 1',
+        [id]
+      );
+
+      if (sidangRows.length === 0) {
+        return res.status(400).json({
+          message: 'Belum ada data sidang untuk kasus ini'
+        });
+      }
+
+      const sidang = sidangRows[0];
+
+      // --- UPDATE TABEL KASUS_SIDANG (TANPA file_sidang) ---
+      await db.query(
+        'UPDATE kasus_sidang SET metode_penyelesaian = ?, hasil_sidang = ?, updated_at = ? WHERE id = ?',
+        [metode_penyelesaian, hasil_sidang, new Date(), sidang.id]
+      );
+
+      // --- PERSIAPKAN DATA UPDATE UNTUK TABEL KASUS ---
+      const updateData = {
+        status: 'Selesai',
+        jumlah_kerugian,
+        finished_at: new Date(),
+        finished_by: req.user.id,
+      };
+
+      // Jika upload file → simpan ke tabel kasus (bukan kasus_sidang)
+      if (req.file) {
+        const newPath = req.file.path.replace(/\\/g, '/').replace(/^.*uploads/, '/uploads');
+
+        if (kasus.file_sidang) deleteOldFile(kasus.file_sidang);
+
+        updateData.file_sidang = newPath;
+      }
+
+      await db.query('UPDATE kasus SET ? WHERE id = ?', [updateData, id]);
+
+      res.json({
+        message: 'Kasus berhasil diselesaikan',
+        kasus_id: id,
+        status: 'Selesai',
+        metode_penyelesaian,
+        hasil_sidang,
+        jumlah_kerugian,
+        file_sidang: updateData.file_sidang || kasus.file_sidang || null,
+      });
+
+    } catch (err) {
+      console.error('Error selesaiKasus:', err);
+      res.status(500).json({ message: 'Terjadi kesalahan server' });
+    }
+  });
+};
+
 module.exports = {
   getDashboard,
   getAllKasus,
@@ -718,5 +826,6 @@ module.exports = {
   submitKasus,
   verifyKasus,
   prosesKasus,
-  selesaiKasus
+  selesaiKasus,
+  selesaiKasusTemp
 };
