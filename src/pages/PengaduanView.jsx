@@ -262,16 +262,6 @@ export default function ViewPengaduan() {
       />
     ) : null;
 
-  const renderEditButton = (route) =>
-    (kasus?.status === "Draf" || kasus?.status === "Ditolak") && (
-      <button
-        onClick={() => navigate(route)}
-        className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-medium transition"
-      >
-        ✏️ Edit
-      </button>
-    );
-
   return (
     <>
       <KasusNavbar />
@@ -316,7 +306,6 @@ export default function ViewPengaduan() {
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">👤 Data Diri</h2>
-                {renderEditButton(`/kasus/${id}/data-diri`)}
               </div>
               <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
                 <p><b>Nama:</b> {kasus.pengadu_nama}</p>
@@ -336,7 +325,6 @@ export default function ViewPengaduan() {
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">🏢 Pelaku Usaha</h2>
-                {renderEditButton(`/pengaduan/${id}/pelaku-usaha`)}
               </div>
 
               <div className="space-y-4">
@@ -364,21 +352,17 @@ export default function ViewPengaduan() {
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">🏢 Pelaku Usaha</h2>
-                {renderEditButton(`/pengaduan/${id}/pelaku-usaha`)}
               </div>
 
               <p className="text-gray-500 italic">Belum ada pelaku usaha.</p>
             </section>
           )}
 
-
-
           {/* Tentang Pengaduan */}
           {kasus && (
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">📢 Tentang Pengaduan</h2>
-                {renderEditButton(`/pengaduan/${id}/tentang-pengaduan`)}
               </div>
               <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
                 <p><b>Jenis Pengaduan:</b> {kasus.jenis_pengaduan}</p>
@@ -396,7 +380,6 @@ export default function ViewPengaduan() {
             <section className="bg-white rounded-xl shadow p-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">🕓 Kronologis</h2>
-                {renderEditButton(`/pengaduan/${id}/kronologis-pengaduan`)}
               </div>
               <p className="text-gray-700 text-sm whitespace-pre-line mb-2">
                 {kasus.kronologis}

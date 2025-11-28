@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { apiClient } from "../api/apiClient";
 import logo from "../assets/LogoBanten.png";
 import bgImage from "../assets/LogoBanten.png";
-import Popup from "../components/Popup";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -11,7 +10,6 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -30,14 +28,8 @@ const Register = () => {
         body: { email, nama, password, confirm_password: confirmPassword },
       });
 
-      // Reset form
-      setEmail("");
-      setNama("");
-      setPassword("");
-      setConfirmPassword("");
+      window.location.href = "/verify-otp";
 
-      // Tampilkan popup sukses
-      setShowSuccessPopup(true);
     } catch (err) {
       console.error("Register error:", err);
       setError(err.message || "Gagal registrasi");
@@ -143,16 +135,6 @@ const Register = () => {
           </p>
         </div>
       </div>
-
-      {/* Pop-up Sukses */}
-      <Popup
-        show={showSuccessPopup}
-        title="Registrasi Berhasil"
-        message="Akun Anda berhasil dibuat! Silakan login untuk melanjutkan."
-        confirmText="Ke Halaman Login"
-        onClose={() => (window.location.href = "/login")}
-        logo={logo}
-      />
     </div>
   );
 };

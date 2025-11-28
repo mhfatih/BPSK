@@ -1,131 +1,142 @@
-import React from "react";
+import { useEffect, useState } from "react";
+import { apiClient } from "../api/apiClient";
+import { Bar, Pie, Line } from "react-chartjs-2";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Chart as ChartJS,
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
   Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  HiOutlineDocumentText,
-  HiOutlineCog,
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
-} from "react-icons/hi";
+  Legend,
+} from "chart.js";
 
-// ✅ Data dummy contoh (bisa diganti dengan data API)
-const summary = [
-  { title: "Total Pengaduan", value: 132, icon: <HiOutlineDocumentText size={28} />, color: "text-blue-600 bg-blue-100" },
-  { title: "Dalam Proses", value: 56, icon: <HiOutlineCog size={28} />, color: "text-yellow-600 bg-yellow-100" },
-  { title: "Selesai", value: 62, icon: <HiOutlineCheckCircle size={28} />, color: "text-green-600 bg-green-100" },
-  { title: "Ditolak", value: 14, icon: <HiOutlineXCircle size={28} />, color: "text-red-600 bg-red-100" },
-];
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend
+);
 
-const data = [
-  { name: "Jan", pengaduan: 40, selesai: 24 },
-  { name: "Feb", pengaduan: 30, selesai: 13 },
-  { name: "Mar", pengaduan: 20, selesai: 48 },
-  { name: "Apr", pengaduan: 27, selesai: 39 },
-  { name: "May", pengaduan: 18, selesai: 42 },
-  { name: "Jun", pengaduan: 23, selesai: 33 },
-  { name: "Jul", pengaduan: 34, selesai: 51 },
-];
+export default function Dashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-const latestReports = [
-  { id: 1, nama: "User A", judul: "Industri dan Pertambangan", status: "Proses" },
-  { id: 2, nama: "User B", judul: "Pertanian dan Kehutanan", status: "Ditolak" },
-  { id: 3, nama: "User C", judul: "Jasa", status: "Selesai" },
-  { id: 4, nama: "User D", judul: "Iklan", status: "Proses" },
-];
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const result = await apiClient("/dashboard");
+        setData(result);
+      } catch (err) {
+        console.error("Gagal ambil dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-export default function DashboardPage() {
+    fetchDashboard();
+  }, []);
+
+  if (loading) return <p className="text-center mt-10">Loading data...</p>;
+  if (!data) return <p className="text-center text-red-600 mt-10">Gagal memuat data.</p>;
+
+  // Chart Data
+  const statusChart = {
+    labels: data.status.map((s) => s.status),
+    datasets: [
+      {
+        label: "Jumlah Kasus",
+        data: data.status.map((s) => s.jumlah),
+      },
+    ],
+  };
+
+  const wilayahChart = {
+    labels: data.wilayah.map((w) => w.wilayah),
+    datasets: [
+      {
+        label: "Kasus per Wilayah",
+        data: data.wilayah.map((w) => w.jumlah),
+      },
+    ],
+  };
+
+  const jenisChart = {
+    labels: data.jenis_pengaduan.map((j) => j.jenis_pengaduan),
+    datasets: [
+      {
+        label: "Jumlah",
+        data: data.jenis_pengaduan.map((j) => j.jumlah),
+      },
+    ],
+  };
+
+  const sidangChart = {
+    labels: data.sidang_per_bulan.map((s) => s.bulan),
+    datasets: [
+      {
+        label: "Sidang per Bulan",
+        data: data.sidang_per_bulan.map((s) => s.jumlah),
+      },
+    ],
+  };
+
   return (
-    <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-      {/* ===== RINGKASAN KARTU ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summary.map((item, i) => (
-          <div
-            key={i}
-            className="bg-white rounded-2xl shadow-md p-5 flex items-center gap-4 hover:shadow-lg hover:scale-[1.02] transition"
-          >
-            <div className={`p-3 rounded-full ${item.color}`}>{item.icon}</div>
-            <div>
-              <h3 className="text-gray-500 text-sm">{item.title}</h3>
-              <p className="text-2xl font-bold text-gray-700">{item.value}</p>
-            </div>
-          </div>
-        ))}
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold mb-6 text-gray-700">Dashboard Kasus BPSK</h1>
+
+      {/* Summary Card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="p-6 bg-white shadow rounded-lg border">
+          <h2 className="text-sm text-gray-500">Total Kasus</h2>
+          <p className="text-3xl font-bold">{data.total_kasus}</p>
+        </div>
+
+        <div className="p-6 bg-white shadow rounded-lg border">
+          <h2 className="text-sm text-gray-500">Total Perusahaan Terlibat</h2>
+          <p className="text-3xl font-bold">{data.total_perusahaan}</p>
+        </div>
+
+        <div className="p-6 bg-white shadow rounded-lg border">
+          <h2 className="text-sm text-gray-500">Total Kerugian</h2>
+          <p className="text-xl font-semibold">Rp {data.kerugian.total_kerugian?.toLocaleString()}</p>
+          <h2 className="text-sm text-gray-500 mt-2">Rata-rata Kerugian</h2>
+          <p className="text-lg">Rp {data.kerugian.rata_kerugian?.toLocaleString()}</p>
+        </div>
       </div>
 
-      {/* ===== GRAFIK TREN ===== */}
-      <div className="bg-white shadow rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">
-          Tren Pengaduan & Kasus Selesai (Per Bulan)
-        </h2>
+      {/* Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-        <ResponsiveContainer width="100%" height={320}>
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="colorPengaduan" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorSelesai" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+        {/* Status */}
+        <div className="bg-white p-6 shadow rounded-lg border">
+          <h2 className="text-lg font-semibold mb-4">Kasus Berdasarkan Status</h2>
+          <Bar data={statusChart} />
+        </div>
 
-            <CartesianGrid strokeDasharray="3 3" className="text-gray-200" />
-            <XAxis dataKey="name" tick={{ fill: "#6b7280" }} />
-            <YAxis tick={{ fill: "#6b7280" }} />
-            <Tooltip />
-            <Area
-              type="monotone"
-              dataKey="pengaduan"
-              stroke="#3b82f6"
-              fill="url(#colorPengaduan)"
-              strokeWidth={2}
-            />
-            <Area
-              type="monotone"
-              dataKey="selesai"
-              stroke="#10b981"
-              fill="url(#colorSelesai)"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+        {/* Wilayah */}
+        <div className="bg-white p-6 shadow rounded-lg border">
+          <h2 className="text-lg font-semibold mb-4">Kasus per Wilayah</h2>
+          <Pie data={wilayahChart} />
+        </div>
 
-      {/* ===== AKTIVITAS TERBARU ===== */}
-      <div className="bg-white shadow rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">
-          Aktivitas Pengaduan Terbaru
-        </h2>
-        <ul className="divide-y divide-gray-200">
-          {latestReports.map((r) => (
-            <li key={r.id} className="py-4 flex justify-between items-center">
-              <div>
-                <p className="font-medium text-gray-800">{r.judul}</p>
-                <p className="text-sm text-gray-500">{r.nama}</p>
-              </div>
-              <span
-                className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                  r.status === "Selesai"
-                    ? "bg-green-100 text-green-600"
-                    : r.status === "Ditolak"
-                    ? "bg-red-100 text-red-600"
-                    : "bg-yellow-100 text-yellow-600"
-                }`}
-              >
-                {r.status}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {/* Jenis */}
+        <div className="bg-white p-6 shadow rounded-lg border">
+          <h2 className="text-lg font-semibold mb-4">Jenis Pengaduan</h2>
+          <Bar data={jenisChart} />
+        </div>
+
+        {/* Sidang */}
+        <div className="bg-white p-6 shadow rounded-lg border">
+          <h2 className="text-lg font-semibold mb-4">Sidang per Bulan</h2>
+          <Line data={sidangChart} />
+        </div>
       </div>
     </div>
   );

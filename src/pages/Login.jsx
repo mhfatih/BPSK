@@ -87,7 +87,7 @@ const Login = () => {
             </div>
 
             <div className="text-right mb-4">
-              <a href="/forgot-password" className="text-blue-700 text-sm hover:underline">
+              <a href="/forgot-password" className="text-blue-700 font-semibold text-sm hover:underline">
                 Lupa password?
               </a>
             </div>

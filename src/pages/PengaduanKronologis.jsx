@@ -5,7 +5,7 @@ import KasusNavbar from "../components/KasusNavbar";
 
 export default function KronologisPengaduan() {
   const { id } = useParams();
-  
+
   const [form, setForm] = useState({
     kronologis: "",
     jenis_tuntutan: "",
@@ -48,7 +48,7 @@ export default function KronologisPengaduan() {
       });
 
       alert("✅ Kronologis berhasil disimpan!");
-      
+
     } catch (err) {
       console.error("🔥 ERROR UPDATE KRONOLOGIS:", err);
       alert(err.message || "Gagal menyimpan kronologis");
@@ -60,7 +60,7 @@ export default function KronologisPengaduan() {
 
   return (
     <>
-    <KasusNavbar />
+      <KasusNavbar />
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-3xl mx-auto">
         <h1 className="text-2xl font-semibold text-gray-700 mb-4">
           Langkah 4: Kronologis Pengaduan

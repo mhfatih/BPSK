@@ -1,8 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "../src/components/ProtectedRoute";
+import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Navbar from "./components/Navbar";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import VerifyOtp from "./pages/VerifyOtp";
 import DashboardLayout from "./components/DashboardLayout";
 // import DashboardPage from "./pages/PageDashboard";
 import DashboardPage from "./pages/DashboardPage";
@@ -30,6 +33,9 @@ function App() {
       <Route path="/" element={<Navigate to="/login" />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-otp" element={<VerifyOtp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* Layout wrapper untuk semua halaman login */}
       <Route element={<ProtectedRoute allowedRoles={["user", "admin", "superadmin"]}><Navbar /></ProtectedRoute>}>
