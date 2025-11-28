@@ -5,7 +5,7 @@ import KasusNavbar from "../components/KasusNavbar";
 
 export default function PengaduanDataDiri() {
   const { id } = useParams();
-  
+
 
   const [form, setForm] = useState({
     pengadu_nama: "",
@@ -21,7 +21,7 @@ export default function PengaduanDataDiri() {
   });
   const [loading, setLoading] = useState(false);
 
-  // 📥 Ambil data lama dari backend
+  // 📥 Ambil data dari backend
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,37 +53,35 @@ export default function PengaduanDataDiri() {
 
   // Submit data diri
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => {
-      if (value !== null && value !== "") {
-        formData.append(key, value);
-      }
-    });
+    try {
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== null && value !== "") {
+          formData.append(key, value);
+        }
+      });
 
-    // ⬅ API Client sudah mengembalikan JSON langsung
-    const data = await apiClient(`/kasus/${id}/data-diri`, {
-      method: "PUT",
-      body: formData,
-    });
-    console.log("Response dari backend:", data);
+      // ⬅ API Client sudah mengembalikan JSON langsung
+      const data = await apiClient(`/kasus/${id}/data-diri`, {
+        method: "PUT",
+        body: formData,
+      });
+      console.log("Response dari backend:", data);
 
-    // ⬅ Tidak perlu res.ok, karena apiClient akan throw error kalau gagal
-    alert(data.message || "Data diri berhasil disimpan!");
-    // navigate(`/pengaduan/${id}/pelaku-usaha`);
+      // ⬅ Tidak perlu res.ok, karena apiClient akan throw error kalau gagal
+      alert(data.message || "Data diri berhasil disimpan!");
+      // navigate(`/pengaduan/${id}/pelaku-usaha`);
 
-  } catch (err) {
-    console.error("Error submit data diri:", err);
-    alert(err.message || "Terjadi kesalahan server!");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+    } catch (err) {
+      console.error("Error submit data diri:", err);
+      alert(err.message || "Terjadi kesalahan server!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Tampilan UI
   return (

@@ -5,10 +5,10 @@ import KasusNavbar from "../components/KasusNavbar";
 
 export default function PelakuUsaha() {
   const { id } = useParams();
-  
+
 
   const emptyPelaku = {
-    nama_pemilik: "",
+    pemilik: "",
     perusahaan: "",
     kota: "",
     alamat: "",
@@ -31,8 +31,8 @@ export default function PelakuUsaha() {
           method: "GET"
         });
 
-        if (Array.isArray(data) && data.length > 0) {
-          setPelakuUsahaList(data);
+        if (Array.isArray(data.pelaku) && data.pelaku.length > 0) {
+          setPelakuUsahaList(data.pelaku);
         }
       } catch (err) {
         console.error("Gagal ambil data pelaku usaha:", err);
@@ -171,7 +171,7 @@ export default function PelakuUsaha() {
       }
 
       alert("Data pelaku usaha berhasil disimpan!");
-      
+
 
     } catch (err) {
       console.error(err);
@@ -200,8 +200,8 @@ export default function PelakuUsaha() {
               <button
                 onClick={() => setActiveIndex(index)}
                 className={`px-4 py-2 rounded-t-md border ${index === activeIndex
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300"
+                  ? "bg-gray-200 shadow"
+                  : "hover:bg-gray-200"
                   }`}
               >
                 Pelaku {index + 1}
@@ -222,9 +222,9 @@ export default function PelakuUsaha() {
           {/* Tambah Tab */}
           <button
             onClick={addPelakuUsaha}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            className="px-4 py-2 shadow rounded-md hover:bg-gray-200"
           >
-            + Tambah
+            +
           </button>
         </div>
 
@@ -247,8 +247,8 @@ export default function PelakuUsaha() {
             <label className="block text-sm font-medium">Nama Pemilik</label>
             <input
               type="text"
-              name="nama_pemilik"
-              value={pelaku.nama_pemilik}
+              name="pemilik"
+              value={pelaku.pemilik}
               onChange={handleChange}
               className="w-full border p-2 rounded"
             />
@@ -322,7 +322,7 @@ export default function PelakuUsaha() {
           </div>
 
           {/* FOOTER BUTTONS */}
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-end pt-4">
             {/* <button
               type="button"
               onClick={() => navigate(`/pengaduan/${id}/data-diri`)}
@@ -335,7 +335,7 @@ export default function PelakuUsaha() {
               type="button"
               disabled={loading}
               onClick={saveSinglePelaku}
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               {loading ? "Menyimpan..." : "Simpan Pelaku Ini"}
             </button>

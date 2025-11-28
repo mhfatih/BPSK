@@ -26,29 +26,27 @@ export default function TentangPengaduan() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🔹 Ambil data dari endpoint baru
         const res = await apiClient(`/kasus/${id}/tentang-pengaduan`, {
           method: "GET",
         });
-  
-        // Format respon bisa beda-beda.
-        const data = res?.data || res?.pengaduan || res;
-  
-        if (data) {
+
+        const pengaduan = res?.pengaduan || res?.data?.pengaduan || res;
+
+        if (pengaduan) {
           setForm((prev) => ({
             ...prev,
-            ...data,
-            foto_bukti: null, // jangan timpa file dengan path string
+            ...pengaduan,
+            foto_bukti: null,
           }));
         }
+
       } catch (err) {
         console.error("Gagal ambil data pengaduan:", err);
       }
     };
-  
+
     fetchData();
   }, [id]);
-  
 
   // 🔹 Handle perubahan input
   const handleChange = (e) => {
@@ -64,16 +62,16 @@ export default function TentangPengaduan() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-  
+
     try {
       const formData = new FormData();
-  
+
       // isi formData dengan semua input yang tidak null
       Object.keys(form).forEach((key) => {
         if (form[key] !== null && form[key] !== "")
           formData.append(key, form[key]);
       });
-  
+
       // 🔹 Kirim ke endpoint backend dengan apiClient
       const res = await apiClient(`/kasus/${id}/tentang-pengaduan`, {
         method: "PUT",
@@ -82,9 +80,9 @@ export default function TentangPengaduan() {
           // ❗ JANGAN tambahkan Content-Type multipart, biarkan browser yang generate
         }
       });
-  
+
       alert(res.message || "Data pengaduan berhasil disimpan!");
-      
+
     } catch (err) {
       console.error("Error submit pengaduan:", err);
       alert(err.response?.data?.message || err.message || "Terjadi kesalahan server!");
@@ -92,7 +90,7 @@ export default function TentangPengaduan() {
       setLoading(false);
     }
   };
-  
+
 
   return (
     <>
@@ -235,23 +233,6 @@ export default function TentangPengaduan() {
             </p>
           </div>
 
-
-
-          {/* Jenis Kerugian */}
-          {/* <div>
-            <label className="block text-sm font-medium">Jenis Kerugian</label>
-            <select
-              name="jenis_kerugian"
-              value={form.jenis_kerugian}
-              onChange={handleChange}
-              className="w-full border rounded-md p-2"
-            >
-              <option value="">Pilih Jenis Kerugian</option>
-              <option value="fisik">Fisik</option>
-              <option value="material">Material</option>
-            </select>
-          </div> */}
-
           <div>
             <label className="block text-sm font-medium">Keterangan Kerugian</label>
             <textarea
@@ -336,16 +317,8 @@ export default function TentangPengaduan() {
             </div>
           </div>
 
-          {/* Tombol Navigasi */}
+          {/* Tombol Simpan */}
           <div className="flex justify-end mt-6">
-            {/* <button
-              type="button"
-              onClick={() => navigate(`/pengaduan/${id}/pelaku-usaha`)}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
-            >
-              ← Kembali
-            </button> */}
-
             <button
               type="submit"
               disabled={loading}
