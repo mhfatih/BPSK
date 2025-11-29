@@ -8,32 +8,84 @@ export default function KasusNavbar() {
   const location = useLocation();
 
   const [status, setStatus] = useState("");
+  const [caseOwnerId, setCaseOwnerId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Ambil status kasus langsung dari backend
+  // 🔵 Ambil user dari localStorage
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
+
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
+  const isOwner = user?.id === caseOwnerId;
+
+  // 🔵 Ambil status & pemilik kasus
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const data = await apiClient(`/kasus/${id}/status`);
         setStatus(data.status);
+        setCaseOwnerId(data.created_by);
       } catch (err) {
         console.error("Gagal mengambil status kasus:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchStatus();
   }, [id]);
 
+  // ⏳ Jangan render menu sebelum data siap
+  if (loading) {
+    return (
+      <div className="text-center py-4 text-gray-500">
+        Loading...
+      </div>
+    );
+  }
+
   const menu = [
-    { label: "Data Diri", path: `/kasus/${id}/data-diri`, showIf: ["Draf", "Ditolak"] },
-    { label: "Pelaku Usaha", path: `/kasus/${id}/pelaku-usaha`, showIf: ["Draf", "Ditolak"] },
-    { label: "Tentang Pengaduan", path: `/kasus/${id}/tentang-pengaduan`, showIf: ["Draf", "Ditolak"] },
-    { label: "Kronologis", path: `/kasus/${id}/kronologis-pengaduan`, showIf: ["Draf", "Ditolak"] },
-    { label: "Preview", path: `/kasus/${id}/view`, showIf: ["Draf", "Diverifikasi", "Ditolak", "Diterima", "Diproses", "Selesai"] },
-    { label: "Proses", path: `/kasus/${id}/proses`, showIf: ["Diverifikasi", "Diterima"] },
-    { label: "Sidang", path: `/kasus/sidang/${id}`, showIf: ["Diproses", "Selesai"] },
+    {
+      label: "Data Diri",
+      path: `/kasus/${id}/data-diri`,
+      showStatus: ["Draf", "Ditolak"],
+      allowed: isOwner,
+    },
+    {
+      label: "Pelaku Usaha",
+      path: `/kasus/${id}/pelaku-usaha`,
+      showStatus: ["Draf", "Ditolak"],
+      allowed: isOwner,
+    },
+    {
+      label: "Tentang Pengaduan",
+      path: `/kasus/${id}/tentang-pengaduan`,
+      showStatus: ["Draf", "Ditolak"],
+      allowed: isOwner,
+    },
+    {
+      label: "Kronologis",
+      path: `/kasus/${id}/kronologis-pengaduan`,
+      showStatus: ["Draf", "Ditolak"],
+      allowed: isOwner,
+    },
+    {
+      label: "Preview",
+      path: `/kasus/${id}/view`,
+      showStatus: ["Draf", "Diverifikasi", "Ditolak", "Diterima", "Diproses", "Selesai"],
+      allowed: true,
+    },
+    {
+      label: "Proses",
+      path: `/kasus/${id}/proses`,
+      showStatus: ["Diverifikasi", "Diterima", "Diproses"],
+      allowed: isAdmin,
+    },
   ];
 
-  const filteredMenu = menu.filter(item => item.showIf.includes(status));
+  const filteredMenu = menu.filter(
+    (m) => m.showStatus.includes(status) && m.allowed
+  );
 
   return (
     <div className="bg-white shadow-md rounded-xl border border-gray-200 px-4 py-4 mb-6 max-w-3xl mx-auto">

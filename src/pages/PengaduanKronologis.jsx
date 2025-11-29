@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Outlet } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
 import KasusNavbar from "../components/KasusNavbar";
+import Popup from "../components/Popup";
 
 export default function KronologisPengaduan() {
   const { id } = useParams();
@@ -12,6 +13,9 @@ export default function KronologisPengaduan() {
   });
   const [loading, setLoading] = useState(false);
 
+  // 🔹 State popup
+  const [showPopup, setShowPopup] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -21,7 +25,6 @@ export default function KronologisPengaduan() {
           kronologis: data.kronologis || "",
           jenis_tuntutan: data.jenis_tuntutan || "",
         });
-
       } catch (err) {
         console.error("❌ Gagal ambil data kronologis:", err);
       }
@@ -29,7 +32,6 @@ export default function KronologisPengaduan() {
 
     fetchData();
   }, [id]);
-
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -39,7 +41,6 @@ export default function KronologisPengaduan() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Data dikirim:", form);
 
     try {
       await apiClient(`/kasus/${id}/kronologis`, {
@@ -47,7 +48,8 @@ export default function KronologisPengaduan() {
         body: form,
       });
 
-      alert("✅ Kronologis berhasil disimpan!");
+      // 🔹 Tampilkan popup sukses
+      setShowPopup(true);
 
     } catch (err) {
       console.error("🔥 ERROR UPDATE KRONOLOGIS:", err);
@@ -55,12 +57,12 @@ export default function KronologisPengaduan() {
     } finally {
       setLoading(false);
     }
-
   };
 
   return (
     <>
       <KasusNavbar />
+
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-3xl mx-auto">
         <h1 className="text-2xl font-semibold text-gray-700 mb-4">
           Langkah 4: Kronologis Pengaduan
@@ -88,30 +90,21 @@ export default function KronologisPengaduan() {
               name="jenis_tuntutan"
               value={form.jenis_tuntutan}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-xl p-2.5  transition bg-white"
+              className="w-full border border-gray-300 rounded-xl p-2.5 bg-white"
             >
               <option value="">Pilih Jenis Tuntutan</option>
-              <option value="gantiBarang">Pengembalian Barang/Jasa yang Sejenis atau Setara Lainnya</option>
-              <option value="gantiUang">Pengembalian Uang</option>
-              <option value="kesehatan">Perawatan Kesehatan</option>
-              <option value="santunan">Pemberian Santunan</option>
-              <option value="teguran">Teguran Kepada Pelaku Usaha</option>
-              <option value="lain-lain">Lain-lain</option>
-
+              <option value="Pengembalian Barang/Jasa yang Sejenis atau Setara Lainnya">
+                Pengembalian Barang/Jasa yang Sejenis atau Setara Lainnya
+              </option>
+              <option value="Pengembalian Uang">Pengembalian Uang</option>
+              <option value="Perawatan Kesehatan">Perawatan Kesehatan</option>
+              <option value="Pemberian Santunan">Pemberian Santunan</option>
+              <option value="Teguran Kepada Pelaku Usaha">Teguran Kepada Pelaku Usaha</option>
+              <option value="Lain-lain">Lain-lain</option>
             </select>
           </div>
 
           <div className="flex justify-end mt-6">
-            {/* <button
-              type="button"
-              onClick={() =>
-                navigate(`/pengaduan/${id}/tentang-pengaduan`)
-              }
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
-            >
-              ← Kembali
-            </button> */}
-
             <button
               type="submit"
               disabled={loading}
@@ -123,8 +116,18 @@ export default function KronologisPengaduan() {
         </form>
       </div>
 
-      {/* Jika ada nested route tambahan di bawahnya */}
+      {/* Outlet untuk nested route */}
       <Outlet />
+
+      {/* 🔹 Popup Sukses */}
+      <Popup
+        show={showPopup}
+        title="Berhasil!"
+        message="Kronologis telah berhasil disimpan."
+        mode="info"
+        confirmText="OK"
+        onClose={() => setShowPopup(false)}
+      />
     </>
   );
 }

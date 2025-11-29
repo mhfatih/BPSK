@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
 import KasusNavbar from "../components/KasusNavbar";
+import Popup from "../components/Popup";
 
 export default function PengaduanPelakuUsaha() {
   const { id } = useParams();
@@ -9,17 +10,26 @@ export default function PengaduanPelakuUsaha() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // POPUP STATE
+  const [popupShow, setPopupShow] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMsg, setPopupMsg] = useState("");
+  const [popupConfirm, setPopupConfirm] = useState(null);
+
   // Load pelaku dari API
   const fetchPelaku = async () => {
     try {
       setLoading(true);
       let data = await apiClient(`/kasus/${id}/pelaku-usaha`);
 
-      // FIX: urutkan berdasarkan ID ASC (pelaku lama dulu)
-      data = data.sort((a, b) => a.id - b.id);
+      // SORT by created_at ASC, fallback ke ID ASC
+      data = data.sort((a, b) =>
+        new Date(a.created_at || 0) - new Date(b.created_at || 0) ||
+        a.id - b.id
+      );
 
       setPelakuList(data);
-      return data; 
+      return data;
     } catch (err) {
       alert(err.message);
       return [];
@@ -39,8 +49,6 @@ export default function PengaduanPelakuUsaha() {
     });
 
     const updated = await fetchPelaku();
-
-    // pindah ke pelaku terbaru (index terakhir)
     setActiveIndex(updated.length - 1);
   };
 
@@ -53,26 +61,40 @@ export default function PengaduanPelakuUsaha() {
       body: current,
     });
 
-    alert("Pelaku berhasil disimpan!");
+    // Pakai popup sukses
+    setPopupTitle("Berhasil");
+    setPopupMsg("Pelaku berhasil disimpan!");
+    setPopupConfirm(null);
+    setPopupShow(true);
+
     fetchPelaku();
   };
 
-  // Hapus pelaku
-  const deletePelaku = async () => {
+  // HAPUS DENGAN POPUP
+  const askDeletePelaku = () => {
     const current = pelakuList[activeIndex];
     if (!current) return;
 
-    if (!window.confirm(`Hapus Pelaku Usaha ke-${activeIndex + 1}?`)) return;
+    // Set popup konfirmasi
+    setPopupTitle("Hapus Pelaku Usaha?");
+    setPopupMsg(`Yakin ingin menghapus Pelaku ke-${activeIndex + 1}?`);
+    setPopupConfirm(() => deletePelaku);
+    setPopupShow(true);
+  };
+
+  const deletePelaku = async () => {
+    const current = pelakuList[activeIndex];
+    if (!current) return;
 
     await apiClient(`/pelaku-usaha/${current.id}`, {
       method: "DELETE",
     });
 
-    alert("Pelaku berhasil dihapus!");
+    // Tutup popup konfirmasi
+    setPopupShow(false);
 
+    // Tidak ada popup sukses, langsung update list
     const updated = await fetchPelaku();
-
-    // pindah ke tab terakhir (yang tersisa)
     setActiveIndex(Math.max(0, updated.length - 1));
   };
 
@@ -86,8 +108,27 @@ export default function PengaduanPelakuUsaha() {
   return (
     <>
       <KasusNavbar />
+
+      {/* POPUP */}
+      <Popup
+        show={popupShow}
+        title={popupTitle}
+        message={popupMsg}
+        mode={popupConfirm ? "confirm" : "info"}
+        confirmText={popupConfirm ? "Ya" : "OK"}
+        cancelText="Tidak"
+        onConfirm={() => {
+          if (popupConfirm) popupConfirm();
+          else setPopupShow(false);
+        }}
+        onCancel={() => setPopupShow(false)}
+        onClose={() => setPopupShow(false)}
+      />
+
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-3xl mx-auto">
-        <h2 className="text-2xl font-semibold text-gray-700 mb-4">Langkah 2: Pelaku Usaha</h2>
+        <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+          Langkah 2: Pelaku Usaha
+        </h2>
 
         {/* TABS */}
         <div className="flex items-center gap-2 mb-4">
@@ -95,11 +136,10 @@ export default function PengaduanPelakuUsaha() {
             <button
               key={p.id}
               onClick={() => setActiveIndex(index)}
-              className={`px-4 py-2 rounded border ${
-                index === activeIndex
+              className={`px-4 py-2 rounded border ${index === activeIndex
                   ? "bg-gray-200 border-gray-400"
                   : "bg-white border-gray-300"
-              }`}
+                }`}
             >
               Pelaku {index + 1}
             </button>
@@ -119,9 +159,10 @@ export default function PengaduanPelakuUsaha() {
           <>
             {/* FORM */}
             <div className="space-y-4">
-
               <div>
-                <label className="block text-sm font-semibold">Perusahaan</label>
+                <label className="block text-sm font-semibold">
+                  Perusahaan
+                </label>
                 <input
                   value={pelakuList[activeIndex]?.perusahaan || ""}
                   onChange={(e) => updateField("perusahaan", e.target.value)}
@@ -130,7 +171,9 @@ export default function PengaduanPelakuUsaha() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold">Nama Pemilik</label>
+                <label className="block text-sm font-semibold">
+                  Nama Pemilik
+                </label>
                 <input
                   value={pelakuList[activeIndex]?.pemilik || ""}
                   onChange={(e) => updateField("pemilik", e.target.value)}
@@ -149,9 +192,13 @@ export default function PengaduanPelakuUsaha() {
                   <option value="Kota Serang">Kota Serang</option>
                   <option value="Kota Cilegon">Kota Cilegon</option>
                   <option value="Kabupaten Serang">Kabupaten Serang</option>
-                  <option value="Kabupaten Pandeglang">Kabupaten Pandeglang</option>
+                  <option value="Kabupaten Pandeglang">
+                    Kabupaten Pandeglang
+                  </option>
                   <option value="Kabupaten Lebak">Kabupaten Lebak</option>
-                  <option value="Kabupaten Tangerang">Kabupaten Tangerang</option>
+                  <option value="Kabupaten Tangerang">
+                    Kabupaten Tangerang
+                  </option>
                   <option value="Kota Tangerang">Kota Tangerang</option>
                 </select>
               </div>
@@ -168,7 +215,9 @@ export default function PengaduanPelakuUsaha() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold">Kode Pos</label>
+                  <label className="block text-sm font-semibold">
+                    Kode Pos
+                  </label>
                   <input
                     value={pelakuList[activeIndex]?.kode_pos || ""}
                     onChange={(e) => updateField("kode_pos", e.target.value)}
@@ -187,7 +236,9 @@ export default function PengaduanPelakuUsaha() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold">Email (opsional)</label>
+                <label className="block text-sm font-semibold">
+                  Email
+                </label>
                 <input
                   value={pelakuList[activeIndex]?.email || ""}
                   onChange={(e) => updateField("email", e.target.value)}
@@ -197,9 +248,8 @@ export default function PengaduanPelakuUsaha() {
             </div>
 
             <div className="flex justify-between mt-6">
-
               <button
-                onClick={deletePelaku}
+                onClick={askDeletePelaku}
                 className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700"
               >
                 Hapus Pelaku Ini
@@ -211,7 +261,6 @@ export default function PengaduanPelakuUsaha() {
               >
                 Simpan Pelaku Ini
               </button>
-
             </div>
           </>
         )}

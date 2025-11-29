@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
 import KasusNavbar from "../components/KasusNavbar";
-// import { getKasusById, updatePengaduan } from "../api/kasusServices";
+import Popup from "../components/Popup"; // <-- import popup
 
 export default function TentangPengaduan() {
   const { id } = useParams();
-  // const navigate = useNavigate();
+
   const [form, setForm] = useState({
     jenis_pengaduan: "",
     tanggal_kejadian: "",
@@ -20,7 +20,13 @@ export default function TentangPengaduan() {
     barang_bukti: "",
     foto_bukti: null,
   });
+
   const [loading, setLoading] = useState(false);
+
+  // 🔹 State Popup
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMessage, setPopupMessage] = useState("");
 
   // 🔹 Ambil data lama dari backend
   useEffect(() => {
@@ -39,7 +45,6 @@ export default function TentangPengaduan() {
             foto_bukti: null,
           }));
         }
-
       } catch (err) {
         console.error("Gagal ambil data pengaduan:", err);
       }
@@ -66,35 +71,52 @@ export default function TentangPengaduan() {
     try {
       const formData = new FormData();
 
-      // isi formData dengan semua input yang tidak null
       Object.keys(form).forEach((key) => {
-        if (form[key] !== null && form[key] !== "")
+        if (form[key] !== null && form[key] !== "") {
           formData.append(key, form[key]);
-      });
-
-      // 🔹 Kirim ke endpoint backend dengan apiClient
-      const res = await apiClient(`/kasus/${id}/tentang-pengaduan`, {
-        method: "PUT",
-        body: formData,            // <-- wajib
-        headers: {
-          // ❗ JANGAN tambahkan Content-Type multipart, biarkan browser yang generate
         }
       });
 
-      alert(res.message || "Data pengaduan berhasil disimpan!");
+      // PUT
+      const res = await apiClient(`/kasus/${id}/tentang-pengaduan`, {
+        method: "PUT",
+        body: formData,
+        headers: {},
+      });
+
+      // 🔹 Munculkan popup sukses
+      setPopupTitle("Berhasil!");
+      setPopupMessage(res.message || "Data pengaduan berhasil disimpan!");
+      setShowPopup(true);
 
     } catch (err) {
       console.error("Error submit pengaduan:", err);
-      alert(err.response?.data?.message || err.message || "Terjadi kesalahan server!");
+
+      // 🔹 Popup error
+      setPopupTitle("Gagal!");
+      setPopupMessage(
+        err.response?.data?.message || err.message || "Terjadi kesalahan server!"
+      );
+      setShowPopup(true);
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
     <>
       <KasusNavbar />
+      
+      {/* 🔹 Popup */}
+      <Popup
+        show={showPopup}
+        title={popupTitle}
+        message={popupMessage}
+        mode="info"
+        confirmText="OK"
+        onClose={() => setShowPopup(false)}
+      />
+
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-3xl mx-auto">
         <h1 className="text-2xl font-semibold text-gray-700 mb-4">
           Langkah 3: Tentang Pengaduan
@@ -174,21 +196,21 @@ export default function TentangPengaduan() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  value="fisik"
+                  value="Fisik"
                   checked={
-                    form.jenis_kerugian === "fisik" ||
-                    form.jenis_kerugian === "fisik dan material"
+                    form.jenis_kerugian === "Fisik" ||
+                    form.jenis_kerugian === "Fisik dan Material"
                   }
                   onChange={(e) => {
                     const checked = e.target.checked;
                     let newValue = form.jenis_kerugian;
 
                     if (checked) {
-                      if (newValue === "material") newValue = "fisik dan material";
-                      else newValue = "fisik";
+                      if (newValue === "Material") newValue = "Fisik dan Material";
+                      else newValue = "Fisik";
                     } else {
-                      if (newValue === "fisik dan material") newValue = "material";
-                      else if (newValue === "fisik") newValue = "";
+                      if (newValue === "Fisik dan Material") newValue = "Material";
+                      else if (newValue === "Fisik") newValue = "";
                     }
 
                     setForm({ ...form, jenis_kerugian: newValue });
@@ -202,20 +224,20 @@ export default function TentangPengaduan() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  value="material"
+                  value="Material"
                   checked={
-                    form.jenis_kerugian === "material" ||
-                    form.jenis_kerugian === "fisik dan material"
+                    form.jenis_kerugian === "Material" ||
+                    form.jenis_kerugian === "Fisik dan Material"
                   }
                   onChange={(e) => {
                     const checked = e.target.checked;
                     let newValue = form.jenis_kerugian;
 
                     if (checked) {
-                      if (newValue === "fisik") newValue = "fisik dan material";
-                      else newValue = "material";
+                      if (newValue === "Fisik") newValue = "fisik dan material";
+                      else newValue = "Material";
                     } else {
-                      if (newValue === "fisik dan material") newValue = "fisik";
+                      if (newValue === "Fisik dan Material") newValue = "fisik";
                       else if (newValue === "material") newValue = "";
                     }
 
