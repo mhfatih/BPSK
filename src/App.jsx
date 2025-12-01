@@ -25,8 +25,7 @@ import PelakuUsaha from "./pages/PengaduanPelakuUsaha";
 import TentangPengaduan from "./pages/TentangPengaduan";
 import KronologisPengaduan from "./pages/PengaduanKronologis";
 import JadwalSidang from "./pages/JadwalSidang";
-// import Verifikasi from "./pages/Verifikasi";
-
+import Verifikasi from "./pages/PengaduanProses;
 
 
 function App() {

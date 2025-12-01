@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiClient } from "../api/apiClient";
 import KasusNavbar from "../components/KasusNavbar";
+import Popup from "../components/Popup"; // <-- pastikan path sesuai
 
 export default function PengaduanDataDiri() {
   const { id } = useParams();
-
 
   const [form, setForm] = useState({
     pengadu_nama: "",
@@ -20,6 +20,11 @@ export default function PengaduanDataDiri() {
     pengadu_foto_identitas: null,
   });
   const [loading, setLoading] = useState(false);
+
+  // State popup
+  const [popupShow, setPopupShow] = useState(false);
+  const [popupTitle, setPopupTitle] = useState("");
+  const [popupMessage, setPopupMessage] = useState("");
 
   // 📥 Ambil data dari backend
   useEffect(() => {
@@ -64,16 +69,15 @@ export default function PengaduanDataDiri() {
         }
       });
 
-      // ⬅ API Client sudah mengembalikan JSON langsung
-      const data = await apiClient(`/kasus/${id}/data-diri`, {
+      await apiClient(`/kasus/${id}/data-diri`, {
         method: "PUT",
         body: formData,
       });
-      console.log("Response dari backend:", data);
 
-      // ⬅ Tidak perlu res.ok, karena apiClient akan throw error kalau gagal
-      alert(data.message || "Data diri berhasil disimpan!");
-      // navigate(`/pengaduan/${id}/pelaku-usaha`);
+      // 🔥 Tampilkan popup sukses
+      setPopupTitle("Berhasil Disimpan");
+      setPopupMessage("Data diri pengadu berhasil disimpan.");
+      setPopupShow(true);
 
     } catch (err) {
       console.error("Error submit data diri:", err);
@@ -87,6 +91,17 @@ export default function PengaduanDataDiri() {
   return (
     <>
       <KasusNavbar />
+
+      {/* Popup Sukses */}
+      <Popup
+        show={popupShow}
+        title={popupTitle}
+        message={popupMessage}
+        mode="info"
+        confirmText="OK"
+        onClose={() => setPopupShow(false)}
+      />
+
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-3xl mx-auto">
         <h1 className="text-2xl font-semibold text-gray-700 mb-4">
           Langkah 1: Data Diri Pengadu
@@ -103,7 +118,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_nama}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               />
             </div>
 
@@ -115,7 +129,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_umur}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               />
             </div>
 
@@ -126,7 +139,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_jenis_kelamin}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               >
                 <option value="">-- Pilih --</option>
                 <option value="laki-laki">Laki-laki</option>
@@ -161,7 +173,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_alamat}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               ></textarea>
             </div>
 
@@ -173,7 +184,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_email}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               />
             </div>
 
@@ -185,7 +195,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_no_hp}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               />
             </div>
 
@@ -197,7 +206,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_kode_pos}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               />
             </div>
 
@@ -209,7 +217,6 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_identitas}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
-
               />
             </div>
 
@@ -228,14 +235,6 @@ export default function PengaduanDataDiri() {
           </div>
 
           <div className="flex justify-end mt-6">
-            {/* <button
-              type="button"
-              onClick={() => navigate("/pengaduan")}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
-            >
-              ← Kembali
-            </button> */}
-
             <button
               type="submit"
               disabled={loading}
