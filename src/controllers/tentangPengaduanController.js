@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const db = require('../db');
+const db = require('../config/database');
 const { uploader, deleteOldFile } = require('../utils/uploader');
 
 /**

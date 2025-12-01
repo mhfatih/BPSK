@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
-const db = require('../db');
+const db = require('../config/database');
 const { sendEmail } = require('../utils/mailer');
 const SECRET_KEY = 'secret123';
 const saltRounds = 10;
@@ -33,6 +33,7 @@ const register = async (req, res) => {
 
       userId = user.id;
 
+      // Update user yang sudah ada tapi belum verifikasi
       await db.query(`
         UPDATE users
         SET password = ?, is_verified = 0
@@ -45,6 +46,7 @@ const register = async (req, res) => {
       `, [nama, userId]);
 
     } else {
+      // Buat user baru
       userId = uuidv4();
 
       await db.query(`
@@ -67,7 +69,7 @@ const register = async (req, res) => {
       { expiresIn: '5m' }
     );
 
-    await sendEmail(
+    sendEmail(
       email,
       "Kode OTP Verifikasi Akun",
       `
@@ -76,8 +78,9 @@ const register = async (req, res) => {
         <h2 style="letter-spacing: 3px;">${otp}</h2>
         <p>Kode ini berlaku selama <b>5 menit</b>.</p>
       `
-    );
+    ).catch(err => console.error("Gagal kirim email OTP:", err));
 
+    // Set cookie OTP
     res.cookie('otp_token', otpToken, {
       httpOnly: true,
       secure: true,
@@ -85,10 +88,10 @@ const register = async (req, res) => {
     });
 
     res.status(201).json({
-      message:
-        existing.length > 0
-          ? "Akun belum terverifikasi. OTP baru dikirim ulang."
-          : "Registrasi berhasil. Silakan cek email untuk OTP.",
+      message: existing.length > 0
+        ? "Akun belum terverifikasi. OTP baru dikirim ulang."
+        : "Registrasi berhasil. Silakan cek email untuk OTP.",
+      email_sent: true
     });
 
   } catch (err) {
@@ -186,34 +189,40 @@ const resendOTP = async (req, res) => {
 
     const { user_id, email } = decoded;
 
+    // Buat OTP baru
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
+    // Buat token baru berisi OTP baru
     const newOtpToken = jwt.sign(
       { user_id, email, otp: newOtp },
       SECRET_KEY,
       { expiresIn: "5m" }
     );
 
-    await sendEmail(
+    // 🔥 Kirim email TANPA await → non-blocking
+    sendEmail(
       email,
       "Kode OTP Verifikasi Akun",
       `
         <h3>Verifikasi Email</h3>
         <p>Kode OTP kamu adalah:</p>
-        <h2>${newOtp}</h2>
+        <h2 style="letter-spacing: 3px;">${newOtp}</h2>
         <p>Kode ini berlaku 5 menit.</p>
       `
-    );
+    ).catch(err => console.error("Gagal kirim email resend OTP:", err));
 
+    // Update cookie
     res.cookie("otp_token", newOtpToken, {
       httpOnly: true,
       secure: true,
       maxAge: 5 * 60 * 1000
     });
 
+    // Response langsung
     res.json({ message: "OTP baru telah dikirim" });
 
   } catch (err) {
+    console.error("RESEND OTP ERROR:", err);
     res.status(400).json({ message: "OTP tidak valid atau kadaluarsa" });
   }
 };
@@ -263,6 +272,7 @@ const forgotPassword = async (req, res) => {
 
     const user = rows[0];
 
+    // Buat token reset password
     const resetToken = jwt.sign(
       { user_id: user.id, email },
       SECRET_KEY,
@@ -271,7 +281,8 @@ const forgotPassword = async (req, res) => {
 
     const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
 
-    await sendEmail(
+    // 🚀 Kirim email TANPA await (biarkan jalan di background)
+    sendEmail(
       email,
       "Reset Password BPSK",
       `
@@ -280,11 +291,13 @@ const forgotPassword = async (req, res) => {
         <a href="${resetLink}" target="_blank">${resetLink}</a>
         <p>Link berlaku 15 menit.</p>
       `
-    );
+    ).catch(err => console.error("Gagal kirim email reset password:", err));
 
+    // Response langsung tanpa menunggu email terkirim
     res.json({ message: "Link reset password telah dikirim ke email" });
 
   } catch (err) {
+    console.error("Forgot Password Error:", err);
     res.status(500).json({ message: "Terjadi kesalahan server" });
   }
 };

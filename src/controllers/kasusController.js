@@ -3,7 +3,7 @@ const { sendEmail } = require('../utils/mailer');
 const { uploader, deleteOldFile } = require('../utils/uploader');
 const path = require('path');
 const fs = require('fs');
-const db = require('../db');
+const db = require('../config/database');
 
 /**
  * Get Dashboard
@@ -219,15 +219,7 @@ const getKasusById = async (req, res) => {
 
     // 🏢 Ambil semua pelaku usaha terkait
     const [pelakuUsaha] = await db.query(`
-      SELECT 
-        id,
-        perusahaan,
-        pemilik,
-        kota,
-        alamat,
-        kode_pos,
-        no_hp,
-        email
+      SELECT * 
       FROM kasus_pelaku_usaha
       WHERE kasus_id = ?
     `, [id]);
@@ -264,7 +256,12 @@ const getKasusStatus = async (req, res) => {
     if (req.user.role === "user" && kasus.created_by !== req.user.id)
       return res.status(403).json({ message: "Tidak boleh mengakses kasus orang lain" });
 
-    res.json({ id: kasus.id, status: kasus.status });
+    // ⬅ FIX: now include created_by
+    res.json({
+      id: kasus.id,
+      status: kasus.status,
+      created_by: kasus.created_by,
+    });
 
   } catch (err) {
     console.error("Error getKasusStatus:", err);
@@ -330,7 +327,7 @@ const submitKasus = async (req, res) => {
     const [pelakuUsaha] = await db.query('SELECT * FROM kasus_pelaku_usaha WHERE kasus_id = ?', [id]);
     const p = pelakuUsaha[0];
 
-    // 🚨 Validasi kelengkapan data utama (semua kolom di tabel kasus yang wajib)
+    // 🚨 Validasi kelengkapan data utama
     if (
       !kasus.pengadu_nama || !kasus.pengadu_umur || !kasus.pengadu_jenis_kelamin || !kasus.pengadu_kota ||
       !kasus.pengadu_alamat || !kasus.pengadu_email || !kasus.pengadu_no_hp || !kasus.pengadu_kode_pos ||
@@ -353,57 +350,61 @@ const submitKasus = async (req, res) => {
       WHERE id = ?
     `, [id]);
 
-    // 📧 Kirim email notifikasi ke pengadu
-    await sendEmail(
-      kasus.pengadu_email,
-      'Pengaduan Berhasil Dikirim',
-      `
-      <h3>Halo ${kasus.pengadu_nama},</h3>
-      <p>Terima kasih telah mengirimkan pengaduan Anda melalui sistem kami.</p>
-      <p>Status pengaduan Anda saat ini: <b>Diverifikasi</b>.</p>
-      <p>Kami akan segera menindaklanjuti laporan Anda. Paling lama 3 x 24 jam kerja.</p>
-      <hr/>
-      <p><b>ID Kasus:</b> ${id}</p>
-      <p><b>Jenis Pengaduan:</b> ${kasus.jenis_pengaduan}</p>
-      <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
-      `
-    );
+    // Email ke pengadu
+    setImmediate(() => {
+      sendEmail(
+        kasus.pengadu_email,
+        'Pengaduan Berhasil Dikirim',
+        `
+        <h3>Halo ${kasus.pengadu_nama},</h3>
+        <p>Terima kasih telah mengirimkan pengaduan Anda melalui sistem kami.</p>
+        <p>Status pengaduan Anda saat ini: <b>Diverifikasi</b>.</p>
+        <p>Kami akan segera menindaklanjuti laporan Anda. Paling lama 3 x 24 jam kerja.</p>
+        <hr/>
+        <p><b>ID Kasus:</b> ${id}</p>
+        <p><b>Jenis Pengaduan:</b> ${kasus.jenis_pengaduan}</p>
+        <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
+        `
+      ).catch(err => console.error('❌ Email ke pengadu gagal:', err));
+    });
 
-    // 📧 Kirim email ke semua admin & superadmin
-    try {
-      const wilayahKasus = kasus.wilayah;
-      const [admins] = await db.query(`
-        SELECT email FROM users
-        WHERE (role = 'admin' AND wilayah = ?) OR role = 'superadmin'
-      `, [wilayahKasus]);
+    // Email ke admin/superadmin
+    setImmediate(async () => {
+      try {
+        const [admins] = await db.query(`
+          SELECT email FROM users
+          WHERE (role = 'admin' AND wilayah = ?) OR role = 'superadmin'
+        `, [kasus.wilayah]);
 
-      const adminEmails = admins.map(a => a.email);
-      if (adminEmails.length > 0) {
-        await sendEmail(
-          adminEmails.join(','),
-          'Pengaduan Baru Diterima',
-          `
-          <h3>Halo Admin & Superadmin,</h3>
-          <p>Ada pengaduan baru yang telah dikirim oleh <b>${kasus.pengadu_nama}</b>.</p>
-          <p>Wilayah kasus: <b>${wilayahKasus}</b></p>
-          <p>Mohon untuk segera meninjau dan memproses pengaduan di sistem.</p>
-          <hr/>
-          <p><b>ID Kasus:</b> ${id}</p>
-          <p><b>Jenis Pengaduan:</b> ${kasus.jenis_pengaduan}</p>
-          <p><b>Status:</b> Diverifikasi</p>
-          <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
-          `
-        );
+        const adminEmails = admins.map(a => a.email);
+        if (adminEmails.length > 0) {
+          sendEmail(
+            adminEmails.join(','),
+            'Pengaduan Baru Diterima',
+            `
+            <h3>Halo Admin & Superadmin,</h3>
+            <p>Ada pengaduan baru yang telah dikirim oleh <b>${kasus.pengadu_nama}</b>.</p>
+            <p>Wilayah kasus: <b>${kasus.wilayah}</b></p>
+            <p>Mohon untuk segera meninjau dan memproses pengaduan di sistem.</p>
+            <hr/>
+            <p><b>ID Kasus:</b> ${id}</p>
+            <p><b>Jenis Pengaduan:</b> ${kasus.jenis_pengaduan}</p>
+            <p><b>Status:</b> Diverifikasi</p>
+            <p><i>Email ini dikirim otomatis, mohon tidak dibalas.</i></p>
+            `
+          ).catch(err => console.error('❌ Email admin gagal:', err));
+        }
+      } catch (err) {
+        console.error('❌ Gagal mengambil admin:', err);
       }
-    } catch (err) {
-      console.error('❌ Gagal kirim notifikasi ke admin/superadmin:', err);
-    }
+    });
 
-    res.json({
+    return res.json({
       message: 'Kasus berhasil dikirim dan Diverifikasi',
       kasus_id: id,
       status: 'Diverifikasi'
     });
+
   } catch (err) {
     console.error('Error submitKasus:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
@@ -431,7 +432,7 @@ const verifyKasus = async (req, res) => {
       return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa verifikasi' });
     }
 
-    // 🧭 Cek kesesuaian wilayah jika role = admin
+    // 🧭 Cek wilayah admin
     if (req.user.role === 'admin') {
       const adminWilayah = req.user.wilayah;
       if (adminWilayah && kasus.wilayah !== adminWilayah) {
@@ -441,81 +442,89 @@ const verifyKasus = async (req, res) => {
       }
     }
 
-    // 🔁 Proses verifikasi
     if (status === 'Ditolak') {
+
       if (!alasanPenolakan) {
         return res.status(400).json({ message: 'Alasan penolakan wajib diisi' });
       }
 
       await db.query(
-        `UPDATE kasus 
-         SET status = 'Ditolak', 
-             alasan_penolakan = ?, 
-             verified_at = NOW(), 
-             verified_by = ? 
+        `UPDATE kasus
+         SET status = 'Ditolak',
+             alasan_penolakan = ?,
+             verified_at = NOW(),
+             verified_by = ?
          WHERE id = ?`,
         [alasanPenolakan, req.user.id, id]
       );
 
-      // 📧 Kirim email ke pengadu
+      // 📧 Non-blocking email ke pengadu
       if (kasus.pengadu_email) {
-        await sendEmail(
-          kasus.pengadu_email,
-          'Hasil Verifikasi Pengaduan Anda',
-          `
-          <h3>Halo ${kasus.pengadu_nama},</h3>
-          <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
-          <p>Status saat ini: <b style="color:red;">DITOLAK</b></p>
-          <p><b>Alasan Penolakan:</b> ${alasanPenolakan}</p>
-          <hr/>
-          <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
-          `
-        );
+        setImmediate(() => {
+          sendEmail(
+            kasus.pengadu_email,
+            'Hasil Verifikasi Pengaduan Anda',
+            `
+            <h3>Halo ${kasus.pengadu_nama},</h3>
+            <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
+            <p>Status saat ini: <b style="color:red;">DITOLAK</b></p>
+            <p><b>Alasan Penolakan:</b> ${alasanPenolakan}</p>
+            <hr/>
+            <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+            `
+          ).catch(err => console.error('❌ Email Ditolak gagal:', err));
+        });
       }
     }
+
     else if (status === 'Diterima') {
+
       if (!no_registrasi) {
         return res.status(400).json({ message: 'Nomor registrasi wajib diisi untuk status Diterima' });
       }
 
       await db.query(
-        `UPDATE kasus 
-         SET status = 'Diterima', 
-             no_registrasi = ?, 
-             verified_at = NOW(), 
-             verified_by = ? 
+        `UPDATE kasus
+         SET status = 'Diterima',
+             no_registrasi = ?,
+             verified_at = NOW(),
+             verified_by = ?
          WHERE id = ?`,
         [no_registrasi, req.user.id, id]
       );
 
-      // 📧 Kirim email ke pengadu
+      // 📧 Non-blocking email ke pengadu
       if (kasus.pengadu_email) {
-        await sendEmail(
-          kasus.pengadu_email,
-          'Hasil Verifikasi Pengaduan Anda',
-          `
-          <h3>Halo ${kasus.pengadu_nama},</h3>
-          <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
-          <p>Status saat ini: <b style="color:green;">DITERIMA</b></p>
-          <p><b>Nomor Registrasi:</b> ${no_registrasi}</p>
-          <p>Terima kasih atas partisipasi Anda dalam melaporkan pengaduan.</p>
-          <hr/>
-          <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
-          `
-        );
+        setImmediate(() => {
+          sendEmail(
+            kasus.pengadu_email,
+            'Hasil Verifikasi Pengaduan Anda',
+            `
+            <h3>Halo ${kasus.pengadu_nama},</h3>
+            <p>Pengaduan Anda dengan ID Kasus <b>${id}</b> telah diverifikasi oleh admin.</p>
+            <p>Status saat ini: <b style="color:green;">DITERIMA</b></p>
+            <p><b>Nomor Registrasi:</b> ${no_registrasi}</p>
+            <p>Terima kasih atas partisipasi Anda dalam melaporkan pengaduan.</p>
+            <hr/>
+            <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+            `
+          ).catch(err => console.error('❌ Email Diterima gagal:', err));
+        });
       }
     }
+
+    // ❌ Status tidak valid
     else {
       return res.status(400).json({ message: 'Status verifikasi tidak valid' });
     }
 
-    // ✅ Respons sukses
-    res.json({
+    return res.json({
       message: `Kasus berhasil diverifikasi (${status})`,
       kasus_id: id,
       status,
       no_registrasi: status === 'Diterima' ? no_registrasi : null
     });
+
   } catch (err) {
     console.error('Error verifyKasus:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
@@ -568,29 +577,26 @@ const prosesKasus = async (req, res) => {
       [req.user.id, id]
     );
 
-    // Setelah update status berhasil:
-    // 🔎 Cek jumlah sidang yang sudah ada (harusnya 0 untuk pertama kali)
+    // 🔎 Cek jumlah sidang yang sudah ada
     const [existingSidang] = await db.query(
       'SELECT COUNT(*) AS count FROM kasus_sidang WHERE kasus_id = ?',
       [id]
     );
 
-    const sidangKe = existingSidang[0].count + 1; // harusnya 1
+    const sidangKe = existingSidang[0].count + 1;
 
-    // Generate ID sidang
     const sidangId = uuidv4();
 
-    // 🆕 Buat sidang default (kosongan)
+    // 🆕 Buat sidang kosong pertama
     await db.query(
       `INSERT INTO kasus_sidang 
-   (id, kasus_id, sidang_ke, created_at)
-   VALUES (?, ?, ?, NOW())`,
+        (id, kasus_id, sidang_ke, created_at)
+       VALUES (?, ?, ?, NOW())`,
       [sidangId, id, sidangKe]
     );
 
-    // 📧 Kirim email notifikasi ke pelapor
     if (kasus.pengadu_email) {
-      await sendEmail(
+      sendEmail(
         kasus.pengadu_email,
         'Status Pengaduan Anda Telah Diproses',
         `
@@ -601,15 +607,17 @@ const prosesKasus = async (req, res) => {
         <hr/>
         <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
         `
-      );
+      ).catch(err => {
+        console.error("❌ Gagal mengirim email prosesKasus:", err);
+      });
     }
 
-    // ✅ Respons sukses
     res.json({
       message: 'Kasus berhasil diubah menjadi status Diproses',
       kasus_id: id,
       status: 'Diproses',
     });
+
   } catch (err) {
     console.error('Error prosesKasus:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
@@ -640,28 +648,32 @@ const selesaiKasus = async (req, res) => {
       return res.status(500).json({ message: 'Terjadi kesalahan saat mengunggah file sidang' });
     }
 
-    // ✅ Sekarang req.body sudah bisa diakses
     const { jumlah_kerugian } = req.body;
 
     try {
+      // 🔍 Cek apakah kasus ada
       const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
       if (rowsKasus.length === 0)
         return res.status(404).json({ message: 'Kasus tidak ditemukan' });
 
       const kasus = rowsKasus[0];
 
+      // 🚫 Validasi role user
       if (!['admin', 'superadmin'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa menyelesaikan kasus' });
       }
 
+      // 🚫 Status harus Diproses
       if (kasus.status !== 'Diproses') {
         return res.status(400).json({ message: 'Kasus hanya dapat diselesaikan jika status-nya adalah Diproses' });
       }
 
-      if (jumlah_kerugian === undefined || jumlah_kerugian === null || jumlah_kerugian === '') {
+      // 🚨 Validasi jumlah kerugian
+      if (!jumlah_kerugian && jumlah_kerugian !== 0) {
         return res.status(400).json({ message: 'Jumlah kerugian wajib diisi' });
       }
 
+      // 🔧 Data update kasus
       const updateData = {
         status: 'Selesai',
         jumlah_kerugian,
@@ -669,15 +681,21 @@ const selesaiKasus = async (req, res) => {
         finished_by: req.user.id,
       };
 
+      // 📎 Jika admin upload file sidang
       if (req.file) {
+        // Hapus file lama
         if (kasus.file_sidang) deleteOldFile(kasus.file_sidang);
-        updateData.file_sidang = req.file.path.replace(/\\/g, '/').replace(/^.*uploads/, '/uploads');
+
+        updateData.file_sidang = req.file.path
+          .replace(/\\/g, '/')
+          .replace(/^.*uploads/, '/uploads');
       }
 
+      // 🔁 Update database
       await db.query('UPDATE kasus SET ? WHERE id = ?', [updateData, id]);
 
       if (kasus.pengadu_email) {
-        await sendEmail(
+        sendEmail(
           kasus.pengadu_email,
           'Kasus Anda Telah Selesai',
           `
@@ -686,14 +704,16 @@ const selesaiKasus = async (req, res) => {
           <p>Status akhir: <b style="color:green;">SELESAI</b></p>
           <p><b>Jumlah Kerugian:</b> Rp ${Number(jumlah_kerugian).toLocaleString('id-ID')}</p>
           ${updateData.file_sidang
-            ? `<p>📎 File hasil sidang telah diunggah ke sistem dan dapat dilihat di halaman kasus Anda.</p>`
+            ? `<p>📎 File hasil sidang telah diunggah dan dapat dilihat di halaman kasus Anda.</p>`
             : ''
           }
-          <p>Terima kasih atas partisipasi Anda dalam menyelesaikan pengaduan ini.</p>
+          <p>Terima kasih atas partisipasi Anda dalam proses pengaduan ini.</p>
           <hr/>
           <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
           `
-        );
+        ).catch(err => {
+          console.error('❌ Gagal mengirim email selesaiKasus:', err);
+        });
       }
 
       res.json({
@@ -703,6 +723,7 @@ const selesaiKasus = async (req, res) => {
         jumlah_kerugian,
         file_sidang: updateData.file_sidang || kasus.file_sidang || null,
       });
+
     } catch (err) {
       console.error('Error selesaiKasus:', err);
       res.status(500).json({ message: 'Terjadi kesalahan server' });
@@ -711,11 +732,12 @@ const selesaiKasus = async (req, res) => {
 };
 
 /**
- *  Selesaikan kasus oleh admin/superadmin
+ *  Selesaikan kasus (versi temp) oleh admin/superadmin
  */
 const selesaiKasusTemp = async (req, res) => {
   const { id } = req.params;
 
+  // 📂 Upload file sidang
   const upload = uploader(`kasus/${id}`, 'file_sidang', {
     maxSize: 5 * 1024 * 1024,
     allowedTypes: ['application/pdf', 'image/jpeg', 'image/png'],
@@ -727,7 +749,7 @@ const selesaiKasusTemp = async (req, res) => {
         return res.status(400).json({ message: 'Ukuran file terlalu besar (maksimal 5MB)' });
       }
       if (err.message === 'Jenis file tidak diizinkan') {
-        return res.status(400).json({ message: 'Jenis file tidak diizinkan (hanya PDF, JPG, PNG)' });
+        return res.status(400).json({ message: 'Jenis file tidak diizinkan (PDF, JPG, PNG)' });
       }
       console.error('Upload error:', err);
       return res.status(500).json({ message: 'Terjadi kesalahan saat mengunggah file sidang' });
@@ -736,21 +758,24 @@ const selesaiKasusTemp = async (req, res) => {
     const { jumlah_kerugian, metode_penyelesaian, hasil_sidang } = req.body;
 
     try {
-      // --- VALIDASI KASUS ---
+      // 🔍 Ambil kasus
       const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
       if (rowsKasus.length === 0)
         return res.status(404).json({ message: 'Kasus tidak ditemukan' });
 
       const kasus = rowsKasus[0];
 
+      // 🛡 Validasi role
       if (!['admin', 'superadmin'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Hanya admin atau superadmin yang bisa menyelesaikan kasus' });
       }
 
+      // 🛑 Status harus Diproses
       if (kasus.status !== 'Diproses') {
         return res.status(400).json({ message: 'Kasus hanya dapat diselesaikan jika status-nya adalah Diproses' });
       }
 
+      // 🧾 Validasi input
       if (!jumlah_kerugian) {
         return res.status(400).json({ message: 'Jumlah kerugian wajib diisi' });
       }
@@ -761,7 +786,7 @@ const selesaiKasusTemp = async (req, res) => {
         });
       }
 
-      // --- CARI SIDANG TERAKHIR ---
+      // 🔎 Cari sidang terakhir
       const [sidangRows] = await db.query(
         'SELECT * FROM kasus_sidang WHERE kasus_id = ? ORDER BY sidang_ke DESC LIMIT 1',
         [id]
@@ -775,13 +800,13 @@ const selesaiKasusTemp = async (req, res) => {
 
       const sidang = sidangRows[0];
 
-      // --- UPDATE TABEL KASUS_SIDANG (TANPA file_sidang) ---
+      // 📝 Update sidang (tanpa file)
       await db.query(
         'UPDATE kasus_sidang SET metode_penyelesaian = ?, hasil_sidang = ?, updated_at = ? WHERE id = ?',
         [metode_penyelesaian, hasil_sidang, new Date(), sidang.id]
       );
 
-      // --- PERSIAPKAN DATA UPDATE UNTUK TABEL KASUS ---
+      // 📌 Siapkan update kasus
       const updateData = {
         status: 'Selesai',
         jumlah_kerugian,
@@ -789,7 +814,7 @@ const selesaiKasusTemp = async (req, res) => {
         finished_by: req.user.id,
       };
 
-      // Jika upload file → simpan ke tabel kasus (bukan kasus_sidang)
+      // 📎 Jika upload file → simpan ke tabel kasus
       if (req.file) {
         const newPath = req.file.path.replace(/\\/g, '/').replace(/^.*uploads/, '/uploads');
 
@@ -798,8 +823,33 @@ const selesaiKasusTemp = async (req, res) => {
         updateData.file_sidang = newPath;
       }
 
+      // 🔁 Update tabel kasus
       await db.query('UPDATE kasus SET ? WHERE id = ?', [updateData, id]);
 
+      // 📧 Kirim email non-blocking
+      if (kasus.pengadu_email) {
+        sendEmail(
+          kasus.pengadu_email,
+          'Kasus Anda Telah Selesai',
+          `
+          <h3>Halo ${kasus.pengadu_nama},</h3>
+          <p>Kasus Anda dengan ID <b>${id}</b> telah selesai diproses.</p>
+
+          <p><b>Jumlah Kerugian:</b> Rp ${Number(jumlah_kerugian).toLocaleString('id-ID')}</p>
+          <p><b>Metode Penyelesaian:</b> ${metode_penyelesaian}</p>
+          <p><b>Hasil Sidang:</b> ${hasil_sidang}</p>
+
+          ${updateData.file_sidang
+            ? `<p>📎 File hasil sidang telah diunggah ke sistem.</p>`
+            : ''}
+
+          <hr/>
+          <p><i>Email ini dikirim otomatis oleh sistem, mohon tidak dibalas.</i></p>
+          `
+        ).catch(err => console.error("Email gagal:", err));
+      }
+
+      // 🟢 Response sukses
       res.json({
         message: 'Kasus berhasil diselesaikan',
         kasus_id: id,

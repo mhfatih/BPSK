@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const db = require('../db');
+const db = require('../config/database');
 const { sendEmail } = require('../utils/mailer');
 
 /**
@@ -166,14 +166,14 @@ const updateJadwalSidang = async (req, res) => {
 
     const kasusId = sidangRows[0].kasus_id;
 
-    // 🔹 Ambil data kasus (termasuk nama & email pengadu)
+    // 🔹 Ambil data kasus
     const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [kasusId]);
     if (rowsKasus.length === 0)
       return res.status(404).json({ message: 'Data kasus tidak ditemukan' });
 
     const kasus = rowsKasus[0];
 
-    // 🔹 Ambil data admin yang sedang login
+    // 🔹 Ambil data admin login
     const [rowsUser] = await db.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
     const user = rowsUser[0];
 
@@ -192,7 +192,7 @@ const updateJadwalSidang = async (req, res) => {
       [tanggalSidang, jamSidang, id]
     );
 
-    // 🔹 Kirim email ke pengadu (kalau ada email)
+    // 🔹 Kirim email TANPA await (non-blocking)
     if (kasus.pengadu_email) {
       const subject = '📅 Jadwal Sidang Anda Telah Diperbarui';
       const html = `
@@ -206,10 +206,18 @@ const updateJadwalSidang = async (req, res) => {
         <b>Layanan Pengaduan Konsumen</b></p>
       `;
 
-      await sendEmail(kasus.pengadu_email, subject, html);
+      // Kirim email di background
+      sendEmail(kasus.pengadu_email, subject, html)
+        .catch(err => console.error("Gagal kirim email (jadwal sidang):", err));
     }
 
-    res.json({ message: 'Jadwal sidang berhasil diperbarui dan email notifikasi dikirim', id });
+    // 🔹 Response langsung tanpa menunggu email
+    res.json({
+      message: 'Jadwal sidang berhasil diperbarui',
+      id,
+      email_sent: kasus.pengadu_email ? true : false
+    });
+
   } catch (err) {
     console.error('Error updateJadwalSidang:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });

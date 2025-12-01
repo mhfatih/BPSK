@@ -1,5 +1,5 @@
 const path = require('path');
-const db = require('../db');
+const db = require('../config/database');
 const { uploader, deleteOldFile } = require('../utils/uploader');
 
 
