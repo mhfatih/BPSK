@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { apiClient } from "../api/apiClient";
 import logo from "../assets/LogoBanten.png";
-import bgImage from "../assets/LogoBanten.png";
+import bgImage from "../assets/background.jpg";
+import PasswordStrength from "../components/PasswordStrength";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -102,6 +103,7 @@ const Register = () => {
                 placeholder="Masukkan password"
                 required
               />
+              <PasswordStrength password={password} />
             </div>
 
             <div className="mb-4">

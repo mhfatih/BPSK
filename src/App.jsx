@@ -3,6 +3,8 @@ import ProtectedRoute from "../src/components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
+import EditProfilePage from "./pages/EditProfilePage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyOtp from "./pages/VerifyOtp";
@@ -23,7 +25,8 @@ import PelakuUsaha from "./pages/PengaduanPelakuUsaha";
 import TentangPengaduan from "./pages/TentangPengaduan";
 import KronologisPengaduan from "./pages/PengaduanKronologis";
 import JadwalSidang from "./pages/JadwalSidang";
-import Verifikasi from "./pages/Verifikasi";
+// import Verifikasi from "./pages/Verifikasi";
+
 
 
 function App() {
@@ -44,6 +47,9 @@ function App() {
 
         {/* Halaman user */}
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="/profile/edit" element={<EditProfilePage />} />
+        <Route path="profile/change-password" element={<ChangePasswordPage />} />
+        
         <Route path="kasus" element={<KasusList />} />
         <Route path="kasus/:id" element={<KasusDetail />} />
         <Route path="pengaduan" element={<TambahPengaduan />} />
