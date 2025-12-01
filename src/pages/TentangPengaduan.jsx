@@ -106,7 +106,7 @@ export default function TentangPengaduan() {
   return (
     <>
       <KasusNavbar />
-      
+
       {/* 🔹 Popup */}
       <Popup
         show={showPopup}
@@ -234,11 +234,11 @@ export default function TentangPengaduan() {
                     let newValue = form.jenis_kerugian;
 
                     if (checked) {
-                      if (newValue === "Fisik") newValue = "fisik dan material";
+                      if (newValue === "Fisik") newValue = "Fisik dan Material";
                       else newValue = "Material";
                     } else {
-                      if (newValue === "Fisik dan Material") newValue = "fisik";
-                      else if (newValue === "material") newValue = "";
+                      if (newValue === "Fisik dan Material") newValue = "Fisik";
+                      else if (newValue === "Material") newValue = "";
                     }
 
                     setForm({ ...form, jenis_kerugian: newValue });
