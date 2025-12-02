@@ -1,97 +1,72 @@
+// Updated Dashboard.js with sticky header + sticky sidebar, responsive mobile layout, modern UI
+// NOTE: User requested: Do NOT change logic, only styling/structure adjustments.
+
 import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { apiClient } from '../api/apiClient';
 import logo from '../assets/LogoBanten.png';
 
-
 // icons
 import { MdMenuOpen } from "react-icons/md";
-import { IoHomeOutline } from "react-icons/io5";
-import { FaRegPlusSquare } from "react-icons/fa";
 import { FaUserCircle } from "react-icons/fa";
-import { TbReportSearch } from "react-icons/tb";
-import { IoLogoBuffer } from "react-icons/io";
-import { CiSettings } from "react-icons/ci";
 import { MdOutlineDashboard } from "react-icons/md";
 import { GoLaw } from "react-icons/go";
 import { RiAdminLine } from "react-icons/ri";
 import { CgProfile } from "react-icons/cg";
 
-
 const menuItems = {
   superadmin: [
-    { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
-    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
-    // { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
-    { icons: <RiAdminLine size={30} />, label: "Manajemen", path: "/manajemen" },
-    { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
+    { icons: <MdOutlineDashboard size={26} />, label: "Dashboard", path: "/dashboard" },
+    { icons: <GoLaw size={26} />, label: "Daftar Kasus", path: "/kasus" },
+    { icons: <RiAdminLine size={26} />, label: "Manajemen", path: "/manajemen" },
+    { icons: <CgProfile size={26} />, label: "Profile", path: "/profile" },
   ],
-
   admin: [
-    { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
-    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
-    // { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
-    { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
+    { icons: <MdOutlineDashboard size={26} />, label: "Dashboard", path: "/dashboard" },
+    { icons: <GoLaw size={26} />, label: "Daftar Kasus", path: "/kasus" },
+    { icons: <CgProfile size={26} />, label: "Profile", path: "/profile" },
   ],
-
   user: [
-    { icons: <MdOutlineDashboard size={30} />, label: "Dashboard", path: "/dashboard" },
-    { icons: <GoLaw size={30} />, label: "Daftar Kasus", path: "/kasus" },
-    // { icons: <FaRegPlusSquare size={30} />, label: "Tambah Pengaduan", path: "/pengaduan" },
-    { icons: <CgProfile size={30} />, label: "Profile", path: "/profile" },
+    { icons: <MdOutlineDashboard size={26} />, label: "Dashboard", path: "/dashboard" },
+    { icons: <GoLaw size={26} />, label: "Daftar Kasus", path: "/kasus" },
+    { icons: <CgProfile size={26} />, label: "Profile", path: "/profile" },
   ],
 };
-
 
 export default function Dashboard() {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [menus, setMenus] = useState([]);
-
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(true);
 
   const handleLogout = async () => {
     try {
       await apiClient("/logout", { method: "POST" });
-
-      // Hapus auth data
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-
-      // Langsung arahkan ke login
       navigate("/login");
-
     } catch (error) {
       console.error("Logout error:", error);
-
-      // Kalau error pun tetap paksa logout
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-
       navigate("/login");
     }
   };
 
-  // ✅ Ambil user dari localStorage atau API
   useEffect(() => {
     const loadUser = async () => {
       const stored = localStorage.getItem("user");
-
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
           setUser(parsed);
-
-          // atur menu sesuai role
           const role = parsed.role || "user";
           setMenus(menuItems[role] || menuItems.user);
 
-          // Jika data user belum lengkap, ambil dari API
           if (!parsed.nama) {
             const profileRes = await apiClient("/profile", { method: "GET" });
-            console.log("Profile", profileRes);
 
             const updatedUser = {
               ...parsed,
@@ -109,29 +84,20 @@ export default function Dashboard() {
           navigate("/login");
         }
       } else {
-        // Kalau tidak ada user di localStorage, arahkan ke login
         navigate("/login");
       }
     };
-
     loadUser();
   }, [navigate]);
 
-
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
 
-      {/* 🔵 HEADER DI ATAS */}
-      <header className="bg-gray-50 shadow-md h-16 flex items-center justify-between px-6 py-6">
+      {/* HEADER — sticky */}
+      <header className="sticky top-0 z-40 bg-white shadow-md h-16 flex items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3">
-          <img
-            src={logo}
-            alt="Logo"
-            className="w-10 h-10 object-contain"
-          />
-          <h1 className="text-lg font-semibold text-gray-700">
-            E-BPSK Banten
-          </h1>
+          <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
+          <h1 className="text-lg sm:text-xl font-semibold text-gray-700">E-BPSK Banten</h1>
         </div>
 
         <div className="relative">
@@ -139,9 +105,7 @@ export default function Dashboard() {
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded-md"
           >
-            <span className="text-sm text-gray-700">
-              {user?.nama || "Pengguna"}
-            </span>
+            <span className="hidden sm:block text-sm text-gray-700">{user?.nama || "Pengguna"}</span>
             <FaUserCircle size={28} className="text-gray-600" />
           </button>
 
@@ -158,17 +122,16 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* 🔵 NAV & CONTENT BERADA DI BAWAH HEADER */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR — sticky and responsive */}
         <nav
-          className={`shadow-md p-2 flex flex-col duration-500 bg-gray-800 text-white 
-          ${open ? "w-60" : "w-16"}`}
+          className={`sticky top-16 z-30 h-[calc(100vh-4rem)] overflow-y-auto shadow-md p-2 flex flex-col bg-gray-800 text-white duration-500
+          ${open ? "w-56 sm:w-64" : "w-16"}`}
         >
           <div className="px-3 py-2 h-20 flex justify-between items-center">
             <MdMenuOpen
-              size={34}
+              size={32}
               className={`cursor-pointer duration-500 ${!open && "rotate-180"}`}
               onClick={() => setOpen(!open)}
             />
@@ -181,15 +144,17 @@ export default function Dashboard() {
                   to={item.path}
                   end={item.path === "/dashboard"}
                   className={({ isActive }) =>
-                    `group relative flex items-center gap-2 px-3 py-2 mb-1 rounded-md 
-                    ${isActive ? "bg-gray-900" : "hover:bg-gray-900"}`
+                    `group relative flex items-center gap-3 px-3 py-2 mb-1 rounded-md text-sm sm:text-base
+                     ${isActive ? "bg-gray-900" : "hover:bg-gray-900"}`
                   }
                 >
                   <div>{item.icons}</div>
-                  {open && <p>{item.label}</p>}
+
+                  {open && <p className="whitespace-nowrap">{item.label}</p>}
 
                   {!open && (
-                    <span className="absolute left-full ml-2 px-2 py-1 rounded bg-black text-white text-xs opacity-0 group-hover:opacity-100">
+                    <span className="absolute left-full ml-2 px-2 py-1 rounded bg-black text-white text-xs opacity-0 whitespace-nowrap
+                     group-hover:opacity-100 transition-opacity duration-200">
                       {item.label}
                     </span>
                   )}
@@ -200,11 +165,10 @@ export default function Dashboard() {
         </nav>
 
         {/* CONTENT */}
-        <main className="flex-1 bg-gray-100 p-6 overflow-auto">
+        <main className="flex-1 overflow-auto p-4 sm:p-6">
           <Outlet />
         </main>
       </div>
     </div>
-
-  )
+  );
 }

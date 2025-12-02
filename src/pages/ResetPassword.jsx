@@ -105,6 +105,8 @@ export default function ResetPassword() {
                 disabled={loading}
                 required
               />
+
+              <PasswordStrength password={password} />
             </div>
 
             <div className="mb-5">

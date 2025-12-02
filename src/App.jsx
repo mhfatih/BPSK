@@ -10,7 +10,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyOtp from "./pages/VerifyOtp";
 import DashboardLayout from "./components/DashboardLayout";
 // import DashboardPage from "./pages/PageDashboard";
-import DashboardPage from "./pages/DashboardPage";
+import DashboardModern from "./pages/DashboardPage";
 import KasusPage from "./pages/KasusPage";
 import KasusList from "./pages/KasusList"
 import KasusDetail from "./pages/KasusDetail";
@@ -25,7 +25,7 @@ import PelakuUsaha from "./pages/PengaduanPelakuUsaha";
 import TentangPengaduan from "./pages/TentangPengaduan";
 import KronologisPengaduan from "./pages/PengaduanKronologis";
 import JadwalSidang from "./pages/JadwalSidang";
-import Verifikasi from "./pages/PengaduanProses;
+import Verifikasi from "./pages/PengaduanProses";
 
 
 function App() {
@@ -42,7 +42,7 @@ function App() {
       {/* Layout wrapper untuk semua halaman login */}
       <Route element={<ProtectedRoute allowedRoles={["user", "admin", "superadmin"]}><Navbar /></ProtectedRoute>}>
         {/* Halaman default setelah login */}
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="dashboard" element={<DashboardModern />} />
 
         {/* Halaman user */}
         <Route path="profile" element={<ProfilePage />} />

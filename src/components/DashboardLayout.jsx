@@ -12,7 +12,7 @@ export default function DashboardLayout() {
       <div className="flex-1 min-h-screen flex flex-col">
         <Header />
 
-        <main className="p-6 lg:p-8 w-full">
+        <main className="flex-1 bg-gray-100 p-6 overflow-y-auto overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             {/* 🔥 Semua route child akan muncul di sini */}
             <Outlet />

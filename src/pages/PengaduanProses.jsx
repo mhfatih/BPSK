@@ -5,181 +5,202 @@ import KasusNavbar from "../components/KasusNavbar";
 
 export default function Verifikasi() {
   const { id } = useParams();
-  const navigate = useNavigate();
+const navigate = useNavigate();
 
-  // ================================
-  // STATE
-  // ================================
-  const [statusKasus, setStatusKasus] = useState("");
-  const [caseOwnerId, setCaseOwnerId] = useState(null);
+// ================================
+// STATE
+// ================================
+const [statusKasus, setStatusKasus] = useState("");
+const [caseOwnerId, setCaseOwnerId] = useState(null);
 
-  const [verifikasiStatus, setVerifikasiStatus] = useState("");
-  const [alasanPenolakan, setAlasanPenolakan] = useState("");
-  const [nomorDepan, setNomorDepan] = useState("");
-  const [setujuKonfirmasi, setSetujuKonfirmasi] = useState(false);
+const [verifikasiStatus, setVerifikasiStatus] = useState("");
+const [alasanPenolakan, setAlasanPenolakan] = useState("");
+const [nomorDepan, setNomorDepan] = useState("");
+const [setujuKonfirmasi, setSetujuKonfirmasi] = useState(false);
 
-  const [jumlahKerugian, setJumlahKerugian] = useState("");
-  const [metode, setMetode] = useState("");
-  const [hasilSidang, setHasilSidang] = useState("");
-  const [fileSidang, setFileSidang] = useState(null);
+const [jumlahKerugian, setJumlahKerugian] = useState("");
+const [metode, setMetode] = useState("");
+const [hasilSidang, setHasilSidang] = useState("");
+const [fileSidang, setFileSidang] = useState(null);
 
-  const [loadingPage, setLoadingPage] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [loadingProses, setLoadingProses] = useState(false);
-  const [loadingSelesai, setLoadingSelesai] = useState(false);
+const [loadingPage, setLoadingPage] = useState(true);
+const [loading, setLoading] = useState(false);
+const [loadingProses, setLoadingProses] = useState(false);
+const [loadingSelesai, setLoadingSelesai] = useState(false);
 
-  // ================================
-  // DROPDOWN STATE
-  // ================================
-  const [openVerifikasi, setOpenVerifikasi] = useState(false);
-  const [openProses, setOpenProses] = useState(false);
-  const [openSelesai, setOpenSelesai] = useState(false);
+// ================================
+// DROPDOWN STATE
+// ================================
+const [openVerifikasi, setOpenVerifikasi] = useState(false);
+const [openProses, setOpenProses] = useState(false);
+const [openSelesai, setOpenSelesai] = useState(false);
 
-  // ================================
-  // CHECK ROLE ADMIN
-  // ================================
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const user = storedUser ? JSON.parse(storedUser) : null;
+const [kasus, setKasus] = useState(null); // FIXED 🔥
 
-    const isAdmin = user?.role === "admin" || user?.role === "superadmin";
-    if (!isAdmin) return navigate("/kasus", { replace: true });
+//
+// ================================
+// CHECK ROLE ADMIN
+// ================================
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : null;
 
-    setLoadingPage(false);
-  }, [navigate]);
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
+  if (!isAdmin) return navigate("/kasus", { replace: true });
 
-  // ================================
-  // AMBIL STATUS KASUS
-  // ================================
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const data = await apiClient(`/kasus/${id}/status`);
-        setStatusKasus(data.status);
-        setCaseOwnerId(data.created_by);
+  setLoadingPage(false);
+}, [navigate]);
 
-        // 🔥 AUTO OPEN SESUAI STATUS
-        if (data.status === "Diverifikasi") {
-          setOpenVerifikasi(true);
-        } else if (data.status === "Diterima") {
-          setOpenProses(true);
-        } else if (data.status === "Diproses") {
-          setOpenSelesai(true);
-        }
-
-      } catch (err) {
-        console.error("Gagal memuat status:", err);
-      }
-    };
-
-    fetchStatus();
-  }, [id]);
-
-  if (loadingPage) return <p>Memuat...</p>;
-
-  // ================================
-  // NOMOR REGISTRASI
-  // ================================
-  const bulanKeRomawi = (bulan) => {
-    const mapping = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
-    return mapping[bulan];
-  };
-
-  const nomorRegisFinal = (() => {
-    if (!nomorDepan) return "";
-    const now = new Date();
-    const romawi = bulanKeRomawi(now.getMonth());
-    const tahun = now.getFullYear();
-    return `${nomorDepan}/Reg/BPSKBTN/${romawi}/${tahun}`;
-  })();
-
-  // ================================
-  // SUBMIT VERIFIKASI
-  // ================================
-  const handleSubmit = async () => {
-    if (!verifikasiStatus) return alert("Pilih status verifikasi.");
-    if (!setujuKonfirmasi) return alert("Anda harus menyetujui konfirmasi.");
-
-    if (verifikasiStatus === "Diterima" && !nomorDepan) {
-      return alert("Isi nomor registrasi.");
-    }
-
-    setLoading(true);
-
+// ================================
+// GET STATUS KASUS
+// ================================
+useEffect(() => {
+  const fetchStatus = async () => {
     try {
-      await apiClient(`/kasus/${id}/verify`, {
-        method: "PUT",
-        body: {
-          status: verifikasiStatus,
-          alasanPenolakan: verifikasiStatus === "Ditolak" ? alasanPenolakan : null,
-          no_registrasi: verifikasiStatus === "Diterima" ? nomorRegisFinal : null,
-        },
-      });
+      const data = await apiClient(`/kasus/${id}/status`);
+      setStatusKasus(data.status);
+      setCaseOwnerId(data.created_by);
 
-      alert("Verifikasi berhasil!");
-      navigate(`/kasus/${id}/view`);
+      // 🔥 AUTO OPEN DROPDOWN
+      if (data.status === "Diverifikasi") setOpenVerifikasi(true);
+      else if (data.status === "Diterima") setOpenProses(true);
+      else if (data.status === "Diproses") setOpenSelesai(true);
+
     } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
+      console.error("Gagal memuat status:", err);
     }
   };
 
-  // ================================
-  // SET DIPROSES
-  // ================================
-  const handleSetDiproses = async () => {
-    setLoadingProses(true);
+  fetchStatus();
+}, [id]);
 
+// ================================
+// GET DETAIL KASUS (ambil wilayah di sini) 🔥
+// ================================
+useEffect(() => {
+  const fetchKasus = async () => {
     try {
-      const res = await apiClient(`/kasus/${id}/proses`, { method: "PUT" });
-      alert(res.message);
-      navigate(`/kasus/${id}/view`);
+      const data = await apiClient(`/kasus/${id}`);
+      setKasus(data); // 🔥 wilayah ada di sini
     } catch (err) {
-      alert(err.message);
+      console.error("Gagal memuat detail kasus:", err);
     }
-
-    setLoadingProses(false);
   };
 
-  // ================================
-  // SET SELESAI
-  // ================================
-  const handleSubmitSelesai = async () => {
-    if (!jumlahKerugian || !metode || !hasilSidang) {
-      return alert("Semua field wajib diisi!");
-    }
+  fetchKasus();
+}, [id]);
 
-    setLoadingSelesai(true);
+if (loadingPage) return <p>Memuat...</p>;
 
-    try {
-      const formData = new FormData();
-      formData.append("jumlah_kerugian", jumlahKerugian);
-      formData.append("metode_penyelesaian", metode);
-      formData.append("hasil_sidang", hasilSidang);
+// ================================
+// KONVERSI BULAN ROMAWI
+// ================================
+const bulanKeRomawi = (bulan) => {
+  const mapping = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+  return mapping[bulan];
+};
 
-      if (fileSidang) formData.append("file_sidang", fileSidang);
+// ================================
+// NOMOR REGISTRASI FIXED 🔥
+// ================================
+const nomorRegisFinal = (() => {
+  if (!nomorDepan || !kasus?.wilayah) return "";
 
-      const res = await apiClient(`/kasus/${id}/selesai-temp`, {
-        method: "PUT",
-        body: formData,
-      });
+  const now = new Date();
+  const romawi = bulanKeRomawi(now.getMonth());
+  const tahun = now.getFullYear();
 
-      alert(res.message);
-      navigate(`/kasus/${id}/view`);
-    } catch (err) {
-      alert(err.message);
-    }
+  return `${nomorDepan}/Reg/BPSK${kasus.wilayah}.BTN/${romawi}/${tahun}`;
+})(); // FIX: ganti data.wilayah → kasus.wilayah
 
-    setLoadingSelesai(false);
-  };
+// ================================
+// SUBMIT VERIFIKASI
+// ================================
+const handleSubmit = async () => {
+  if (!verifikasiStatus) return alert("Pilih status verifikasi.");
+  if (!setujuKonfirmasi) return alert("Anda harus menyetujui konfirmasi.");
 
-  // ======================================
-  // 🔥 MANA YANG BOLEH DIBUKA
-  // ======================================
-  const disableVerifikasi = statusKasus !== "Diverifikasi";
-  const disableProses = statusKasus !== "Diterima";
-  const disableSelesai = statusKasus !== "Diproses";
+  if (verifikasiStatus === "Diterima" && !nomorDepan) {
+    return alert("Isi nomor registrasi.");
+  }
+
+  setLoading(true);
+
+  try {
+    await apiClient(`/kasus/${id}/verify`, {
+      method: "PUT",
+      body: {
+        status: verifikasiStatus,
+        alasanPenolakan: verifikasiStatus === "Ditolak" ? alasanPenolakan : null,
+        no_registrasi: verifikasiStatus === "Diterima" ? nomorRegisFinal : null,
+      },
+    });
+
+    alert("Verifikasi berhasil!");
+    navigate(`/kasus/${id}/view`);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ================================
+// SET DIPROSES
+// ================================
+const handleSetDiproses = async () => {
+  setLoadingProses(true);
+
+  try {
+    const res = await apiClient(`/kasus/${id}/proses`, { method: "PUT" });
+    alert(res.message);
+    navigate(`/kasus/${id}/view`);
+  } catch (err) {
+    alert(err.message);
+  }
+
+  setLoadingProses(false);
+};
+
+// ================================
+// SET SELESAI
+// ================================
+const handleSubmitSelesai = async () => {
+  if (!jumlahKerugian || !metode || !hasilSidang) {
+    return alert("Semua field wajib diisi!");
+  }
+
+  setLoadingSelesai(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("jumlah_kerugian", jumlahKerugian);
+    formData.append("metode_penyelesaian", metode);
+    formData.append("hasil_sidang", hasilSidang);
+
+    if (fileSidang) formData.append("file_sidang", fileSidang);
+
+    const res = await apiClient(`/kasus/${id}/selesai-temp`, {
+      method: "PUT",
+      body: formData,
+    });
+
+    alert(res.message);
+    navigate(`/kasus/${id}/view`);
+  } catch (err) {
+    alert(err.message);
+  }
+
+  setLoadingSelesai(false);
+};
+
+// ================================
+// DROPDOWN ACCESS
+// ================================
+const disableVerifikasi = statusKasus !== "Diverifikasi";
+const disableProses = statusKasus !== "Diterima";
+const disableSelesai = statusKasus !== "Diproses";
+
 
   return (
     <div className="space-y-8">
