@@ -29,6 +29,7 @@ const getDataDiri = async (req, res) => {
       pengadu_kode_pos: rowsKasus[0].pengadu_kode_pos,
       pengadu_identitas: rowsKasus[0].pengadu_identitas,
       pengadu_foto_identitas: rowsKasus[0].pengadu_foto_identitas,
+      pengadu_file_pendukung: rowsKasus[0].pengadu_file_pendukung,
     };
 
     res.json(dataDiri);
@@ -40,10 +41,15 @@ const getDataDiri = async (req, res) => {
 
 const updateDataDiri = async (req, res) => {
   const { id } = req.params;
-  const upload = uploader(`kasus/${id}`, 'foto_identitas', {
-    maxSize: 3 * 1024 * 1024, // 3 MB
-    allowedTypes: ['image/jpeg', 'image/png', 'application/pdf'],
-  }).single('pengadu_foto_identitas');
+
+  // === UPLOADER UNTUK 2 FILE SEKALIGUS ===
+  const upload = uploader(`kasus/${id}`, '', {
+    maxSize: 3 * 1024 * 1024, // 3MB
+    allowedTypes: ['image/jpeg', 'image/png', 'application/pdf']
+  }).fields([
+    { name: 'pengadu_foto_identitas', maxCount: 1 },
+    { name: 'pengadu_file_pendukung', maxCount: 1 }
+  ]);
 
   upload(req, res, async (err) => {
     if (err) {
@@ -57,6 +63,7 @@ const updateDataDiri = async (req, res) => {
       return res.status(500).json({ message: 'Terjadi kesalahan saat mengunggah file' });
     }
 
+    // ==== BODY ====
     const {
       pengadu_nama,
       pengadu_umur,
@@ -70,7 +77,7 @@ const updateDataDiri = async (req, res) => {
     } = req.body;
 
     try {
-      // 🔍 Cek apakah kasus ada
+      // 🔍 Cek kasus ada
       const [rowsKasus] = await db.query('SELECT * FROM kasus WHERE id = ?', [id]);
       if (rowsKasus.length === 0)
         return res.status(404).json({ message: 'Kasus tidak ditemukan' });
@@ -79,9 +86,9 @@ const updateDataDiri = async (req, res) => {
 
       // 🚫 Cegah edit milik orang lain
       if (kasus.created_by !== req.user.id)
-        return res.status(403).json({ message: 'Tidak boleh mengedit data diri orang lain' });
+        return res.status(403).json({ message: 'Tidak boleh mengedit data orang lain' });
 
-      // 📦 Siapkan data update
+      // === Data Update ===
       const updateData = {
         pengadu_nama: pengadu_nama || null,
         pengadu_umur: pengadu_umur || null,
@@ -94,18 +101,24 @@ const updateDataDiri = async (req, res) => {
         pengadu_identitas: pengadu_identitas || null,
       };
 
-      // 🗺️ Tentukan wilayah berdasarkan kota
+      // Wilayah
       const wkp1Cities = ['Kota Tangerang', 'Kota Tangerang Selatan', 'Kabupaten Tangerang'];
-      if (pengadu_kota && wkp1Cities.includes(pengadu_kota)) {
-        updateData.wilayah = 'WKP1';
-      } else {
-        updateData.wilayah = 'WKP2';
+      updateData.wilayah = pengadu_kota && wkp1Cities.includes(pengadu_kota) ? 'WKP1' : 'WKP2';
+
+      // === FOTO IDENTITAS ===
+      if (req.files['pengadu_foto_identitas']) {
+        deleteOldFile(kasus.pengadu_foto_identitas);
+        const file = req.files['pengadu_foto_identitas'][0];
+        updateData.pengadu_foto_identitas = file.path
+          .replace(/\\/g, '/')
+          .replace(/^.*uploads/, '/uploads');
       }
 
-      // 📸 Tangani upload foto identitas
-      if (req.file) {
-        deleteOldFile(kasus.pengadu_foto_identitas);
-        updateData.pengadu_foto_identitas = req.file.path
+      // === FILE PENDUKUNG (IMG/PDF) ===
+      if (req.files['pengadu_file_pendukung']) {
+        deleteOldFile(kasus.pengadu_file_pendukung);
+        const filePendukung = req.files['pengadu_file_pendukung'][0];
+        updateData.pengadu_file_pendukung = filePendukung.path
           .replace(/\\/g, '/')
           .replace(/^.*uploads/, '/uploads');
       }
