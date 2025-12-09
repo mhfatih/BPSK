@@ -10,13 +10,27 @@ const db = require('../config/database');
  */
 const getDashboard = async (req, res) => {
   try {
+    const { tahun } = req.query;
+
+    // Jika ada tahun → filter
+    const whereKasus = tahun ? `WHERE YEAR(created_at) = ${db.escape(tahun)}` : '';
+    const whereSidang = tahun ? `WHERE YEAR(tanggal_sidang) = ${db.escape(tahun)}` : '';
+    const wherePelaku = tahun
+      ? `WHERE kasus_id IN (SELECT id FROM kasus WHERE YEAR(created_at) = ${db.escape(tahun)})`
+      : '';
+
     // 🔹 Total kasus
-    const [[totalKasus]] = await db.query(`SELECT COUNT(*) AS total_kasus FROM kasus`);
+    const [[totalKasus]] = await db.query(`
+      SELECT COUNT(*) AS total_kasus 
+      FROM kasus
+      ${whereKasus}
+    `);
 
     // 🔹 Jumlah kasus per status
     const [statusStats] = await db.query(`
       SELECT status, COUNT(*) AS jumlah
       FROM kasus
+      ${whereKasus}
       GROUP BY status
     `);
 
@@ -24,6 +38,7 @@ const getDashboard = async (req, res) => {
     const [wilayahStats] = await db.query(`
       SELECT wilayah, COUNT(*) AS jumlah
       FROM kasus
+      ${whereKasus}
       GROUP BY wilayah
     `);
 
@@ -31,6 +46,7 @@ const getDashboard = async (req, res) => {
     const [jenisStats] = await db.query(`
       SELECT jenis_pengaduan, COUNT(*) AS jumlah
       FROM kasus
+      ${whereKasus}
       GROUP BY jenis_pengaduan
     `);
 
@@ -40,7 +56,7 @@ const getDashboard = async (req, res) => {
         SUM(jumlah_kerugian) AS total_kerugian,
         AVG(jumlah_kerugian) AS rata_kerugian
       FROM kasus
-      WHERE jumlah_kerugian IS NOT NULL
+      ${whereKasus ? whereKasus + ' AND jumlah_kerugian IS NOT NULL' : 'WHERE jumlah_kerugian IS NOT NULL'}
     `);
 
     // 🔹 Jumlah sidang per bulan
@@ -49,20 +65,30 @@ const getDashboard = async (req, res) => {
         DATE_FORMAT(tanggal_sidang, '%Y-%m') AS bulan,
         COUNT(*) AS jumlah
       FROM kasus_sidang
+      ${whereSidang}
       GROUP BY DATE_FORMAT(tanggal_sidang, '%Y-%m')
       ORDER BY bulan DESC
       LIMIT 12
     `);
 
-    // 🔹 Jumlah perusahaan yang pernah terlibat kasus
+    // 🔹 Jumlah perusahaan unik dalam kasus tahun itu
     const [[perusahaanStats]] = await db.query(`
       SELECT COUNT(DISTINCT perusahaan) AS total_perusahaan
       FROM kasus_pelaku_usaha
-      WHERE perusahaan IS NOT NULL AND perusahaan <> ''
+      ${wherePelaku}
     `);
 
-    // ✅ Gabungkan hasil
+    // 🔹 Jika user minta: ambil daftar semua tahun yg ada
+    const [tahunList] = await db.query(`
+      SELECT DISTINCT YEAR(created_at) AS tahun
+      FROM kasus
+      ORDER BY tahun DESC
+    `);
+
+    // ==== Final Response ====
     res.json({
+      filter_tahun: tahun || 'all',
+      tahun_tersedia: tahunList,
       total_kasus: totalKasus.total_kasus,
       status: statusStats,
       wilayah: wilayahStats,
@@ -71,6 +97,7 @@ const getDashboard = async (req, res) => {
       sidang_per_bulan: sidangStats,
       total_perusahaan: perusahaanStats.total_perusahaan
     });
+
   } catch (err) {
     console.error('Error getDashboard:', err);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
