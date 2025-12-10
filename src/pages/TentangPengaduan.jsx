@@ -170,6 +170,7 @@ export default function TentangPengaduan() {
                 value={form.waktu_kejadian}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
 
@@ -181,6 +182,7 @@ export default function TentangPengaduan() {
                 value={form.lokasi_kejadian}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
           </div>
@@ -191,9 +193,19 @@ export default function TentangPengaduan() {
               Jenis Kerugian
             </label>
 
-            <div className="flex items-center gap-6">
-              {/* Checkbox Fisik */}
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+              {/* CARD – FISIK */}
+              <label
+                className={`flex items-start gap-2 p-3 rounded-xl border cursor-pointer transition-all
+                  ${
+                    form.jenis_kerugian === "Fisik" ||
+                    form.jenis_kerugian === "Fisik dan Material"
+                      ? "border-blue-500 bg-blue-50 shadow-md"
+                      : "border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
                 <input
                   type="checkbox"
                   value="Fisik"
@@ -215,13 +227,22 @@ export default function TentangPengaduan() {
 
                     setForm({ ...form, jenis_kerugian: newValue });
                   }}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 accent-blue-600 mt-1"
                 />
-                <span className="text-gray-700 text-sm">Fisik</span>
+                <span className="text-sm font-medium text-gray-700">Fisik</span>
               </label>
 
-              {/* Checkbox Material */}
-              <label className="flex items-center gap-2 cursor-pointer">
+              {/* CARD – MATERIAL */}
+              <label
+                className={`flex items-start gap-2 p-3 rounded-xl border cursor-pointer transition-all
+                  ${
+                    form.jenis_kerugian === "Material" ||
+                    form.jenis_kerugian === "Fisik dan Material"
+                      ? "border-blue-500 bg-blue-50 shadow-md"
+                      : "border-gray-300 hover:bg-gray-50"
+                  }
+                `}
+              >
                 <input
                   type="checkbox"
                   value="Material"
@@ -243,17 +264,18 @@ export default function TentangPengaduan() {
 
                     setForm({ ...form, jenis_kerugian: newValue });
                   }}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 accent-blue-600 mt-1"
                 />
-                <span className="text-gray-700 text-sm">Material</span>
+                <span className="text-sm font-medium text-gray-700">Material</span>
               </label>
+
             </div>
 
-            {/* Info kecil */}
             <p className="text-xs text-gray-500 mt-2">
               Kamu dapat memilih salah satu atau keduanya.
             </p>
           </div>
+
 
           <div>
             <label className="block text-sm font-medium">Keterangan Kerugian</label>
@@ -263,6 +285,7 @@ export default function TentangPengaduan() {
               onChange={handleChange}
               rows="3"
               className="w-full border rounded-md p-2"
+              required
             ></textarea>
           </div>
 
@@ -275,6 +298,7 @@ export default function TentangPengaduan() {
                 value={form.bukti_pembelian}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               >
                 <option value="">Pilih Bukti</option>
                 <option value="bon pembelian">Bon Pembelian</option>
@@ -292,6 +316,7 @@ export default function TentangPengaduan() {
                 value={form.bukti_saksi}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               >
                 <option value="">Pilih</option>
                 <option value="ada">Ada</option>
@@ -308,6 +333,7 @@ export default function TentangPengaduan() {
                   value={form.hubungan_saksi}
                   onChange={handleChange}
                   className="w-full border rounded-md p-2"
+                  required
                 />
               </div>
             )}
@@ -319,6 +345,7 @@ export default function TentangPengaduan() {
                 value={form.barang_bukti}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               >
                 <option value="">Pilih</option>
                 <option value="ada">Ada</option>

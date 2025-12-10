@@ -12,7 +12,8 @@ import {
   Legend,
 } from "chart.js";
 import { Bar, Pie, Line } from "react-chartjs-2";
-import { Info, TrendingUp } from "lucide-react";
+import { Info, TrendingUp, Landmark, Store } from "lucide-react";
+import { formatRupiah } from "../components/formatRupiah";
 
 ChartJS.register(
   ArcElement,
@@ -221,7 +222,7 @@ export default function DashboardModern() {
               <p className="text-2xl font-bold text-gray-800">{data.total_perusahaan ?? 0}</p>
             </div>
             <div className="p-3 bg-indigo-50 rounded-lg">
-              {/* <Bank className="text-indigo-600" /> */}
+              <Store className="text-indigo-600" />
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-3">Unique companies</p>
@@ -231,8 +232,13 @@ export default function DashboardModern() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Kerugian</p>
-              <p className="text-xl font-semibold text-gray-800">Rp {data.kerugian?.total_kerugian?.toLocaleString() ?? 0}</p>
-              <p className="text-sm text-gray-500 mt-1">Rata-rata: Rp {data.kerugian?.rata_kerugian?.toLocaleString() ?? 0}</p>
+              <p className="text-xl font-semibold text-gray-800">
+                {formatRupiah(data.kerugian?.total_kerugian)}
+              </p>
+
+              <p className="text-sm text-gray-500 mt-1">
+                Rata-rata: {formatRupiah(data.kerugian?.rata_kerugian)}
+              </p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg">
               <Info className="text-green-600" />

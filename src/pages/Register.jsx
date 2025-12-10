@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { apiClient } from "../api/apiClient";
-import logo from "../assets/LogoBanten.png";
-import bgImage from "../assets/background.jpg";
+import AuthLayout from "../components/AuthLayout";
 import PasswordStrength from "../components/PasswordStrength";
 
 const Register = () => {
@@ -26,11 +25,15 @@ const Register = () => {
     try {
       await apiClient("/register", {
         method: "POST",
-        body: { email, nama, password, confirm_password: confirmPassword },
+        body: {
+          email,
+          nama,
+          password,
+          confirm_password: confirmPassword,
+        },
       });
 
       window.location.href = "/verify-otp";
-
     } catch (err) {
       console.error("Register error:", err);
       setError(err.message || "Gagal registrasi");
@@ -40,104 +43,89 @@ const Register = () => {
   };
 
   return (
-    <div className="flex h-screen relative">
-      {/* Bagian Kiri */}
-      <div
-        className="hidden md:flex w-1/2 bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), url(${bgImage})`,
-        }}
-      ></div>
+    <AuthLayout
+      title="Daftar Akun E-BPSK Banten"
+      subtitle="Silakan isi data Anda untuk membuat akun"
+    >
+      
+      <form onSubmit={handleRegister} className="space-y-4">
 
-      {/* Bagian Kanan */}
-      <div className="flex w-full md:w-1/2 items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center mb-6">
-            <img src={logo} alt="Logo" className="w-20 h-20 mb-2" />
-            <h2 className="text-2xl font-bold text-blue-900 text-center">
-              Daftar Akun E-BPSK Banten
-            </h2>
-            <p className="text-gray-600 text-sm text-center">
-              Silahkan isi data anda untuk membuat akun
-            </p>
+        {error && (
+          <div className="bg-red-50 text-red-700 border border-red-200 p-2 rounded-lg text-sm">
+            {error}
           </div>
+        )}
 
-          <form onSubmit={handleRegister}>
-            {error && (
-              <div className="bg-red-100 text-red-600 p-2 rounded mb-3 text-sm">
-                {error}
-              </div>
-            )}
-
-            <div className="mb-3">
-              <label className="block text-gray-700 text-sm mb-1">Nama</label>
-              <input
-                type="text"
-                value={nama}
-                onChange={(e) => setNama(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Masukkan nama lengkap"
-                required
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="block text-gray-700 text-sm mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Masukkan email"
-                required
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="block text-gray-700 text-sm mb-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Masukkan password"
-                required
-              />
-              <PasswordStrength password={password} />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm mb-1">
-                Konfirmasi Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Ulangi password"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg transition font-medium shadow"
-            >
-              {loading ? "Memproses..." : "Daftar"}
-            </button>
-          </form>
-
-          <p className="text-center text-sm mt-4 text-gray-600">
-            Sudah mempunyai akun?{" "}
-            <a href="/login" className="text-blue-700 hover:underline font-semibold">
-              masuk di sini
-            </a>
-          </p>
+        {/* NAMA */}
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">Nama</label>
+          <input
+            type="text"
+            value={nama}
+            onChange={(e) => setNama(e.target.value)}
+            className="w-full border rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500/40 outline-none"
+            placeholder="Masukkan nama lengkap"
+            required
+          />
         </div>
-      </div>
-    </div>
+
+        {/* EMAIL */}
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500/40 outline-none"
+            placeholder="Masukkan email"
+            required
+          />
+        </div>
+
+        {/* PASSWORD */}
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full border rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500/40 outline-none"
+            placeholder="Masukkan password"
+            required
+          />
+          <PasswordStrength password={password} />
+        </div>
+
+        {/* CONFIRM PASSWORD */}
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">Konfirmasi Password</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full border rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500/40 outline-none"
+            placeholder="Ulangi password"
+            required
+          />
+        </div>
+
+        {/* BUTTON */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white py-2.5 rounded-xl shadow-md font-medium transition transform hover:-translate-y-0.5"
+        >
+          {loading ? "Memproses..." : "Daftar"}
+        </button>
+      </form>
+
+      <p className="text-center text-sm mt-4 text-gray-600">
+        Sudah punya akun?{" "}
+        <a href="/login" className="text-blue-700 hover:underline font-semibold">
+          Masuk di sini
+        </a>
+      </p>
+    </AuthLayout>
   );
 };
 

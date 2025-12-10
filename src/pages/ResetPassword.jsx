@@ -1,30 +1,24 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import AuthLayout from "../components/AuthLayout";
 import { apiClient } from "../api/apiClient";
-import logo from "../assets/LogoBanten.png";
-import bgImage from "../assets/background.jpg";
+import PasswordStrength from "../components/PasswordStrength"; // optional
 
 export default function ResetPassword() {
-  const { token } = useParams(); // Ambil token dari URL
+  const { token } = useParams();
   const navigate = useNavigate();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError(null);
     setMessage(null);
-
-    if (!password || !confirmPassword) {
-      setError("Password wajib diisi");
-      return;
-    }
 
     if (password !== confirmPassword) {
       setError("Password tidak sama");
@@ -44,7 +38,6 @@ export default function ResetPassword() {
 
       setMessage(res.message);
 
-      // Redirect otomatis setelah 2 detik
       setTimeout(() => {
         navigate("/login");
       }, 2000);
@@ -57,94 +50,74 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="flex h-screen">
-      {/* Bagian kiri (background image) */}
-      <div
-        className="hidden md:flex w-1/2 bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), url(${bgImage})`,
-        }}
-      ></div>
-
-      {/* Bagian kanan */}
-      <div className="flex w-full md:w-1/2 items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center mb-6">
-            <img src={logo} alt="Logo" className="w-20 h-20 mb-2" />
-            <h2 className="text-2xl font-bold text-blue-900 text-center">
-              Reset Password
-            </h2>
-            <p className="text-gray-600 text-sm text-center">
-              Silakan masukkan password baru kamu.
-            </p>
-          </div>
-
-          {message && (
-            <div className="bg-green-100 text-green-700 p-3 rounded-lg mb-4 border border-green-300 text-sm">
-              {message}
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 border border-red-300 text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm mb-1">
-                Password Baru
-              </label>
-              <input
-                type="password"
-                className="w-full border rounded-lg p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Password baru..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                required
-              />
-
-              <PasswordStrength password={password} />
-            </div>
-
-            <div className="mb-5">
-              <label className="block text-gray-700 text-sm mb-1">
-                Konfirmasi Password
-              </label>
-              <input
-                type="password"
-                className="w-full border rounded-lg p-2 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Konfirmasi password..."
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={loading}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2 rounded-lg text-white font-medium shadow transition ${
-                loading
-                  ? "bg-blue-400 cursor-not-allowed"
-                  : "bg-blue-700 hover:bg-blue-800"
-              }`}
-            >
-              {loading ? "Memproses..." : "Reset Password"}
-            </button>
-          </form>
-
-          <p className="text-center text-sm mt-4 text-gray-600">
-            Kembali ke{" "}
-            <a href="/login" className="text-blue-700 hover:underline font-semibold">
-              Login
-            </a>
-          </p>
+    <AuthLayout
+      title="Reset Password"
+      subtitle="Silakan masukkan password baru kamu"
+    >
+      {message && (
+        <div className="bg-green-50 border border-green-300 text-green-700 p-3 rounded-lg text-sm mb-4">
+          {message}
         </div>
-      </div>
-    </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-300 text-red-700 p-3 rounded-lg text-sm mb-4">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Password Baru */}
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">
+            Password Baru
+          </label>
+          <input
+            type="password"
+            className="w-full border rounded-xl p-2.5 shadow-sm bg-gray-50 focus:ring-2 focus:ring-blue-600/40 outline-none"
+            placeholder="Masukkan password baru..."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            required
+          />
+
+          {/* Opsional */}
+          <PasswordStrength password={password} />
+        </div>
+
+        {/* Konfirmasi Password */}
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">
+            Konfirmasi Password
+          </label>
+          <input
+            type="password"
+            className="w-full border rounded-xl p-2.5 shadow-sm bg-gray-50 focus:ring-2 focus:ring-blue-600/40 outline-none"
+            placeholder="Konfirmasi password..."
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        {/* Tombol Submit */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white py-2.5 rounded-xl shadow-md font-medium transition duration-200 transform hover:-translate-y-0.5 disabled:bg-blue-400"
+        >
+          {loading ? "Memproses..." : "Reset Password"}
+        </button>
+
+        <p className="text-center text-sm text-gray-600 mt-2">
+          Kembali ke{" "}
+          <a href="/login" className="text-blue-700 font-semibold hover:underline">
+            Login
+          </a>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }

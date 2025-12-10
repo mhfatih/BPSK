@@ -6,6 +6,11 @@ import KasusNavbar from "../components/KasusNavbar";
 import jsPDF from "jspdf";
 import logo from "../assets/LogoBanten.png";
 import { formatDate } from "../assets/FormatDate";
+import { buildFileUrl } from "../components/buildFileUrl";
+import { formatRupiah } from "../components/formatRupiah";
+// import { downloadProtectedFile } from "../components/downloadProtectedFile";
+// import { viewPdf } from "../components/ViewPdfFile";
+
 
 export default function ViewPengaduan() {
   const { id } = useParams();
@@ -18,6 +23,7 @@ export default function ViewPengaduan() {
   const [setujuKonfirmasi, setSetujuKonfirmasi] = useState(false);
   const [nomorDepan, setNomorDepan] = useState("");
 
+  const fileUrl = kasus?.file_sidang ? buildFileUrl(kasus.file_sidang) : null;
   const wilayah = kasus?.wilayah;
 
   // Ambil user dari localStorage
@@ -49,6 +55,7 @@ export default function ViewPengaduan() {
     };
     fetchKasus();
   }, [id, navigate]);
+
 
   const handleSubmitKasus = async () => {
     if (kasus?.status !== "Draf" && kasus?.status !== "Ditolak") {
@@ -245,6 +252,31 @@ export default function ViewPengaduan() {
         className="mt-2 w-40 border rounded-lg shadow-sm"
       />
     ) : null;
+  
+    const renderImageModern = (path, label = "Foto") => (
+      <div className="mt-4">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          {label}
+        </label>
+    
+        <div className="flex justify-start">
+          <div className="border rounded-xl p-3 shadow-sm bg-gray-50 hover:shadow-md transition-all w-40">
+            {path ? (
+              <img
+                src={buildFileUrl(path)}
+                alt={label}
+                className="w-full h-40 object-cover rounded-lg"
+              />
+            ) : (
+              <div className="w-full h-40 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">
+                Tidak ada foto
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+    
 
   return (
     <>
@@ -300,7 +332,37 @@ export default function ViewPengaduan() {
                 <p><b>Kabupaten/Kota:</b> {kasus.pengadu_kota}</p>
                 <p className="col-span-2"><b>Alamat:</b> {kasus.pengadu_alamat}</p>
               </div>
-              {renderImage(kasus.pengadu_foto_identitas, "Foto Identitas")}
+              {/* FOTO + FILE PENDUKUNG SIDE BY SIDE */}
+              <div className="flex flex-col sm:flex-row gap-6 mt-4">
+
+                {/* Foto Identitas */}
+                {renderImageModern(kasus.pengadu_foto_identitas, "Foto Identitas")}
+
+                {/* File Pendukung / jika ada */}
+                {kasus.pengadu_file_pendukung && (
+                  kasus.pengadu_file_pendukung.endsWith(".pdf") ? (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-1">
+                        Identitas Pendukung
+                      </p>
+                      <a
+                        href={buildFileUrl(kasus.pengadu_file_pendukung)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block border px-4 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-sm text-blue-600 shadow"
+                      >
+                        📄 Lihat File Pendukung (PDF)
+                      </a>
+                    </div>
+                  ) : (
+                    renderImageModern(
+                      kasus.pengadu_file_pendukung,
+                      "Identitas Pendukung"
+                    )
+                  )
+                )}
+
+              </div>
             </section>
           )}
 
@@ -362,7 +424,8 @@ export default function ViewPengaduan() {
                 <p><b>Jenis Kerugian:</b> {kasus.jenis_kerugian}</p>
                 <p className="col-span-2"><b>Keterangan:</b> {kasus.keterangan_kerugian}</p>
               </div>
-              {renderImage(kasus.foto_bukti, "Foto Bukti")}
+              
+              {renderImageModern(kasus.foto_bukti, "Foto Bukti")}
             </section>
           )}
 
@@ -383,18 +446,53 @@ export default function ViewPengaduan() {
           )}
 
           {/* Hasil */}
-          {kasus && (
+          {/* Hasil – hanya muncul jika status Selesai */}
+          {kasus && kasus.status === "Selesai" && (
             <section className="bg-white rounded-xl shadow p-6 max-w-3xl mx-auto mb-6">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-700">📄 Hasil</h2>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-gray-700 text-sm">
-                <p><b>Jumlah Kerugian:</b> {kasus.jumlah_kerugian}</p>
-                <p><b>Hasil Sidang:</b> {kasus.hasil_sidang}</p>
-                <p><b>Metode Penyelesaian:</b> {kasus.metode_penyelesaian}</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700 text-sm mb-4">
+                <p><b>Jumlah Kerugian:</b> {formatRupiah(kasus.jumlah_kerugian)}</p>
+                <p><b>Metode Penyelesaian:</b> {kasus.metode_penyelesaian ?? "-"}</p>
+                <p><b>Hasil Sidang:</b> {kasus.hasil_sidang ?? "-"}</p>
+                {/* jika mau tambahkan field lain, susun di sini */}
               </div>
-            </section>
-          )}
+
+              <div className="mt-4">
+                <label className="block font-semibold mb-1">File Sidang</label>
+
+                {fileUrl ? (
+                  <div className="p-4 border rounded-lg shadow-sm bg-white flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {/* {kasus?.file_sidang?.split('/').pop()} */}
+                        file_sidang.pdf
+                      </p>
+                      <p className="text-sm text-gray-500">File hasil sidang</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+                      >
+                        Lihat
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">Tidak ada file sidang</p>
+                )}
+              </div>
+
+  </section>
+)}
+
+
         </div>
 
         {/* Checkbox Konfirmasi Submit */}

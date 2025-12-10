@@ -1,7 +1,6 @@
 import React, { useState } from "react";
+import AuthLayout from "../components/AuthLayout";
 import { apiClient } from "../api/apiClient";
-import logo from "../assets/LogoBanten.png"; // ganti dengan path logo kamu
-import bgImage from "../assets/background.jpg"; // ganti dengan path gambar background
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -25,7 +24,6 @@ const Login = () => {
 
       window.location.href = "/dashboard";
     } catch (err) {
-      console.error("Login error:", err);
       setError(err.message || "Gagal login");
     } finally {
       setLoading(false);
@@ -33,83 +31,64 @@ const Login = () => {
   };
 
   return (
-    <div className="flex h-screen">
-      {/* Bagian Kiri */}
-      <div
-        className="hidden md:flex w-1/2 bg-cover bg-center"
-        style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.85)), url(${bgImage})`,
-        }}
-      ></div>
+    <AuthLayout
+      title="Selamat Datang"
+      subtitle="Masukkan akun Anda untuk masuk"
+    >
+      <form onSubmit={handleLogin} className="space-y-4">
 
-      {/* Bagian Kanan */}
-      <div className="flex w-full md:w-1/2 items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col items-center mb-6">
-            <img src={logo} alt="Logo" className="w-20 h-20 mb-2" />
-            <h2 className="text-2xl font-bold text-blue-900 text-center">
-              Selamat datang di E-BPSK Banten
-            </h2>
-            <p className="text-gray-600 text-sm text-center">
-              Silahkan masukan akun anda untuk login
-            </p>
+        {error && (
+          <div className="bg-red-50 text-red-700 border border-red-200 p-2 rounded-lg text-sm">
+            {error}
           </div>
+        )}
 
-          <form onSubmit={handleLogin}>
-            {error && (
-              <div className="bg-red-100 text-red-600 p-2 rounded mb-3 text-sm">
-                {error}
-              </div>
-            )}
-
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Alamat Email"
-                required
-              />
-            </div>
-
-            <div className="mb-2">
-              <label className="block text-gray-700 text-sm mb-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="Kata Sandi"
-                required
-              />
-            </div>
-
-            <div className="text-right mb-4">
-              <a href="/forgot-password" className="text-blue-700 font-semibold text-sm hover:underline">
-                Lupa password?
-              </a>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg transition font-medium shadow"
-            >
-              {loading ? "Memproses..." : "Masuk"}
-            </button>
-          </form>
-
-          <p className="text-center text-sm mt-4 text-gray-600">
-            Tidak mempunyai akun?{" "}
-            <a href="/register" className="text-blue-700 hover:underline font-semibold">
-              daftar akun
-            </a>
-          </p>
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">Email</label>
+          <input
+            type="email"
+            className="w-full border rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500/40 outline-none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            placeholder="Alamat Email"
+          />
         </div>
-      </div>
-    </div>
+
+        <div>
+          <label className="block text-gray-700 text-sm mb-1">Password</label>
+          <input
+            type="password"
+            className="w-full border rounded-xl p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500/40 outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Kata Sandi"
+          />
+        </div>
+
+        <div className="text-right">
+          <a href="/forgot-password" className="text-blue-700 text-sm font-medium hover:underline">
+            Lupa password?
+          </a>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white py-2.5 rounded-xl shadow-md font-medium transition transform hover:-translate-y-0.5"
+        >
+          {loading ? "Memproses..." : "Masuk"}
+        </button>
+
+        <p className="text-center text-sm text-gray-600 pt-1">
+          Belum punya akun?{" "}
+          <a href="/register" className="text-blue-700 font-semibold hover:underline">
+            Daftar
+          </a>
+        </p>
+      </form>
+    </AuthLayout>
   );
 };
 

@@ -18,6 +18,7 @@ export default function PengaduanDataDiri() {
     pengadu_kode_pos: "",
     pengadu_identitas: "",
     pengadu_foto_identitas: null,
+    pengadu_file_pendukung: null,
   });
   const [loading, setLoading] = useState(false);
 
@@ -37,6 +38,7 @@ export default function PengaduanDataDiri() {
             ...prev,
             ...data,
             pengadu_foto_identitas: null,
+            pengadu_file_pendukung: null,
           }));
         }
       } catch (err) {
@@ -118,6 +120,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_nama}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
 
@@ -129,6 +132,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_umur}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
 
@@ -139,6 +143,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_jenis_kelamin}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               >
                 <option value="">-- Pilih --</option>
                 <option value="laki-laki">Laki-laki</option>
@@ -153,6 +158,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_kota}
                 onChange={handleChange}
                 className="w-full border border rounded-md p-2 "
+                required
               >
                 <option value="">Pilih Kota/Kabupaten</option>
                 <option value="Kota Tangerang">Kota Tangerang</option>
@@ -173,6 +179,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_alamat}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               ></textarea>
             </div>
 
@@ -184,6 +191,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_email}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
 
@@ -195,6 +203,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_no_hp}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
 
@@ -206,6 +215,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_kode_pos}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
 
@@ -217,6 +227,7 @@ export default function PengaduanDataDiri() {
                 value={form.pengadu_identitas}
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
+                required
               />
             </div>
 
@@ -228,6 +239,19 @@ export default function PengaduanDataDiri() {
                 type="file"
                 name="pengadu_foto_identitas"
                 accept="image/*"
+                onChange={handleChange}
+                className="w-full border rounded-md p-2"
+              />
+            </div>
+
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">
+                Identitas Pendukung (Jika Diwakilkan atau Dikuasakan)
+              </label>
+              <input
+                type="file"
+                name="pengadu_file_pendukung"
+                accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleChange}
                 className="w-full border rounded-md p-2"
               />

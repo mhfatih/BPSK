@@ -9,12 +9,22 @@ export default function KronologisPengaduan() {
 
   const [form, setForm] = useState({
     kronologis: "",
-    jenis_tuntutan: "",
+    jenis_tuntutan: [],
   });
   const [loading, setLoading] = useState(false);
 
   // 🔹 State popup
   const [showPopup, setShowPopup] = useState(false);
+  const [errorTuntutan, setErrorTuntutan] = useState("");
+  const opsiJenisTuntutan = [
+    "Pengembalian Barang/Jasa yang Sejenis atau Setara Lainnya",
+    "Pengembalian Uang",
+    "Perawatan Kesehatan",
+    "Pemberian Santunan",
+    "Teguran Kepada Pelaku Usaha",
+    "Lain-lain",
+  ];
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,7 +33,9 @@ export default function KronologisPengaduan() {
 
         setForm({
           kronologis: data.kronologis || "",
-          jenis_tuntutan: data.jenis_tuntutan || "",
+          jenis_tuntutan: data.jenis_tuntutan
+          ? data.jenis_tuntutan.split(",").map((t) => t.trim())
+          : [],
         });
       } catch (err) {
         console.error("❌ Gagal ambil data kronologis:", err);
@@ -42,10 +54,15 @@ export default function KronologisPengaduan() {
     e.preventDefault();
     setLoading(true);
 
+    
+
     try {
       await apiClient(`/kasus/${id}/kronologis`, {
         method: "PUT",
-        body: form,
+        body: {
+          ...form,
+          jenis_tuntutan: form.jenis_tuntutan.join(", "),
+        },
       });
 
       // 🔹 Tampilkan popup sukses
@@ -58,6 +75,23 @@ export default function KronologisPengaduan() {
       setLoading(false);
     }
   };
+
+  const handleCheckboxChange = (e) => {
+    const { value, checked } = e.target;
+  
+    setForm((prev) => {
+      let updated = [...prev.jenis_tuntutan];
+  
+      if (checked) {
+        updated.push(value); // tambah opsi
+      } else {
+        updated = updated.filter((item) => item !== value); // hapus opsi
+      }
+  
+      return { ...prev, jenis_tuntutan: updated };
+    });
+  };
+  
 
   return (
     <>
@@ -84,7 +118,57 @@ export default function KronologisPengaduan() {
             ></textarea>
           </div>
 
+
           <div>
+            <label className="block text-sm font-medium mb-2">
+              Jenis Tuntutan <span className="text-red-500">*</span>
+            </label>
+
+            {/* PREVIEW BADGE TUNTUTAN */}
+            {form.jenis_tuntutan.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {form.jenis_tuntutan.map((item) => (
+                  <span
+                    key={item}
+                    className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full border border-blue-300"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {opsiJenisTuntutan.map((item) => {
+                const active = form.jenis_tuntutan.includes(item);
+
+                return (
+                  <label
+                    key={item}
+                    className={`flex items-start gap-2 p-3 rounded-xl border cursor-pointer transition-all 
+                      ${active ? "border-blue-500 bg-blue-50 shadow-md" : "border-gray-300 hover:bg-gray-50"}
+                    `}
+                  >
+                    <input
+                      type="checkbox"
+                      value={item}
+                      checked={active}
+                      onChange={handleCheckboxChange}
+                      className="w-4 h-4 mt-1 accent-blue-600"
+                    />
+                    <span className="text-sm font-medium">{item}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {errorTuntutan && (
+              <p className="text-red-500 text-sm mt-1">{errorTuntutan}</p>
+            )}
+          </div>
+
+
+          {/* <div>
             <label className="block text-sm font-medium">Jenis Tuntutan</label>
             <select
               name="jenis_tuntutan"
@@ -102,7 +186,7 @@ export default function KronologisPengaduan() {
               <option value="Teguran Kepada Pelaku Usaha">Teguran Kepada Pelaku Usaha</option>
               <option value="Lain-lain">Lain-lain</option>
             </select>
-          </div>
+          </div> */}
 
           <div className="flex justify-end mt-6">
             <button
