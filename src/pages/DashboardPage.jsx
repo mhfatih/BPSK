@@ -31,7 +31,7 @@ export default function DashboardModern() {
   const [loading, setLoading] = useState(true);
 
   // filters
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [year, setYear] = useState("all"); // default = keseluruhan
   const [wilayahFilter, setWilayahFilter] = useState("Semua");
   const [jenisFilter, setJenisFilter] = useState("Semua");
 
@@ -39,7 +39,13 @@ export default function DashboardModern() {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
-        const res = await apiClient("/dashboard");
+  
+        const url =
+          year === "all"
+            ? "/dashboard"
+            : `/dashboard?tahun=${year}`;
+  
+        const res = await apiClient(url);
         setData(res || {});
       } catch (err) {
         console.error("Gagal ambil dashboard:", err);
@@ -47,8 +53,11 @@ export default function DashboardModern() {
         setLoading(false);
       }
     };
+  
     fetchDashboard();
-  }, []);
+  }, [year]);
+  
+  
 
   // safe accessors / fallbacks
   const statusArr = data?.status || [];
@@ -133,6 +142,29 @@ export default function DashboardModern() {
     };
   }, [sidangPerBulan]);
 
+  // const sidangChart = useMemo(() => {
+  //   const bulanMap = [
+  //     "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+  //     "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+  //   ];
+  
+  //   const labels = sidangPerBulan.map((s) => bulanMap[s.bulan - 1]);
+  //   const values = sidangPerBulan.map((s) => s.jumlah);
+  
+  //   return {
+  //     labels,
+  //     datasets: [
+  //       {
+  //         label: `Sidang Tahun ${year}`,
+  //         data: values,
+  //         borderColor: "rgba(16,185,129,0.9)",
+  //         tension: 0.3,
+  //       },
+  //     ],
+  //   };
+  // }, [sidangPerBulan, year]);
+  
+
   // quick insights
   const insights = useMemo(() => {
     const topStatus = statusArr.slice().sort((a, b) => b.jumlah - a.jumlah)[0];
@@ -154,25 +186,26 @@ export default function DashboardModern() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Dashboard Kasus BPSK</h1>
-          <p className="text-sm text-gray-500 mt-1">Ringkasan kinerja & statistik pengaduan</p>
+          <p className="text-sm text-gray-500 mt-1">Ringkasan kinerja & statistik pengaduan ({year})</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="border rounded px-3 py-2 text-sm bg-white"
-          >
-            {/* try to render a small range of years */}
-            {Array.from({ length: 5 }).map((_, i) => {
-              const y = new Date().getFullYear() - i;
-              return (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              );
-            })}
-          </select>
+        <select
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="border rounded px-3 py-2 text-sm bg-white"
+        >
+          <option value="all">Semua Tahun</option>
+
+          {(data?.tahun_tersedia || []).map((item) => (
+            <option key={item.tahun} value={item.tahun}>
+              {item.tahun}
+            </option>
+          ))}
+        </select>
+
+
+
 
           {/* <select
             value={wilayahFilter}

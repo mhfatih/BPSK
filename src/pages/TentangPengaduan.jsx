@@ -139,7 +139,7 @@ export default function TentangPengaduan() {
                 className="w-full border rounded-md p-2"
               >
                 <option value="">Pilih Jenis Pengaduan</option>
-                <option value="industri dan pertambangan">Industri dan Pertambangan</option>
+                <option value="industri dan pertambangan">Perdagangan Barang</option>
                 <option value="pertanian dan kehutanan">Pertanian dan Kehutanan</option>
                 <option value="standar mutu">Standar Mutu</option>
                 <option value="jasa">Jasa</option>
