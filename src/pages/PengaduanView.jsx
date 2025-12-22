@@ -8,6 +8,7 @@ import logo from "../assets/LogoBanten.png";
 import { formatDate } from "../assets/FormatDate";
 import { buildFileUrl } from "../components/buildFileUrl";
 import { formatRupiah } from "../components/formatRupiah";
+import { downloadPengaduanPDF } from "../pdf";
 // import { downloadProtectedFile } from "../components/downloadProtectedFile";
 // import { viewPdf } from "../components/ViewPdfFile";
 
@@ -90,145 +91,12 @@ export default function ViewPengaduan() {
     }
   };
 
-  // 🧾 Fungsi untuk download ke PDF
+
   const handleDownloadPDF = () => {
-    try {
-      const pdf = new jsPDF("p", "mm", "a4");
-      const img = new Image();
-      img.src = logo;
-
-      const checkPageBreak = () => {
-        if (y > 270) {
-          pdf.addPage();
-          y = 20;
-        }
-      };
-
-      pdf.addImage(img, "PNG", 12, 15, 25, 20);
-      pdf.addImage(img, "PNG", 175, 15, 25, 20);
-
-      pdf.setFont("times", "bold");
-      pdf.setFontSize(14);
-      pdf.text("BADAN PENYELESAIAN SENGKETA KONSUMEN (BPSK)", 105, 20, { align: "center" });
-      pdf.text("PROVINSI BANTEN WILAYAH KERJA PROVINSI I", 105, 27, { align: "center" });
-
-      pdf.setFont("times", "italic");
-      pdf.setFontSize(10);
-      pdf.text("Ruko Permata Cisadane, Jl. Teuku Umar Bojong Jaya, Karawaci Kota Tangerang Banten 15115", 105, 33, { align: "center" });
-
-      pdf.setDrawColor(0);
-      pdf.setLineWidth(0.6);
-      pdf.line(15, 37, 195, 37);
-
-      pdf.setFontSize(13);
-      pdf.setFont("times", "bold");
-      pdf.text("LAPORAN PENGADUAN KASUS KONSUMEN", 105, 50, { align: "center" });
-
-      pdf.setFont("times", "normal");
-      pdf.setFontSize(11);
-      let y = 65;
-
-      // 🔸 Data Diri Pelapor
-      pdf.text("DATA DIRI PELAPOR:", 20, y); y += 7;
-      [
-        `Nama              : ${kasus?.pengadu_nama || "-"}`,
-        `Jenis Kelamin     : ${kasus?.pengadu_jenis_kelamin || "-"}`,
-        `No. HP            : ${kasus?.pengadu_no_hp || "-"}`,
-        `Alamat            : ${kasus?.pengadu_alamat || "-"}`,
-        `Email             : ${kasus?.pengadu_email || "-"}`,
-        `Kabupaten/Kota    : ${kasus?.pengadu_kota || "-"}`
-      ].forEach(line => {
-        pdf.text(line, 25, y); y += 6; checkPageBreak();
-      });
-      y += 4;
-
-      // 🔸 Data Pelaku Usaha
-      const pelakuList = kasus?.pelaku_usaha || [];
-      if (pelakuList.length > 0) {
-        pelakuList.forEach((pelaku, index) => {
-          pdf.text(`Pelaku Usaha #${index + 1}:`, 25, y); y += 6; checkPageBreak();
-          [
-            `  Perusahaan      : ${pelaku?.perusahaan || "-"}`,
-            `  Nama Pemilik    : ${pelaku?.pemilik || "-"}`,
-            `  Kota            : ${pelaku?.kota || "-"}`,
-            `  Alamat          : ${pelaku?.alamat || "-"}`,
-            `  No. HP          : ${pelaku?.no_hp || "-"}`,
-            `  Email           : ${pelaku?.email || "-"}`,
-            `  Kode Pos        : ${pelaku?.kode_pos || "-"}`
-          ].forEach(line => {
-            pdf.text(line, 30, y); y += 6; checkPageBreak();
-          });
-          y += 2;
-        });
-      } else {
-        pdf.text("Tidak ada data pelaku usaha.", 25, y); y += 8; checkPageBreak();
-      }
-
-      // 🔸 Tentang Pengaduan
-      pdf.text("TENTANG PENGADUAN:", 20, y); y += 7; checkPageBreak();
-      [
-        `Jenis Pengaduan   : ${kasus?.jenis_pengaduan || "-"}`,
-        `Tanggal Kejadian  : ${new Date(kasus?.tanggal_kejadian).toLocaleDateString("id-ID") || "-"}`,
-        `Lokasi            : ${kasus?.lokasi_kejadian || kasus?.pelaku_usaha?.pengadu_pekerjaan || "-"}`,
-        `Jenis Kerugian    : ${kasus?.jenis_kerugian || "-"}`
-      ].forEach(line => {
-        pdf.text(line, 25, y); y += 6; checkPageBreak();
-      });
-
-      const keteranganText = pdf.splitTextToSize(kasus?.keterangan_kerugian || "Tidak ada keterangan.", 170);
-      pdf.text("Keterangan:", 25, y); y += 6; checkPageBreak();
-      pdf.text(keteranganText, 30, y); y += keteranganText.length * 6 + 4; checkPageBreak();
-
-      // 🔸 Kronologis
-      const kronoText = pdf.splitTextToSize(kasus?.kronologis || "Tidak ada kronologi.", 170);
-      pdf.text("KRONOLOGIS:", 20, y); y += 7; checkPageBreak();
-      pdf.text(kronoText, 25, y); y += kronoText.length * 6 + 4; checkPageBreak();
-
-      // 🔸 Jenis Tuntutan
-      pdf.text(`Jenis Tuntutan    : ${kasus?.jenis_tuntutan || "-"}`, 25, y); y += 10; checkPageBreak();
-
-      // 🔸 Bukti
-      pdf.text("BUKTI PENDUKUNG:", 20, y); y += 7; checkPageBreak();
-      [
-        `Bukti Pembelian   : ${kasus?.bukti_pembelian || "-"}`,
-        `Bukti Saksi       : ${kasus?.bukti_saksi || "-"}`,
-        `Barang Bukti      : ${kasus?.barang_bukti || "-"}`
-      ].forEach(line => {
-        pdf.text(line, 25, y); y += 6; checkPageBreak();
-      });
-      y += 4;
-
-      // 🔸 Hasil Musyawarah
-      const hasilText = pdf.splitTextToSize(kasus?.hasil_musyawarah || "Belum ada hasil musyawarah.", 170);
-      pdf.text("HASIL MUSYAWARAH:", 20, y); y += 7; checkPageBreak();
-      pdf.text(hasilText, 25, y); y += hasilText.length * 6 + 4; checkPageBreak();
-
-      // 🔸 Status Proses
-      pdf.text("STATUS PENANGANAN:", 20, y); y += 7; checkPageBreak();
-      [
-        `Diproses oleh     : ${kasus?.processed_by || "-"}`,
-        `Tanggal Proses    : ${new Date(kasus?.processed_at).toLocaleDateString("id-ID") || "-"}`,
-        `Diselesaikan oleh : ${kasus?.finished_by || "-"}`,
-        `Tanggal Selesai   : ${new Date(kasus?.finished_at).toLocaleDateString("id-ID") || "-"}`
-      ].forEach(line => {
-        pdf.text(line, 25, y); y += 6; checkPageBreak();
-      });
-      y += 10;
-
-      // 🔸 Tanda tangan
-      pdf.text("Banten, " + new Date().toLocaleDateString("id-ID"), 140, y); y += 25; checkPageBreak();
-      pdf.text("(....................................)", 140, y);
-      pdf.text("Petugas Verifikator", 145, y + 7);
-
-      pdf.save(`Pengaduan_${kasus?.no_registrasi || "data"}.pdf`);
-    } catch (err) {
-      console.error("Gagal membuat PDF:", err);
-      alert("Terjadi kesalahan saat membuat PDF");
-    }
+    if (!kasus) return;
+    downloadPengaduanPDF(kasus);
   };
-
-
-
+  
 
   if (loading)
     return (
