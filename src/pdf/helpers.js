@@ -155,6 +155,22 @@ export const checkPageBreak = (pdf, y, renderHeader, startY = 65) => {
   
     // return tinggi baris (biar fleksibel)
     return lines.length * 6;
+};
+  
+
+export const drawCheckboxList = (pdf, x, y, label, options, selected = []) => {
+    pdf.setFont("times", "normal");
+    pdf.text(label + ":", x, y);
+    y += 6;
+  
+    options.forEach((opt) => {
+      const isChecked = selected.includes(opt);
+      pdf.rect(x, y - 3, 4, 4); // kotak checkbox
+      if (isChecked) pdf.text("✓", x + 1, y); // centang
+      pdf.text(opt, x + 6, y);
+      y += 6;
+    });
   };
+  
   
   

@@ -127,7 +127,7 @@ export default function PengaduanPelakuUsaha() {
 
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-3xl mx-auto">
         <h2 className="text-2xl font-semibold text-gray-700 mb-4">
-          Langkah 2: Pelaku Usaha
+          Langkah 2: Pelaku Usaha (Yang Diadukan)
         </h2>
 
         {/* TABS */}

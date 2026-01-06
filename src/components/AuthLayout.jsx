@@ -1,7 +1,7 @@
 // components/AuthLayout.jsx
 import React from "react";
-import bgImage from "../assets/background.jpg";
-import logo from "../assets/LogoBanten.png";
+import bgImage from "../assets/indagl.jpeg";
+import logo from "../assets/LogoBantenNew.png";
 
 const AuthLayout = ({ title, subtitle, children }) => {
   return (

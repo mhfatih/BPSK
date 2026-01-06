@@ -38,7 +38,7 @@ export default function ViewPengaduan() {
     const fetchKasus = async () => {
       try {
         const data = await apiClient(`/kasus/${id}`);
-        console.log("Data kasus dari API:", data);
+        
 
         // 🧩 Normalisasi key agar konsisten
         const normalizedData = {
@@ -149,7 +149,7 @@ export default function ViewPengaduan() {
   return (
     <>
       <KasusNavbar />
-      {/* 🔽 Tombol Download PDF */}
+      
 
       <div className="max-w-5xl mx-auto" ref={pdfRef}>
         <div className="bg-white rounded-xl shadow p-6 max-w-3xl mx-auto mb-6">
@@ -385,19 +385,18 @@ export default function ViewPengaduan() {
 
         {/* Tombol Navigasi */}
         <div className="flex justify-between items-center mt-8 max-w-3xl mx-auto">
-          {/* <button
-            onClick={() => navigate(`/pengaduan/${id}/kronologis-pengaduan`)}
-            className="px-5 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition"
-          >
-            ← Kembali
-          </button> */}
-
+          
+        <div>
+        {["Diverifikasi", "Diterima", "Selesai"].includes(kasus.status) && (
           <button
             onClick={handleDownloadPDF}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
           >
             ⬇️ Download PDF
           </button>
+        )}
+        </div>
+
 
           <div className="flex space-x-3">
             {(kasus?.status === "Draf" || kasus?.status === "Ditolak") && (

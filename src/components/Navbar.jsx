@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import { apiClient } from '../api/apiClient';
-import logo from '../assets/LogoBanten.png';
+import logo from '../assets/LogoBantenNew.png';
 
 // icons
 import { MdMenuOpen } from "react-icons/md";
