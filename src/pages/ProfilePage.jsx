@@ -12,6 +12,7 @@ export default function ProfilePage() {
       try {
         const data = await apiClient("/profile", { method: "GET" });
         setProfile(data);
+        console.log(data);
       } catch (err) {
         alert("Gagal memuat profil");
         navigate("/login");
@@ -34,8 +35,9 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center mb-8">
           <img
             src={
-              user.foto_identitas ||
-              "https://via.placeholder.com/150.png?text=No+Image"
+              user.foto_identitas 
+              ? `${import.meta.env.VITE_API_URL}${user.foto_identitas}`
+              : "https://via.placeholder.com/150.png?text=No+Image"
             }
             alt="Foto Profil"
             className="w-32 h-32 rounded-xl object-cover border shadow"
