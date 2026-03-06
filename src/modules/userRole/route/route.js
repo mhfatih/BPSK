@@ -1,0 +1,14 @@
+import express from "express";
+import * as controller from "../controller/controller.js";
+import { authMiddleware } from "../../../middlewares/auth.middleware.js";
+import { permission } from "../../../middlewares/permission.middleware.js";
+
+const router = express.Router();
+
+router.get("/", authMiddleware, permission("user_roles.read"), controller.getAll);
+router.get("/:id", authMiddleware, permission("user_roles.read"), controller.getById);
+router.post("/", authMiddleware, permission("user_roles.create"), controller.create);
+// router.put("/:id", authMiddleware, permission("user_roles.update"), controller.update);
+router.delete("/:id", authMiddleware, permission("user_roles.delete"), controller.remove);
+
+export default router;
