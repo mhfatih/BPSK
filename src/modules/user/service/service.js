@@ -24,7 +24,7 @@ export const getAll = async (page, perPage, search) => {
 
 export const getById = async (id) => {
   const data = await repo.getById(id);
-  if (!data) throw new Error("Data tidak ditemukan");
+  if (!data) throw new Error("Data not found");
   return data;
 };
 
@@ -46,7 +46,7 @@ export const update = async (id, name, email, password) => {
   if (!name) throw new Error("Name tidak boleh kosong");
   if (!email) throw new Error("Email tidak boleh kosong");
   const data = await repo.getById(id);
-  if (!data) throw new Error("Data tidak ditemukan");
+  if (!data) throw new Error("Data not found");
 
   if (email && email !== data.email) {
     const emailUsed = await repo.getByEmail(email);
@@ -61,7 +61,7 @@ export const update = async (id, name, email, password) => {
 
 export const remove = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("User tidak ditemukan");
+    if (!data) throw new Error("User not found");
 
     await repo.remove(id);
     return true;
@@ -69,7 +69,7 @@ export const remove = async (id) => {
 
 export const getAuth = async (id) => {
   const data = await repo.getById(id);
-  if (!data) throw new Error("Data tidak ditemukan");
+  if (!data) throw new Error("Data not found");
 
   const roles = await urRepo.getRelations(id);
   const territories = await utRepo.getRelations(id);

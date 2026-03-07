@@ -1,13 +1,11 @@
 import * as repo from "../repository/repository.js";
 import * as roleRepo from "../../role/repository/repository.js";
 import * as permissionRepo from "../../permission/repository/repository.js";
-import { v4 as uuidv4 } from "uuid";
 
-export const getAll = async (page, perPage, search) => {
+export const getAll = async (page, perPage, search, role_id, permission_id) => {
   const offset = (page - 1) * perPage;
-
-  const data = await repo.getAll(perPage, offset, search);
-  const total = await repo.countAll(search);
+  const data = await repo.getAll(perPage, offset, search, role_id, permission_id);
+  const total = await repo.countAll(search, role_id, permission_id);
 
   return {
     data,
@@ -21,54 +19,44 @@ export const getAll = async (page, perPage, search) => {
   };
 };
 
-export const getById = async (id) => {
-  const data = await repo.getById(id);
-  if (!data) throw new Error("Data tidak ditemukan");
-  return data;
-};
-
 export const create = async (role_id, permission_id) => {
   const role = await roleRepo.getById(role_id);
-  if (!role) throw new Error("Role tidak ditemukan");
+  if (!role) throw new Error("Role not found");
   const permission = await permissionRepo.getById(permission_id);
-  if (!permission) throw new Error("Permission tidak ditemukan");
+  if (!permission) throw new Error("Permission not found");
 
-  const id = uuidv4();
-  return repo.create(id, role_id, permission_id);
+  return repo.create(role_id, permission_id);
 };
 
-// export const update = async (id, male_athletes, female_athletes, total_athletes, total_coaches) => {
-//   const data = await repo.getById(id);
-//   if (!data) throw new Error("Data tidak ditemukan");
+export const remove = async (role_id, permission_id) => {
+  const role = await roleRepo.getById(role_id);
+  if (!role) throw new Error("Role not found");
+  const permission = await permissionRepo.getById(permission_id);
+  if (!permission) throw new Error("Permission not found");
+  const relation = await repo.checkRelations(role_id, permission_id);
+  if (!relation) throw new Error("Relation not found");
 
-//   return repo.update(id, male_athletes, female_athletes, total_athletes, total_coaches);
-// };
-
-export const remove = async (id) => {
-  const data = await repo.getById(id);
-  if (!data) throw new Error("Data tidak ditemukan");
-
-  await repo.remove(id);
+  await repo.remove(role_id, permission_id);
   return true;
 };
 
 export const getRelations = async (role_id) => {
   const user = await roleRepo.getById(role_id);
-  if (!user) throw new Error("Role tidak ditemukan");
+  if (!user) throw new Error("Role not found");
 
   return repo.getRelations(role_id);
 };
 
 export const assignRelations = async (role_id, items = []) => {
   const user = await roleRepo.getById(role_id);
-  if (!user) throw new Error("User tidak ditemukan");
+  if (!user) throw new Error("User not found");
 
   const relations = [];
   const rows = [];
 
   for (const item of items) {
     relations.push(item.permission_id);
-    rows.push([uuidv4(), role_id, item.permission_id]);
+    rows.push([role_id, item.permission_id]);
   }
 
   await repo.deleteMany(role_id, relations);

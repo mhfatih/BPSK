@@ -27,14 +27,14 @@ export const getFull = async () => {
 
 export const getById = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
     return data;
 };
 
 export const create = async (module_id, name) => {
     if (!name) throw new Error("Nama wajib diisi");
     const module = await moduleRepo.getById(module_id);
-    if (!module) throw new Error("Module tidak ditemukan");
+    if (!module) throw new Error("Module not found");
 
     const id = uuidv4();
     return repo.create(id, module_id, name);
@@ -42,14 +42,14 @@ export const create = async (module_id, name) => {
 
 export const update = async (id, name) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     return repo.update(id, name);
 };
 
 export const remove = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     await repo.remove(id);
     return true;

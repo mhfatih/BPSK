@@ -1,16 +1,27 @@
 import { db } from "../../../config/database.js";
 
+const buildFilters = (search) => {
+  const conditions = [];
+  const params = [];
+
+  if (search) {
+    conditions.push(`(r.name LIKE ?)`);
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  return { conditions, params };
+};
+
 export const getAll = async (limit, offset, search) => {
   let query = `
     SELECT * 
     FROM roles r
   `;
-  
-  const params = [];
 
-  if (search) {
-    query += ` WHERE r.name LIKE ? `;
-    params.push(`%${search}%`);
+  const { conditions, params } = buildFilters(search);
+
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   query += ` ORDER BY r.name ASC LIMIT ? OFFSET ?`;
@@ -22,11 +33,11 @@ export const getAll = async (limit, offset, search) => {
 
 export const countAll = async (search) => {
   let query = `SELECT COUNT(*) as total FROM roles r`;
-  const params = [];
 
-  if (search) {
-    query += ` WHERE r.name LIKE ?`;
-    params.push(`%${search}%`);
+  const { conditions, params } = buildFilters(search);
+
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   const [[row]] = await db.query(query, params);

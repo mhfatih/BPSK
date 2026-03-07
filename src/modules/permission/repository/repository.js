@@ -1,46 +1,53 @@
 import { db } from "../../../config/database.js";
 
-export const getAll = async (limit, offset, search) => {
-  let query = `
-    SELECT 
-      p.*,
-      m.name AS module_name
-    FROM permissions p
-    JOIN modules m ON m.id = p.module_id
-  `;
-
+const buildFilters = (search, module_id) => {
+  const conditions = [];
   const params = [];
 
   if (search) {
-    query += ` 
-    WHERE p.name LIKE ?
-    OR m.name LIKE ? 
-    `;
+    conditions.push(`(p.name LIKE ? OR m.name LIKE ?)`);
     params.push(`%${search}%`, `%${search}%`);
   }
 
-  query += ` ORDER BY m.name ASC, p.name ASC LIMIT ? OFFSET ?`;
+  if (module_id) {
+    conditions.push(`p.module_id = ?`);
+    params.push(module_id);
+  }
+
+  return { conditions, params };
+};
+
+export const getAll = async (limit, offset, search, module_id) => {
+  let query = `
+    SELECT p.*, m.name AS module_name
+    FROM permissions p
+    JOIN modules m ON m.id = p.module_id
+  `;
+  
+  const { conditions, params } = buildFilters(search, module_id);
+
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
+  }
+
+  query += ` ORDER BY p.name ASC, m.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
   return rows;
 };
 
-export const countAll = async (search) => {
+export const countAll = async (search, module_id) => {
   let query = `
     SELECT COUNT(*) as total
     FROM permissions p
     JOIN modules m ON m.id = p.module_id
   `;
 
-  const params = [];
+  const { conditions, params } = buildFilters(search, module_id);
 
-  if (search) {
-    query += ` 
-    WHERE p.name LIKE ?
-    OR m.name LIKE ? 
-    `;
-    params.push(`%${search}%`, `%${search}%`);
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   const [[row]] = await db.query(query, params);

@@ -5,8 +5,9 @@ export const getAll = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 10;
     const search = req.query.search || "";
-
-    const result = await service.getAll(page, perPage, search);
+    const user_id = req.query.user_id || "";
+    const role_id = req.query.role_id || "";
+    const result = await service.getAll(page, perPage, search, user_id, role_id);
 
     res.json({
       status: 200,
@@ -20,25 +21,9 @@ export const getAll = async (req, res) => {
   }
 };
 
-export const getById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const data = await service.getById(id);
-
-    res.json({
-      message: "Berhasil mengambil data",
-      data: data,
-    });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
 export const create = async (req, res) => {
   try {
     const { user_id, role_id } = req.body;
-
     const newData = await service.create(user_id, role_id);
 
     res.json({
@@ -50,27 +35,10 @@ export const create = async (req, res) => {
   }
 };
 
-// export const update = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const { maleAthletes, femaleAthletes, totalAthletes, totalCoaches } = req.body;
-
-//     const updatedData = await service.update(id, maleAthletes, femaleAthletes, totalAthletes, totalCoaches);
-
-//     res.json({
-//       message: "Data berhasil diperbarui",
-//       data: updatedData,
-//     });
-//   } catch (err) {
-//     res.status(400).json({ message: err.message });
-//   }
-// };
-
 export const remove = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    await service.remove(id);
+    const { user_id, role_id } = req.params;
+    await service.remove(user_id, role_id);
 
     res.json({ message: "Data berhasil dihapus" });
   } catch (err) {
@@ -91,10 +59,9 @@ export const getRelations = async (req, res) => {
 
 export const assignRelations = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { user_id } = req.params;
     const { items } = req.body;
-
-    const data = await service.assignRelations(id, items);
+    const data = await service.assignRelations(user_id, items);
 
     res.json({
       message: "Data berhasil diperbarui",

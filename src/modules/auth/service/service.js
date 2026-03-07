@@ -41,11 +41,11 @@ export const register = async (name, email, password) => {
 
 export const verifyOtp = async (email, otpInput) => {
     const user = await userRepo.getByEmail(email);
-    if (!user) throw new Error("User tidak ditemukan");
+    if (!user) throw new Error("User not found");
     if (user.is_verified) throw new Error("User sudah terverifikasi");
     const userId = user.id;
     const otpData = await otpRepo.getOtp(userId);
-    if (!otpData) throw new Error("OTP tidak ditemukan");
+    if (!otpData) throw new Error("OTP not found");
     if (new Date() > new Date(otpData.expires_at)) throw new Error("OTP sudah kadaluarsa");
     const isMatch = await bcrypt.compare(otpInput, otpData.otp_hash);
     if (!isMatch) throw new Error("OTP salah");
@@ -54,7 +54,7 @@ export const verifyOtp = async (email, otpInput) => {
     await otpRepo.remove(userId);
 
     const role = await roleRepo.getByName("User");
-    if (!role) throw new Error("Role tidak ditemukan");
+    if (!role) throw new Error("Role not found");
     await urRepo.create(uuidv4(), userId, role.id)
 
     const token = jwt.sign(
@@ -69,7 +69,7 @@ export const verifyOtp = async (email, otpInput) => {
 
 export const resendOtp = async (email) => {
     const user = await userRepo.getByEmail(email);
-    if (!user) throw new Error("User tidak ditemukan");
+    if (!user) throw new Error("User not found");
     if (user.is_verified) throw new Error("User sudah terverifikasi");
     const userId = user.id;
 
@@ -104,7 +104,7 @@ export const login = async (email, password) => {
 
 export const changePassword = async (userId, oldPassword, newPassword) => {
     const user = await userRepo.getById(userId);
-    if (!user) throw new Error("User tidak ditemukan");
+    if (!user) throw new Error("User not found");
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) throw new Error("Password lama salah");
     const hashedPassword = await bcrypt.hash(newPassword, 10);

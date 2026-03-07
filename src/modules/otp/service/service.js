@@ -21,7 +21,7 @@ export const getAll = async (page, perPage, search) => {
 
 export const getById = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
     return data;
 };
 
@@ -32,14 +32,14 @@ export const create = async (userId, otpHash, expiresAt, attempts) => {
 
 export const update = async (id, otpHash, expiresAt, attempts) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     return repo.update(id, otpHash, expiresAt, attempts);
 };
 
 export const remove = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     await repo.remove(id);
     return true;

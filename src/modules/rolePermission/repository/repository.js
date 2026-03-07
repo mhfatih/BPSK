@@ -1,6 +1,28 @@
 import { db } from "../../../config/database.js";
 
-export const getAll = async (limit, offset, search) => {
+const buildFilters = (search, role_id, permission_id) => {
+  const conditions = [];
+  const params = [];
+
+  if (search) {
+    conditions.push(`(r.name LIKE ? OR p.name LIKE ?)`);
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (role_id) {
+    conditions.push(`r.id = ?`);
+    params.push(role_id);
+  }
+
+  if (permission_id) {
+    conditions.push(`p.id = ?`);
+    params.push(permission_id);
+  }
+
+  return { conditions, params };
+};
+
+export const getAll = async (limit, offset, search, role_id, permission_id) => {
   let query = `
     SELECT 
       rp.*,
@@ -11,28 +33,20 @@ export const getAll = async (limit, offset, search) => {
     JOIN permissions p ON p.id = rp.permission_id
   `;
 
-  const params = [];
+  const { conditions, params } = buildFilters(search, role_id, permission_id);
 
-  if (search) {
-    query += `
-      WHERE r.name LIKE ?
-      OR p.name LIKE ?
-    `;
-    params.push(`%${search}%`, `%${search}%`);
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += `
-    ORDER BY r.name ASC, p.name ASC
-    LIMIT ? OFFSET ?
-  `;
-
+  query += `ORDER BY r.name ASC, p.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
   return rows;
 };
 
-export const countAll = async (search) => {
+export const countAll = async (search, role_id, permission_id) => {
   let query = `
     SELECT COUNT(*) as total
     FROM role_permissions rp
@@ -40,34 +54,26 @@ export const countAll = async (search) => {
     JOIN permissions p ON p.id = rp.permission_id
   `;
 
-  const params = [];
+  const { conditions, params } = buildFilters(search, role_id, permission_id);
 
-  if (search) {
-    query += `
-      WHERE r.name LIKE ?
-      OR p.name LIKE ?
-    `;
-    params.push(`%${search}%`, `%${search}%`);
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   const [[row]] = await db.query(query, params);
   return row.total;
 };
 
-export const getById = async (id) => {
-  const [rows] = await db.query(`
-    SELECT 
-      rp.*,
-      r.name AS role_name,
-      p.name AS permission_name
-    FROM role_permissions rp
-    JOIN roles r ON r.id = rp.role_id
-    JOIN permissions p ON p.id = rp.permission_id
-    WHERE rp.id = ?
-    LIMIT 1
-  `, [id]);
+export const create = async (role_id, permission_id) => {
+  await db.query(
+    "INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)",
+    [role_id, permission_id]
+  );
+  return { role_id, permission_id };
+};
 
-  return rows[0];
+export const remove = async (role_id, permission_id) => {
+  await db.query("DELETE FROM role_permissions WHERE role_id = ? AND permission_id = ?", [role_id, permission_id]);
 };
 
 export const checkRelations = async (role_id, permission_id) => {
@@ -76,26 +82,6 @@ export const checkRelations = async (role_id, permission_id) => {
     [role_id, permission_id]
   );
   return rows[0];
-};
-
-export const create = async (id, role_id, permission_id) => {
-  await db.query(
-    "INSERT INTO role_permissions (id, role_id, permission_id) VALUES (?, ?, ?)",
-    [id, role_id, permission_id]
-  );
-  return { id, role_id, permission_id };
-};
-
-// export const update = async (id, male_athletes, female_athletes, total_athletes, total_coaches) => {
-//   await db.query(
-//     "UPDATE role_permissions SET male_athletes = ?, female_athletes = ?, total_athletes = ?, total_coaches = ? WHERE id = ?",
-//     [male_athletes, female_athletes, total_athletes, total_coaches, id]
-//   );
-//   return { id, male_athletes, female_athletes, total_athletes, total_coaches };
-// };
-
-export const remove = async (id) => {
-  await db.query("DELETE FROM role_permissions WHERE id = ?", [id]);
 };
 
 export const getRelations = async (role_id) => {
@@ -114,9 +100,9 @@ export const insertMany = async (rows) => {
   if (rows.length === 0) return;
   await db.query(
     `
-    INSERT INTO role_permissions (id, role_id, permission_id)
+    INSERT INTO role_permissions (role_id, permission_id)
     VALUES ?
-    ON DUPLICATE KEY UPDATE id = id
+    ON DUPLICATE KEY UPDATE role_id = role_id
     `,
     [rows]
   );

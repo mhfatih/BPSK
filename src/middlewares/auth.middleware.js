@@ -21,7 +21,7 @@ export const authMiddleware = async (req, res, next) => {
     const user = await userService.getAuth(decoded.id);
 
     if (!user) {
-      return res.status(404).json({ message: "User tidak ditemukan" });
+      return res.status(404).json({ message: "User not found" });
     }
 
     req.user = user;

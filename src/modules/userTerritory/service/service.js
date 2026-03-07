@@ -1,13 +1,11 @@
 import * as repo from "../repository/repository.js";
 import * as userRepo from "../../user/repository/repository.js";
 import * as territoryRepo from "../../territory/repository/repository.js";
-import { v4 as uuidv4 } from "uuid";
 
-export const getAll = async (page, perPage, search) => {
+export const getAll = async (page, perPage, search, user_id, territory_id) => {
   const offset = (page - 1) * perPage;
-
-  const data = await repo.getAll(perPage, offset, search);
-  const total = await repo.countAll(search);
+  const data = await repo.getAll(perPage, offset, search, user_id, territory_id);
+  const total = await repo.countAll(search, user_id, territory_id);
 
   return {
     data,
@@ -21,54 +19,44 @@ export const getAll = async (page, perPage, search) => {
   };
 };
 
-export const getById = async (id) => {
-  const data = await repo.getById(id);
-  if (!data) throw new Error("Data tidak ditemukan");
-  return data;
-};
-
 export const create = async (user_id, territory_id) => {
   const user = await userRepo.getById(user_id);
-  if (!user) throw new Error("User tidak ditemukan");
+  if (!user) throw new Error("User not found");
   const territory = await territoryRepo.getById(territory_id);
-  if (!territory) throw new Error("Territory tidak ditemukan");
+  if (!territory) throw new Error("Territory not found");
 
-  const id = uuidv4();
-  return repo.create(id, user_id, territory_id);
+  return repo.create(user_id, territory_id);
 };
 
-// export const update = async (id, male_athletes, female_athletes, total_athletes, total_coaches) => {
-//   const data = await repo.getById(id);
-//   if (!data) throw new Error("Data tidak ditemukan");
+export const remove = async (user_id, territory_id) => {
+  const user = await userRepo.getById(user_id);
+  if (!user) throw new Error("User not found");
+  const territory = await territoryRepo.getById(territory_id);
+  if (!territory) throw new Error("Territory not found");
+  const relation = await repo.checkRelations(user_id, territory_id);
+  if (!relation) throw new Error("Relation not found");
 
-//   return repo.update(id, male_athletes, female_athletes, total_athletes, total_coaches);
-// };
-
-export const remove = async (id) => {
-  const data = await repo.getById(id);
-  if (!data) throw new Error("Data tidak ditemukan");
-
-  await repo.remove(id);
+  await repo.remove(user_id, territory_id);
   return true;
 };
 
 export const getRelations = async (user_id) => {
   const user = await userRepo.getById(user_id);
-  if (!user) throw new Error("User tidak ditemukan");
+  if (!user) throw new Error("User not found");
 
   return repo.getRelations(user_id);
 };
 
 export const assignRelations = async (user_id, items = []) => {
   const user = await userRepo.getById(user_id);
-  if (!user) throw new Error("User tidak ditemukan");
+  if (!user) throw new Error("User not found");
 
   const relations = [];
   const rows = [];
 
   for (const item of items) {
     relations.push(item.territory_id);
-    rows.push([uuidv4(), user_id, item.territory_id]);
+    rows.push([user_id, item.territory_id]);
   }
 
   await repo.deleteMany(user_id, relations);

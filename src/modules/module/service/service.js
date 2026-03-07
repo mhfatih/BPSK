@@ -22,7 +22,7 @@ export const getAll = async (page, perPage, search) => {
 
 export const getById = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
     return data;
 };
 
@@ -46,7 +46,7 @@ export const create = async (name, label, code, url, icon) => {
 
 export const update = async (id, name, label, code, url, icon) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     await repo.update(id, name, label, code, url, icon);
     const permissions = await permissionRepo.getByOwnerId(id);
@@ -59,7 +59,7 @@ export const update = async (id, name, label, code, url, icon) => {
 
 export const remove = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     await repo.remove(id);
     return true;

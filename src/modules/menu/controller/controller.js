@@ -19,7 +19,6 @@ export const getAll = async (req, res) => {
 export const getById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const data = await service.getById(id);
 
     res.json({
@@ -34,7 +33,6 @@ export const getById = async (req, res) => {
 export const create = async (req, res) => {
   try {
     const { module_id, parent_id, sort_order } = req.body;
-
     const newData = await service.create(module_id, parent_id, sort_order);
 
     res.json({
@@ -50,7 +48,6 @@ export const update = async (req, res) => {
   try {
     const { id } = req.params;
     const { parent_id, sort_order } = req.body;
-
     const updatedData = await service.update(id, parent_id, sort_order);
 
     res.json({
@@ -65,7 +62,6 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
   try {
     const { id } = req.params;
-
     await service.remove(id);
 
     res.json({ message: "Data berhasil dihapus" });

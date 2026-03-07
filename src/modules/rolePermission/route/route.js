@@ -5,10 +5,9 @@ import { permission } from "../../../middlewares/permission.middleware.js";
 
 const router = express.Router();
 
-router.get("/", authMiddleware, permission("role_permissions.read"), controller.getAll);
-router.get("/:id", authMiddleware, permission("role_permissions.read"), controller.getById);
-router.post("/", authMiddleware, permission("role_permissions.create"), controller.create);
-// router.put("/:id", authMiddleware, permission("role_permissions.update"), controller.update);
-router.delete("/:id", authMiddleware, permission("role_permissions.delete"), controller.remove);
+router.get("/", authMiddleware, permission("roles.read"), controller.getAll);
+router.put("/:role_id/bulk", authMiddleware, permission("roles.update"), controller.assignRelations);
+router.post("/", authMiddleware, permission("roles.create"), controller.create);
+router.delete("/:role_id/:permission_id", authMiddleware, permission("roles.delete"), controller.remove);
 
 export default router;

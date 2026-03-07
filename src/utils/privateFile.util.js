@@ -10,7 +10,7 @@ export const resolvePrivateFile = (relativePath) => {
   }
 
   if (!fs.existsSync(filePath)) {
-    throw new Error("File tidak ditemukan");
+    throw new Error("File not found");
   }
 
   return filePath;

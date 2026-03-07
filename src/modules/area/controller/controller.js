@@ -5,7 +5,6 @@ export const getAll = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 10;
     const search = req.query.search || "";
-
     const result = await service.getAll(page, perPage, search);
 
     res.json({
@@ -23,7 +22,6 @@ export const getAll = async (req, res) => {
 export const getById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const data = await service.getById(id);
 
     res.json({
@@ -38,11 +36,7 @@ export const getById = async (req, res) => {
 export const create = async (req, res) => {
   try {
     const { name, description } = req.body;
-
-    const newData = await service.create(
-      name,
-      description
-    );
+    const newData = await service.create(name, description);
 
     res.json({
       message: "Data berhasil dibuat",
@@ -57,12 +51,7 @@ export const update = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
-
-    const updatedData = await service.update(
-      id,
-      name,
-      description
-    );
+    const updatedData = await service.update(id, name, description);
 
     res.json({
       message: "Data berhasil diperbarui",
@@ -76,7 +65,6 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
   try {
     const { id } = req.params;
-
     await service.remove(id);
 
     res.json({ message: "Data berhasil dihapus" });

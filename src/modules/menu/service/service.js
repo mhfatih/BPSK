@@ -7,7 +7,7 @@ export const getAll = async () => {
 
 export const getById = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
     return data;
 };
 
@@ -18,14 +18,14 @@ export const create = async (module_id, parent_id, sort_order) => {
 
 export const update = async (id, module_id, parent_id, sort_order) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     return repo.update(id, module_id, parent_id, sort_order);
 };
 
 export const remove = async (id) => {
     const data = await repo.getById(id);
-    if (!data) throw new Error("Data tidak ditemukan");
+    if (!data) throw new Error("Data not found");
 
     await repo.remove(id);
     return true;

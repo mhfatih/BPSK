@@ -1,16 +1,27 @@
 import { db } from "../../../config/database.js";
 
+const buildFilters = (search) => {
+  const conditions = [];
+  const params = [];
+
+  if (search) {
+    conditions.push(`(a.name LIKE ?)`);
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  return { conditions, params };
+};
+
 export const getAll = async (limit, offset, search) => {
   let query = `
     SELECT * 
     FROM areas a
   `;
-  
-  const params = [];
 
-  if (search) {
-    query += ` WHERE a.name LIKE ? `;
-    params.push(`%${search}%`);
+  const { conditions, params } = buildFilters(search);
+
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   query += ` ORDER BY a.name ASC LIMIT ? OFFSET ?`;
@@ -22,11 +33,11 @@ export const getAll = async (limit, offset, search) => {
 
 export const countAll = async (search) => {
   let query = `SELECT COUNT(*) as total FROM areas a`;
-  const params = [];
 
-  if (search) {
-    query += ` WHERE a.name LIKE ?`;
-    params.push(`%${search}%`);
+  const { conditions, params } = buildFilters(search);
+
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   const [[row]] = await db.query(query, params);

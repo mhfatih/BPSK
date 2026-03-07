@@ -1,6 +1,28 @@
 import { db } from "../../../config/database.js";
 
-export const getAll = async (limit, offset, search) => {
+const buildFilters = (search, user_id, role_id) => {
+  const conditions = [];
+  const params = [];
+
+  if (search) {
+    conditions.push(`(u.name LIKE ? OR r.name LIKE ?)`);
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (user_id) {
+    conditions.push(`u.id = ?`);
+    params.push(user_id);
+  }
+
+  if (role_id) {
+    conditions.push(`r.id = ?`);
+    params.push(role_id);
+  }
+
+  return { conditions, params };
+};
+
+export const getAll = async (limit, offset, search, user_id, role_id) => {
   let query = `
     SELECT 
       ur.*,
@@ -11,28 +33,20 @@ export const getAll = async (limit, offset, search) => {
     JOIN roles r ON r.id = ur.role_id
   `;
 
-  const params = [];
+  const { conditions, params } = buildFilters(search, user_id, role_id);
 
-  if (search) {
-    query += `
-      WHERE u.name LIKE ?
-      OR r.name LIKE ?
-    `;
-    params.push(`%${search}%`, `%${search}%`);
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += `
-    ORDER BY u.name ASC, r.name ASC
-    LIMIT ? OFFSET ?
-  `;
-
+  query += `ORDER BY u.name ASC, r.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
   return rows;
 };
 
-export const countAll = async (search) => {
+export const countAll = async (search, user_id, role_id) => {
   let query = `
     SELECT COUNT(*) as total
     FROM user_roles ur
@@ -40,54 +54,26 @@ export const countAll = async (search) => {
     JOIN roles r ON r.id = ur.role_id
   `;
 
-  const params = [];
+  const { conditions, params } = buildFilters(search, user_id, role_id);
 
-  if (search) {
-    query += `
-      WHERE u.name LIKE ?
-      OR r.name LIKE ?
-    `;
-    params.push(`%${search}%`, `%${search}%`);
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   const [[row]] = await db.query(query, params);
   return row.total;
 };
 
-export const getById = async (id) => {
-  const [rows] = await db.query(`
-    SELECT 
-      ur.*,
-      u.name AS user_name,
-      r.name AS role_name
-    FROM user_roles ur
-    JOIN users u ON u.id = ur.user_id
-    JOIN roles r ON r.id = ur.role_id
-    WHERE ur.id = ?
-    LIMIT 1
-  `, [id]);
-
-  return rows[0];
-};
-
-export const create = async (id, user_id, role_id) => {
+export const create = async (user_id, role_id) => {
   await db.query(
-    "INSERT INTO user_roles (id, user_id, role_id) VALUES (?, ?, ?)",
-    [id, user_id, role_id]
+    "INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)",
+    [user_id, role_id]
   );
-  return { id, user_id, role_id };
+  return { user_id, role_id };
 };
 
-// export const update = async (id, male_athletes, female_athletes, total_athletes, total_coaches) => {
-//   await db.query(
-//     "UPDATE user_roles SET male_athletes = ?, female_athletes = ?, total_athletes = ?, total_coaches = ? WHERE id = ?",
-//     [male_athletes, female_athletes, total_athletes, total_coaches, id]
-//   );
-//   return { id, male_athletes, female_athletes, total_athletes, total_coaches };
-// };
-
-export const remove = async (id) => {
-  await db.query("DELETE FROM user_roles WHERE id = ?", [id]);
+export const remove = async (user_id, role_id) => {
+  await db.query("DELETE FROM user_roles WHERE user_id = ? AND role_id = ?", [user_id, role_id]);
 };
 
 export const checkRelations = async (user_id, role_id) => {
@@ -114,9 +100,9 @@ export const insertMany = async (rows) => {
   if (rows.length === 0) return;
   await db.query(
     `
-    INSERT INTO user_roles (id, user_id, role_id)
+    INSERT INTO user_roles (user_id, role_id)
     VALUES ?
-    ON DUPLICATE KEY UPDATE id = id
+    ON DUPLICATE KEY UPDATE user_id = user_id
     `,
     [rows]
   );

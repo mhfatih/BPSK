@@ -1,6 +1,28 @@
 import { db } from "../../../config/database.js";
 
-export const getAll = async (limit, offset, search) => {
+const buildFilters = (search, user_id, territory_id) => {
+  const conditions = [];
+  const params = [];
+
+  if (search) {
+    conditions.push(`(u.name LIKE ? OR t.name LIKE ?)`);
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (user_id) {
+    conditions.push(`u.id = ?`);
+    params.push(user_id);
+  }
+
+  if (territory_id) {
+    conditions.push(`t.id = ?`);
+    params.push(territory_id);
+  }
+
+  return { conditions, params };
+};
+
+export const getAll = async (limit, offset, search, user_id, territory_id) => {
   let query = `
     SELECT 
       ut.*,
@@ -11,28 +33,20 @@ export const getAll = async (limit, offset, search) => {
     JOIN territories t ON t.id = ut.territory_id
   `;
 
-  const params = [];
+  const { conditions, params } = buildFilters(search, user_id, territory_id);
 
-  if (search) {
-    query += `
-      WHERE u.name LIKE ?
-      OR t.name LIKE ?
-    `;
-    params.push(`%${search}%`, `%${search}%`);
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += `
-    ORDER BY u.name ASC, t.name ASC
-    LIMIT ? OFFSET ?
-  `;
-
+  query += `ORDER BY u.name ASC, t.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
   return rows;
 };
 
-export const countAll = async (search) => {
+export const countAll = async (search, user_id, territory_id) => {
   let query = `
     SELECT COUNT(*) as total
     FROM user_territories ut
@@ -40,54 +54,26 @@ export const countAll = async (search) => {
     JOIN territories t ON t.id = ut.territory_id
   `;
 
-  const params = [];
+  const { conditions, params } = buildFilters(search, user_id, territory_id);
 
-  if (search) {
-    query += `
-      WHERE u.name LIKE ?
-      OR t.name LIKE ?
-    `;
-    params.push(`%${search}%`, `%${search}%`);
+  if (conditions.length > 0) {
+    query += ` WHERE ` + conditions.join(" AND ");
   }
 
   const [[row]] = await db.query(query, params);
   return row.total;
 };
 
-export const getById = async (id) => {
-  const [rows] = await db.query(`
-    SELECT 
-      ut.*,
-      u.name AS user_name,
-      t.name AS territory_name
-    FROM user_territories ut
-    JOIN users u ON u.id = ut.user_id
-    JOIN territories t ON t.id = ut.territory_id
-    WHERE ut.id = ?
-    LIMIT 1
-  `, [id]);
-
-  return rows[0];
-};
-
-export const create = async (id, user_id, territory_id) => {
+export const create = async (user_id, territory_id) => {
   await db.query(
-    "INSERT INTO user_territories (id, user_id, territory_id) VALUES (?, ?, ?)",
-    [id, user_id, territory_id]
+    "INSERT INTO user_territories (user_id, territory_id) VALUES (?, ?)",
+    [user_id, territory_id]
   );
-  return { id, user_id, territory_id };
+  return { user_id, territory_id };
 };
 
-// export const update = async (id, male_athletes, female_athletes, total_athletes, total_coaches) => {
-//   await db.query(
-//     "UPDATE user_territories SET male_athletes = ?, female_athletes = ?, total_athletes = ?, total_coaches = ? WHERE id = ?",
-//     [male_athletes, female_athletes, total_athletes, total_coaches, id]
-//   );
-//   return { id, male_athletes, female_athletes, total_athletes, total_coaches };
-// };
-
-export const remove = async (id) => {
-  await db.query("DELETE FROM user_territories WHERE id = ?", [id]);
+export const remove = async (user_id, territory_id) => {
+  await db.query("DELETE FROM user_territories WHERE user_id = ? AND territory_id = ?", [user_id, territory_id]);
 };
 
 export const checkRelations = async (user_id, territory_id) => {
@@ -114,9 +100,9 @@ export const insertMany = async (rows) => {
   if (rows.length === 0) return;
   await db.query(
     `
-    INSERT INTO user_territories (id, user_id, territory_id)
+    INSERT INTO user_territories (user_id, territory_id)
     VALUES ?
-    ON DUPLICATE KEY UPDATE id = id
+    ON DUPLICATE KEY UPDATE user_id = user_id
     `,
     [rows]
   );
