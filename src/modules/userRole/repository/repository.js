@@ -5,17 +5,17 @@ const buildFilters = (search, user_id, role_id) => {
   const params = [];
 
   if (search) {
-    conditions.push(`(u.name LIKE ? OR r.name LIKE ?)`);
+    conditions.push(`(users.name LIKE ? OR roles.name LIKE ?)`);
     params.push(`%${search}%`, `%${search}%`);
   }
 
   if (user_id) {
-    conditions.push(`u.id = ?`);
+    conditions.push(`users.id = ?`);
     params.push(user_id);
   }
 
   if (role_id) {
-    conditions.push(`r.id = ?`);
+    conditions.push(`roles.id = ?`);
     params.push(role_id);
   }
 
@@ -24,13 +24,10 @@ const buildFilters = (search, user_id, role_id) => {
 
 export const getAll = async (limit, offset, search, user_id, role_id) => {
   let query = `
-    SELECT 
-      ur.*,
-      u.name AS user_name,
-      r.name AS role_name
-    FROM user_roles ur
-    JOIN users u ON u.id = ur.user_id
-    JOIN roles r ON r.id = ur.role_id
+    SELECT user_roles.*, users.name AS user_name, roles.name AS role_name
+    FROM user_roles
+    JOIN users ON users.id = user_roles.user_id
+    JOIN roles ON roles.id = user_roles.role_id
   `;
 
   const { conditions, params } = buildFilters(search, user_id, role_id);
@@ -39,7 +36,7 @@ export const getAll = async (limit, offset, search, user_id, role_id) => {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += `ORDER BY u.name ASC, r.name ASC LIMIT ? OFFSET ?`;
+  query += `ORDER BY users.name ASC, roles.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
@@ -49,9 +46,9 @@ export const getAll = async (limit, offset, search, user_id, role_id) => {
 export const countAll = async (search, user_id, role_id) => {
   let query = `
     SELECT COUNT(*) as total
-    FROM user_roles ur
-    JOIN users u ON u.id = ur.user_id
-    JOIN roles r ON r.id = ur.role_id
+    FROM user_roles
+    JOIN users ON users.id = user_roles.user_id
+    JOIN roles ON roles.id = user_roles.role_id
   `;
 
   const { conditions, params } = buildFilters(search, user_id, role_id);
@@ -86,11 +83,11 @@ export const checkRelations = async (user_id, role_id) => {
 
 export const getRelations = async (user_id) => {
   const [rows] = await db.query(`
-    SELECT ur.*, r.name AS role_name
-    FROM user_roles ur
-    JOIN roles r ON r.id = ur.role_id
-    WHERE ur.user_id = ?
-    ORDER BY r.name ASC
+    SELECT user_roles.*, roles.name AS role_name
+    FROM user_roles
+    JOIN roles ON roles.id = user_roles.role_id
+    WHERE user_roles.user_id = ?
+    ORDER BY roles.name ASC
     `, [user_id]
   );
   return rows;

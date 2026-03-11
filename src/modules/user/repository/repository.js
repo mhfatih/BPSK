@@ -3,17 +3,17 @@ import { db } from "../../../config/database.js";
 export const getAll = async (limit, offset, search) => {
   let query = `
     SELECT * 
-    FROM users u
+    FROM users
   `;
   
   const params = [];
 
   if (search) {
-    query += ` WHERE u.name LIKE ? `;
+    query += ` WHERE users.name LIKE ? `;
     params.push(`%${search}%`);
   }
 
-  query += ` ORDER BY u.name ASC LIMIT ? OFFSET ?`;
+  query += ` ORDER BY users.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
@@ -21,11 +21,11 @@ export const getAll = async (limit, offset, search) => {
 };
 
 export const countAll = async (search) => {
-  let query = `SELECT COUNT(*) as total FROM users u`;
+  let query = `SELECT COUNT(*) as total FROM users`;
   const params = [];
 
   if (search) {
-    query += ` WHERE u.name LIKE ?`;
+    query += ` WHERE users.name LIKE ?`;
     params.push(`%${search}%`);
   }
 

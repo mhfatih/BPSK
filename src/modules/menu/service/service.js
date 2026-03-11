@@ -2,7 +2,7 @@ import * as repo from "../repository/repository.js";
 import { v4 as uuidv4 } from "uuid";
 
 export const getAll = async () => {
-  return repo.getAll();
+    return repo.getAll();
 };
 
 export const getById = async (id) => {
@@ -20,7 +20,8 @@ export const update = async (id, module_id, parent_id, sort_order) => {
     const data = await repo.getById(id);
     if (!data) throw new Error("Data not found");
 
-    return repo.update(id, module_id, parent_id, sort_order);
+    await repo.update(id, module_id, parent_id, sort_order);
+    return await repo.getById(id);
 };
 
 export const remove = async (id) => {

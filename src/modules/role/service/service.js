@@ -7,16 +7,7 @@ export const getAll = async (page, perPage, search) => {
   const data = await repo.getAll(perPage, offset, search);
   const total = await repo.countAll(search);
 
-  return {
-    data,
-    meta: {
-      total,
-      per_page: perPage,
-      current_page: page,
-      first_page: 1,
-      last_page: Math.ceil(total / perPage),
-    }
-  };
+  return { data, meta: { total, per_page: perPage, current_page: page, first_page: 1, last_page: Math.ceil(total / perPage) } };
 };
 
 export const getById = async (id) => {
@@ -35,7 +26,9 @@ export const create = async (name, description) => {
 export const update = async (id, name, description) => {
     const data = await repo.getById(id);
     if (!data) throw new Error("Data not found");
-    return repo.update(id, name, description);
+
+    await repo.update(id, name, description);
+    return await repo.getById(id);
 };
 
 export const remove = async (id) => {

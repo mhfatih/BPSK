@@ -5,17 +5,17 @@ const buildFilters = (search, role_id, permission_id) => {
   const params = [];
 
   if (search) {
-    conditions.push(`(r.name LIKE ? OR p.name LIKE ?)`);
+    conditions.push(`(roles.name LIKE ? OR permissions.name LIKE ?)`);
     params.push(`%${search}%`, `%${search}%`);
   }
 
   if (role_id) {
-    conditions.push(`r.id = ?`);
+    conditions.push(`roles.id = ?`);
     params.push(role_id);
   }
 
   if (permission_id) {
-    conditions.push(`p.id = ?`);
+    conditions.push(`permissions.id = ?`);
     params.push(permission_id);
   }
 
@@ -24,13 +24,10 @@ const buildFilters = (search, role_id, permission_id) => {
 
 export const getAll = async (limit, offset, search, role_id, permission_id) => {
   let query = `
-    SELECT 
-      rp.*,
-      r.name AS role_name,
-      p.name AS permission_name
-    FROM role_permissions rp
-    JOIN roles r ON r.id = rp.role_id
-    JOIN permissions p ON p.id = rp.permission_id
+    SELECT role_permissions.*, roles.name AS role_name, permissions.name AS permission_name
+    FROM role_permissions
+    JOIN roles ON roles.id = role_permissions.role_id
+    JOIN permissions ON permissions.id = role_permissions.permission_id
   `;
 
   const { conditions, params } = buildFilters(search, role_id, permission_id);
@@ -39,7 +36,7 @@ export const getAll = async (limit, offset, search, role_id, permission_id) => {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += `ORDER BY r.name ASC, p.name ASC LIMIT ? OFFSET ?`;
+  query += `ORDER BY roles.name ASC, permissions.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
@@ -49,9 +46,9 @@ export const getAll = async (limit, offset, search, role_id, permission_id) => {
 export const countAll = async (search, role_id, permission_id) => {
   let query = `
     SELECT COUNT(*) as total
-    FROM role_permissions rp
-    JOIN roles r ON r.id = rp.role_id
-    JOIN permissions p ON p.id = rp.permission_id
+    FROM role_permissions
+    JOIN roles ON roles.id = role_permissions.role_id
+    JOIN permissions ON permissions.id = role_permissions.permission_id
   `;
 
   const { conditions, params } = buildFilters(search, role_id, permission_id);
@@ -86,11 +83,11 @@ export const checkRelations = async (role_id, permission_id) => {
 
 export const getRelations = async (role_id) => {
   const [rows] = await db.query(`
-    SELECT rp.*, p.name AS permission_name
-    FROM role_permissions rp
-    JOIN permissions p ON p.id = rp.permission_id
-    WHERE rp.role_id = ?
-    ORDER BY p.name ASC
+    SELECT role_permissions.*, permissions.name AS permission_name
+    FROM role_permissions
+    JOIN permissions ON permissions.id = role_permissions.permission_id
+    WHERE role_permissions.role_id = ?
+    ORDER BY permissions.name ASC
     `, [role_id]
   );
   return rows;

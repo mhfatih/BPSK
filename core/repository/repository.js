@@ -5,8 +5,8 @@ const buildFilters = (search) => {
   const params = [];
 
   if (search) {
-    conditions.push(`(m.name LIKE ?)`);
-    params.push(`%${search}%`, `%${search}%`);
+    conditions.push(`(modules.name LIKE ?)`);
+    params.push(`%${search}%`);
   }
 
   return { conditions, params };
@@ -15,7 +15,7 @@ const buildFilters = (search) => {
 export const getAll = async (limit, offset, search) => {
   let query = `
     SELECT * 
-    FROM modules m
+    FROM modules
   `;
 
   const { conditions, params } = buildFilters(search);
@@ -24,7 +24,7 @@ export const getAll = async (limit, offset, search) => {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += ` ORDER BY m.name ASC LIMIT ? OFFSET ?`;
+  query += ` ORDER BY modules.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
@@ -32,7 +32,7 @@ export const getAll = async (limit, offset, search) => {
 };
 
 export const countAll = async (search) => {
-  let query = `SELECT COUNT(*) as total FROM modules m`;
+  let query = `SELECT COUNT(*) as total FROM modules`;
 
   const { conditions, params } = buildFilters(search);
 

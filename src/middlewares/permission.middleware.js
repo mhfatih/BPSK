@@ -1,4 +1,4 @@
-import * as rpRepo from "../modules/rolePermission/repository/repository.js";
+import * as rolePermissionRepo from "../modules/rolePermission/repository/repository.js";
 
 export const permission = (requiredPermission) => {
   return async (req, res, next) => {
@@ -7,7 +7,7 @@ export const permission = (requiredPermission) => {
 
     const permissions = [];
     for (const role of roles) {
-      const rolePerms = await rpRepo.getRelations(role.role_id);
+      const rolePerms = await rolePermissionRepo.getRelations(role.role_id);
       permissions.push(...rolePerms.map(permission => permission.permission_name));
     }
 

@@ -5,8 +5,8 @@ export const getAll = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 10;
     const search = req.query.search || "";
-    const area_id = req.query.area_id || "";
-    const result = await service.getAll(page, perPage, search, area_id);
+    const region_id = req.query.region_id || "";
+    const result = await service.getAll(page, perPage, search, region_id);
 
     res.json({
       status: 200,
@@ -36,8 +36,8 @@ export const getById = async (req, res) => {
 
 export const create = async (req, res) => {
   try {
-    const { area_id, name, description } = req.body;
-    const newData = await service.create(area_id, name, description);
+    const { region_id, name, description } = req.body;
+    const newData = await service.create(region_id, name, description);
 
     res.json({
       message: "Data berhasil dibuat",
@@ -51,8 +51,8 @@ export const create = async (req, res) => {
 export const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
-    const updatedData = await service.update(id, name, description);
+    const { region_id, name, description } = req.body;
+    const updatedData = await service.update(id, region_id, name, description);
 
     res.json({
       message: "Data berhasil diperbarui",

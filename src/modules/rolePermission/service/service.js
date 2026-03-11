@@ -7,16 +7,7 @@ export const getAll = async (page, perPage, search, role_id, permission_id) => {
   const data = await repo.getAll(perPage, offset, search, role_id, permission_id);
   const total = await repo.countAll(search, role_id, permission_id);
 
-  return {
-    data,
-    meta: {
-      total,
-      per_page: perPage,
-      current_page: page,
-      first_page: 1,
-      last_page: Math.ceil(total / perPage),
-    }
-  };
+  return { data, meta: { total, per_page: perPage, current_page: page, first_page: 1, last_page: Math.ceil(total / perPage) } };
 };
 
 export const create = async (role_id, permission_id) => {

@@ -35,8 +35,8 @@ export const getById = async (req, res) => {
 
 export const create = async (req, res) => {
   try {
-    const { userId, otpHash, expiresAt, attempts } = req.body;
-    const newData = await service.create(userId, otpHash, expiresAt, attempts);
+    const { user_id, otpHash, expiresAt, attempts } = req.body;
+    const newData = await service.create(user_id, otpHash, expiresAt, attempts);
 
     res.json({
       message: "Data berhasil dibuat",

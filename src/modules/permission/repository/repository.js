@@ -5,12 +5,12 @@ const buildFilters = (search, module_id) => {
   const params = [];
 
   if (search) {
-    conditions.push(`(p.name LIKE ? OR m.name LIKE ?)`);
+    conditions.push(`(permissions.name LIKE ? OR modules.name LIKE ?)`);
     params.push(`%${search}%`, `%${search}%`);
   }
 
   if (module_id) {
-    conditions.push(`p.module_id = ?`);
+    conditions.push(`permissions.module_id = ?`);
     params.push(module_id);
   }
 
@@ -19,9 +19,9 @@ const buildFilters = (search, module_id) => {
 
 export const getAll = async (limit, offset, search, module_id) => {
   let query = `
-    SELECT p.*, m.name AS module_name
-    FROM permissions p
-    JOIN modules m ON m.id = p.module_id
+    SELECT permissions.*, modules.name AS module_name
+    FROM permissions
+    JOIN modules ON modules.id = permissions.module_id
   `;
   
   const { conditions, params } = buildFilters(search, module_id);
@@ -30,7 +30,7 @@ export const getAll = async (limit, offset, search, module_id) => {
     query += ` WHERE ` + conditions.join(" AND ");
   }
 
-  query += ` ORDER BY p.name ASC, m.name ASC LIMIT ? OFFSET ?`;
+  query += ` ORDER BY permissions.name ASC, modules.name ASC LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await db.query(query, params);
@@ -40,8 +40,8 @@ export const getAll = async (limit, offset, search, module_id) => {
 export const countAll = async (search, module_id) => {
   let query = `
     SELECT COUNT(*) as total
-    FROM permissions p
-    JOIN modules m ON m.id = p.module_id
+    FROM permissions
+    JOIN modules ON modules.id = permissions.module_id
   `;
 
   const { conditions, params } = buildFilters(search, module_id);
@@ -57,11 +57,11 @@ export const countAll = async (search, module_id) => {
 export const getFull = async () => {
   const [rows] = await db.query(`
     SELECT 
-      p.*,
-      m.name AS module_name
-    FROM permissions p
-    JOIN modules m ON m.id = p.module_id
-    ORDER BY m.name ASC, p.name ASC
+      permissions.*,
+      modules.name AS module_name
+    FROM permissions
+    JOIN modules ON modules.id = permissions.module_id
+    ORDER BY modules.name ASC, permissions.name ASC
   `,);
 
   return rows;
@@ -70,12 +70,12 @@ export const getFull = async () => {
 export const getByOwnerId = async (module_id) => {
   const [rows] = await db.query(`
     SELECT 
-      p.*,
-      m.name AS module_name
-    FROM permissions p
-    JOIN modules m ON m.id = p.module_id
-    WHERE m.id = ?
-    ORDER BY m.name ASC, p.name ASC
+      permissions.*,
+      modules.name AS module_name
+    FROM permissions
+    JOIN modules ON modules.id = permissions.module_id
+    WHERE modules.id = ?
+    ORDER BY modules.name ASC, permissions.name ASC
   `, [module_id]);
 
   return rows;
@@ -84,11 +84,11 @@ export const getByOwnerId = async (module_id) => {
 export const getById = async (id) => {
   const [rows] = await db.query(`
     SELECT 
-      p.*,
-      m.name AS module_name
-    FROM permissions p
-    JOIN modules m ON m.id = p.module_id
-    WHERE p.id = ?
+      permissions.*,
+      modules.name AS module_name
+    FROM permissions
+    JOIN modules ON modules.id = permissions.module_id
+    WHERE permissions.id = ?
     LIMIT 1
   `, [id]);
 

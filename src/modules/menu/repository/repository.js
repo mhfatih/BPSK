@@ -2,12 +2,10 @@ import { db } from "../../../config/database.js";
 
 export const getAll = async () => {
   const [rows] = await db.query(`
-    SELECT 
-      m.*,
-      mo.name AS module_name
-    FROM menus m
-    JOIN modules mo ON mo.id = m.module_id
-    ORDER BY m.sort_order
+    SELECT menus.*, modules.name AS module_name
+    FROM menus
+    JOIN modules ON modules.id = menus.module_id
+    ORDER BY menus.sort_order
     `);
   return rows;
 };

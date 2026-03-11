@@ -7,16 +7,7 @@ export const getAll = async (page, perPage, search) => {
   const data = await repo.getAll(perPage, offset, search);
   const total = await repo.countAll(search);
 
-  return {
-    data,
-    meta: {
-      total,
-      per_page: perPage,
-      current_page: page,
-      first_page: 1,
-      last_page: Math.ceil(total / perPage),
-    }
-  };
+  return { data, meta: { total, per_page: perPage, current_page: page, first_page: 1, last_page: Math.ceil(total / perPage) } };
 };
 
 export const getById = async (id) => {
@@ -25,16 +16,17 @@ export const getById = async (id) => {
     return data;
 };
 
-export const create = async (userId, otpHash, expiresAt, attempts) => {
+export const create = async (user_id, otpHash, expiresAt, attempts) => {
     const id = uuidv4();
-    return repo.create(id, userId, otpHash, expiresAt, attempts);
+    return repo.create(id, user_id, otpHash, expiresAt, attempts);
 };
 
 export const update = async (id, otpHash, expiresAt, attempts) => {
     const data = await repo.getById(id);
     if (!data) throw new Error("Data not found");
 
-    return repo.update(id, otpHash, expiresAt, attempts);
+    await repo.update(id, otpHash, expiresAt, attempts);
+    return await repo.getById(id);
 };
 
 export const remove = async (id) => {

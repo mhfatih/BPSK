@@ -8,7 +8,7 @@ import * as userRepo from "../../user/repository/repository.js";
 import * as userService from "../../user/service/service.js";
 import * as otpRepo from "../../otp/repository/repository.js";
 import * as roleRepo from "../../role/repository/repository.js";
-import * as urRepo from "../../userRole/repository/repository.js";
+import * as userRoleRepo from "../../userRole/repository/repository.js";
 import * as mailer from "./mailer.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -55,7 +55,7 @@ export const verifyOtp = async (email, otpInput) => {
 
     const role = await roleRepo.getByName("User");
     if (!role) throw new Error("Role not found");
-    await urRepo.create(uuidv4(), userId, role.id)
+    await userRoleRepo.create(uuidv4(), userId, role.id)
 
     const token = jwt.sign(
         { id: user.id, type: "access" },

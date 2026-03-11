@@ -12,11 +12,16 @@ import menuRoutes from "./modules/menu/route/route.js";
 import rolesRoutes from "./modules/role/route/route.js";
 import permissionsRoutes from "./modules/permission/route/route.js";
 import territoryRoutes from "./modules/territory/route/route.js";
-import areaRoutes from "./modules/area/route/route.js";
+import regionRoutes from "./modules/region/route/route.js";
+import caseRoutes from "./modules/case/route/route.js";
+import caseReporterRoutes from "./modules/caseReporter/route/route.js";
+import caseComplaintRoutes from "./modules/caseComplaint/route/route.js";
+import caseChronologyRoutes from "./modules/caseChronology/route/route.js";
+import courtRoutes from "./modules/court/route/route.js";
 
-import rpRoutes from "./modules/rolePermission/route/route.js";
-import urRoutes from "./modules/userRole/route/route.js";
-import utRoutes from "./modules/userTerritory/route/route.js";
+import rolePermissionRoutes from "./modules/rolePermission/route/route.js";
+import userRoleRoutes from "./modules/userRole/route/route.js";
+import userRegionRoutes from "./modules/userRegion/route/route.js";
 
 const app = express();
 app.use(cors({
@@ -56,11 +61,17 @@ app.use("/api/menus", menuRoutes);
 app.use("/api/roles", rolesRoutes);
 app.use("/api/permissions", permissionsRoutes);
 app.use("/api/territories", territoryRoutes);
-app.use("/api/areas", areaRoutes);
+app.use("/api/regions", regionRoutes);
+app.use("/api/cases", caseRoutes);
+app.use("/api/cases", caseReporterRoutes);
+app.use("/api/cases", caseComplaintRoutes);
+app.use("/api/cases", caseChronologyRoutes);
+app.use("/api/cases", caseChronologyRoutes);
+app.use("/api/courts", courtRoutes);
 
-app.use("/api/role-permissions", rpRoutes);
-app.use("/api/user-roles", urRoutes);
-app.use("/api/user-territories", utRoutes);
+app.use("/api/role-permissions", rolePermissionRoutes);
+app.use("/api/user-roles", userRoleRoutes);
+app.use("/api/user-regions", userRegionRoutes);
 
 app.use("/public", express.static(path.join(process.cwd(), "uploads/public")));
 // app.use("/private", express.static(path.join(process.cwd(), "uploads/private")));
