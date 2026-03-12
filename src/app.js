@@ -15,6 +15,7 @@ import territoryRoutes from "./modules/territory/route/route.js";
 import regionRoutes from "./modules/region/route/route.js";
 import caseRoutes from "./modules/case/route/route.js";
 import caseReporterRoutes from "./modules/caseReporter/route/route.js";
+import caseReportedRoutes from "./modules/caseReported/route/route.js";
 import caseComplaintRoutes from "./modules/caseComplaint/route/route.js";
 import caseChronologyRoutes from "./modules/caseChronology/route/route.js";
 import courtRoutes from "./modules/court/route/route.js";
@@ -64,8 +65,8 @@ app.use("/api/territories", territoryRoutes);
 app.use("/api/regions", regionRoutes);
 app.use("/api/cases", caseRoutes);
 app.use("/api/cases", caseReporterRoutes);
+app.use("/api/case-reported", caseReportedRoutes);
 app.use("/api/cases", caseComplaintRoutes);
-app.use("/api/cases", caseChronologyRoutes);
 app.use("/api/cases", caseChronologyRoutes);
 app.use("/api/courts", courtRoutes);
 

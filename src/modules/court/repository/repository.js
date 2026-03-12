@@ -28,7 +28,7 @@ const buildFilters = (search, case_id, user_id, regions) => {
 
 export const getAll = async (limit, offset, search, case_id, user_id, regions) => {
   let query = `
-    SELECT courts.*, cases.reporter_name AS case_name, territories.name AS territory_name
+    SELECT courts.*, cases.reporter_name AS reporter_name, territories.name AS territory_name
     FROM courts
     JOIN cases ON cases.id = courts.case_id
     JOIN territories ON territories.id = cases.territory_id

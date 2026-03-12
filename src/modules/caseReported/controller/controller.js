@@ -5,7 +5,8 @@ export const getAll = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 10;
     const search = req.query.search || "";
-    const result = await service.getAll(page, perPage, search, req.user);
+    const case_id = req.query.case_id || "";
+    const result = await service.getAll(page, perPage, search, case_id, req.user);
 
     res.json({
       status: 200,
@@ -35,8 +36,8 @@ export const getById = async (req, res) => {
 
 export const create = async (req, res) => {
   try {
-    const { case_id, name, description } = req.body;
-    const newData = await service.create(case_id, name, description, req.user);
+    const { case_id, territory_id, company, owner, address, postal_code, phone, email } = req.body;
+    const newData = await service.create(case_id, territory_id, company, owner, address, postal_code, phone, email, req.user);
 
     res.json({
       message: "Data berhasil dibuat",
@@ -50,8 +51,8 @@ export const create = async (req, res) => {
 export const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
-    const updatedData = await service.update(id, name, description, req.user);
+    const { territory_id, company, owner, address, postal_code, phone, email } = req.body;
+    const updatedData = await service.update(id, territory_id, company, owner, address, postal_code, phone, email, req.user);
 
     res.json({
       message: "Data berhasil diperbarui",
@@ -68,6 +69,21 @@ export const remove = async (req, res) => {
     await service.remove(id, req.user);
 
     res.json({ message: "Data berhasil dihapus" });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const assignRelations = async (req, res) => {
+  try {
+    const { case_id } = req.params;
+    const { items } = req.body;
+    const data = await service.assignRelations(case_id, items);
+
+    res.json({
+      message: "Data berhasil diperbarui",
+      data: data
+    });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
